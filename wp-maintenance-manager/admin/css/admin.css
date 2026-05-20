@@ -1,0 +1,122 @@
+/* ===== WP Maintenance Manager – Admin Styles ===== */
+
+/* ---- Layout del formulario ---- */
+.wpmm-form {
+	padding: 4px 0;
+}
+
+.wpmm-row {
+	display: flex;
+	gap: 16px;
+	margin-bottom: 16px;
+	flex-wrap: wrap;
+}
+
+.wpmm-col {
+	flex: 1;
+	min-width: 180px;
+}
+
+.wpmm-col--small {
+	flex: 0 0 120px;
+}
+
+.wpmm-col--full {
+	flex: 0 0 100%;
+}
+
+.wpmm-label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 6px;
+	color: #1d2327;
+	font-size: 13px;
+}
+
+.wpmm-label .required {
+	color: #d63638;
+}
+
+.wpmm-input,
+.wpmm-select,
+.wpmm-textarea {
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+	padding: 6px 10px;
+	font-size: 13px;
+	color: #2c3338;
+	background: #fff;
+	transition: border-color 0.15s;
+	box-sizing: border-box;
+}
+
+.wpmm-input:focus,
+.wpmm-select:focus,
+.wpmm-textarea:focus {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+	outline: none;
+}
+
+.wpmm-textarea {
+	resize: vertical;
+}
+
+.wpmm-notice {
+	color: #646970;
+	font-style: italic;
+	font-size: 12px;
+	margin: 4px 0 0;
+}
+
+.wpmm-empty {
+	color: #8c8f94;
+}
+
+/* ---- Badges de estado ---- */
+.wpmm-badge {
+	display: inline-block;
+	padding: 3px 9px;
+	border-radius: 12px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.5;
+	white-space: nowrap;
+}
+
+/* Estados */
+.wpmm-badge--pendiente    { background: #f0f0f1; color: #50575e; }
+.wpmm-badge--en_curso     { background: #fcf9e8; color: #996800; border: 1px solid #f5c518; }
+.wpmm-badge--completado   { background: #edfaef; color: #0a7227; border: 1px solid #68de7c; }
+.wpmm-badge--cancelado    { background: #fce8e8; color: #8a2424; border: 1px solid #f86368; }
+.wpmm-badge--en_espera    { background: #e8f0fa; color: #1d5fa6; border: 1px solid #72aee6; }
+
+/* Prioridades */
+.wpmm-badge--prio-baja    { background: #edfaef; color: #0a7227; }
+.wpmm-badge--prio-normal  { background: #e8f0fa; color: #1d5fa6; }
+.wpmm-badge--prio-alta    { background: #fcf2e8; color: #8a4b00; border: 1px solid #f0a953; }
+.wpmm-badge--prio-urgente { background: #fce8e8; color: #8a2424; border: 1px solid #f86368; }
+
+/* ---- Columnas de la lista ---- */
+.column-wpmm_estado,
+.column-wpmm_prioridad {
+	width: 110px;
+}
+
+.column-wpmm_horas {
+	width: 70px;
+}
+
+.column-wpmm_fecha_ini {
+	width: 100px;
+}
+
+.column-wpmm_partes {
+	width: 60px;
+	text-align: center;
+}
+
+/* ---- Dashboard menu icon ---- */
+#adminmenu .toplevel_page_wpmm_menu .wp-menu-image:before {
+	content: '\f170'; /* dashicons-hammer */
+}
