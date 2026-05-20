@@ -1,0 +1,86 @@
+/* === WP Maintenance Pro — Admin === */
+
+.wmpro-meta-form { padding: 4px 0; }
+
+.wmpro-row {
+	display: flex;
+	gap: 14px;
+	margin-bottom: 14px;
+	flex-wrap: wrap;
+}
+.wmpro-col         { flex: 1; min-width: 160px; }
+.wmpro-col--xs     { flex: 0 0 90px; }
+.wmpro-col--full   { flex: 0 0 100%; }
+
+.wmpro-meta-form label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 13px; }
+.wmpro-meta-form input,
+.wmpro-meta-form select,
+.wmpro-meta-form textarea {
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+	padding: 6px 10px;
+	font-size: 13px;
+	background: #fff;
+	transition: border-color .15s;
+}
+.wmpro-meta-form input:focus,
+.wmpro-meta-form select:focus,
+.wmpro-meta-form textarea:focus {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+	outline: none;
+}
+
+/* Task list (admin template) */
+.wmpro-task-list { margin: 0; padding: 0; list-style: none; }
+.wmpro-task-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 6px;
+	border-bottom: 1px solid #f0f0f1;
+	background: #fff;
+}
+.wmpro-task-item:last-child { border-bottom: none; }
+.wmpro-drag-handle { color: #8c8f94; cursor: grab; font-size: 18px; }
+.wmpro-drag-handle:active { cursor: grabbing; }
+.wmpro-task-input { border: 1px dashed #c3c4c7 !important; }
+.wmpro-task-input:focus { border-style: solid !important; }
+.wmpro-remove-task {
+	background: none !important;
+	border: none !important;
+	color: #d63638;
+	cursor: pointer;
+	padding: 4px 8px;
+	font-size: 14px;
+}
+
+/* Badges */
+.wmpro-badge {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 12px;
+	font-size: 12px;
+	font-weight: 600;
+}
+.wmpro-badge--pendiente    { background: #f0f0f1; color: #50575e; }
+.wmpro-badge--en_proceso   { background: #fcf9e8; color: #996800; border: 1px solid #f5c518; }
+.wmpro-badge--completado   { background: #edfaef; color: #0a7227; border: 1px solid #68de7c; }
+.wmpro-badge--enviado      { background: #e8f0fa; color: #1d5fa6; border: 1px solid #72aee6; }
+.wmpro-badge--cancelado    { background: #fce8e8; color: #8a2424; border: 1px solid #f86368; }
+.wmpro-badge--prio-baja    { background: #edfaef; color: #0a7227; }
+.wmpro-badge--prio-normal  { background: #e8f0fa; color: #1d5fa6; }
+.wmpro-badge--prio-alta    { background: #fcf2e8; color: #8a4b00; border: 1px solid #f0a953; }
+.wmpro-badge--prio-urgente { background: #fce8e8; color: #8a2424; border: 1px solid #f86368; }
+
+.wmpro-na { color: #8c8f94; }
+
+/* Columns */
+.column-wmpro_estado,
+.column-wmpro_prioridad    { width: 100px; }
+.column-wmpro_partes       { width: 60px; text-align: center; }
+.column-wmpro_recurrencia,
+.column-wmpro_estado_proy  { width: 100px; }
+
+/* Recurrence toggle */
+#wmpro-recurrencia-opts { border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; background: #f9f9f9; margin-top: 8px; }

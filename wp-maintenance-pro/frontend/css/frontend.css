@@ -1,0 +1,399 @@
+/* === WP Maintenance Pro — Frontend === */
+*, *::before, *::after { box-sizing: border-box; }
+
+.wmpro-parte {
+	max-width: 800px;
+	margin: 0 auto;
+	padding: 0 16px 48px;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	color: #1d2327;
+}
+
+/* ---- HEADER ---- */
+.wmpro-parte__header {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+	padding: 24px 0 20px;
+	border-bottom: 2px solid #e0e0e0;
+	flex-wrap: wrap;
+}
+.wmpro-parte__logo { font-size: 40px; line-height: 1; }
+.wmpro-parte__title-block { flex: 1; min-width: 200px; }
+.wmpro-parte__title { margin: 0 0 4px; font-size: 22px; font-weight: 700; line-height: 1.2; }
+.wmpro-parte__subtitle { margin: 0; color: #646970; font-size: 15px; }
+.wmpro-parte__badges { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+
+/* ---- INFO GRID ---- */
+.wmpro-info-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	gap: 12px;
+	padding: 20px 0;
+	border-bottom: 1px solid #f0f0f0;
+}
+.wmpro-info-item { display: flex; flex-direction: column; gap: 3px; }
+.wmpro-info-label { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #8c8f94; font-weight: 600; }
+.wmpro-info-value { font-size: 14px; font-weight: 600; color: #1d2327; }
+.wmpro-progress-bar { height: 6px; background: #e0e0e0; border-radius: 3px; margin-top: 4px; overflow: hidden; }
+.wmpro-progress-fill { height: 100%; background: linear-gradient(90deg, #2271b1, #00a32a); border-radius: 3px; transition: width .3s; }
+
+/* ---- SECTION ---- */
+.wmpro-section {
+	margin-top: 28px;
+	padding: 0;
+}
+.wmpro-section__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 14px;
+}
+.wmpro-section__title {
+	margin: 0 0 14px;
+	font-size: 18px;
+	font-weight: 700;
+	color: #1d2327;
+}
+.wmpro-section__header .wmpro-section__title { margin-bottom: 0; }
+.wmpro-progress-label { font-size: 13px; color: #646970; font-weight: 600; }
+
+/* ---- CHECKLIST ---- */
+.wmpro-checklist {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	overflow: hidden;
+}
+.wmpro-checklist__empty { padding: 16px 18px; color: #8c8f94; font-style: italic; }
+.wmpro-checklist__item {
+	display: flex;
+	align-items: center;
+	padding: 14px 16px;
+	border-bottom: 1px solid #f0f0f0;
+	transition: background .15s;
+	gap: 10px;
+}
+.wmpro-checklist__item:last-child { border-bottom: none; }
+.wmpro-checklist__item.is-done { background: #f6fff7; }
+.wmpro-checklist__item.is-done .wmpro-task-text {
+	color: #8c8f94;
+	text-decoration: line-through;
+}
+
+.wmpro-task-label {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex: 1;
+	cursor: pointer;
+	min-width: 0;
+}
+.wmpro-task-check {
+	width: 22px;
+	height: 22px;
+	min-width: 22px;
+	accent-color: #2271b1;
+	cursor: pointer;
+}
+.wmpro-task-text {
+	font-size: 15px;
+	line-height: 1.4;
+	flex: 1;
+	word-break: break-word;
+}
+.wmpro-task-ts {
+	font-size: 11px;
+	color: #2e7d32;
+	white-space: nowrap;
+	margin-left: auto;
+	padding-left: 8px;
+}
+.wmpro-btn-delete-task {
+	background: none;
+	border: none;
+	color: #d63638;
+	cursor: pointer;
+	font-size: 16px;
+	padding: 4px 6px;
+	border-radius: 4px;
+	opacity: .5;
+	transition: opacity .15s;
+	flex-shrink: 0;
+}
+.wmpro-btn-delete-task:hover { opacity: 1; }
+
+/* Add task */
+.wmpro-add-task {
+	display: flex;
+	gap: 10px;
+	margin-top: 12px;
+	flex-wrap: wrap;
+}
+.wmpro-add-task .wmpro-input {
+	flex: 1;
+	min-width: 200px;
+}
+
+/* ---- INPUTS ---- */
+.wmpro-input,
+.wmpro-textarea {
+	border: 1px solid #c3c4c7;
+	border-radius: 6px;
+	padding: 10px 14px;
+	font-size: 15px;
+	color: #1d2327;
+	background: #fff;
+	width: 100%;
+	transition: border-color .15s, box-shadow .15s;
+	font-family: inherit;
+}
+.wmpro-input:focus,
+.wmpro-textarea:focus {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 2px rgba(34, 113, 177, .2);
+	outline: none;
+}
+.wmpro-textarea { resize: vertical; min-height: 100px; }
+
+/* ---- BUTTONS ---- */
+.wmpro-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 11px 20px;
+	border-radius: 6px;
+	font-size: 15px;
+	font-weight: 600;
+	cursor: pointer;
+	border: none;
+	transition: all .15s;
+	white-space: nowrap;
+	font-family: inherit;
+}
+.wmpro-btn:disabled { opacity: .6; cursor: not-allowed; }
+.wmpro-btn--primary { background: #2271b1; color: #fff; }
+.wmpro-btn--primary:hover { background: #135e96; }
+.wmpro-btn--secondary { background: #f0f0f1; color: #1d2327; border: 1px solid #c3c4c7; }
+.wmpro-btn--secondary:hover { background: #dcdcde; }
+.wmpro-btn--outline { background: transparent; color: #2271b1; border: 1.5px solid #2271b1; }
+.wmpro-btn--outline:hover { background: #f0f6fc; }
+.wmpro-btn--sm { padding: 7px 14px; font-size: 13px; }
+.wmpro-btn--send {
+	background: linear-gradient(135deg, #00a32a, #007a1f);
+	color: #fff;
+	font-size: 17px;
+	padding: 16px 36px;
+	border-radius: 8px;
+	width: 100%;
+	max-width: 400px;
+	box-shadow: 0 4px 12px rgba(0, 163, 42, .3);
+}
+.wmpro-btn--send:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0, 163, 42, .35); }
+
+/* ---- PHOTOS ---- */
+.wmpro-photos-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+	gap: 10px;
+	margin-bottom: 14px;
+}
+.wmpro-photo-item {
+	position: relative;
+	border-radius: 8px;
+	overflow: hidden;
+	aspect-ratio: 1;
+	background: #f0f0f1;
+}
+.wmpro-photo-item img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+	transition: opacity .15s;
+}
+.wmpro-photo-item:hover img { opacity: .9; }
+.wmpro-btn-delete-photo {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	background: rgba(0,0,0,.65);
+	color: #fff;
+	border: none;
+	border-radius: 50%;
+	width: 26px;
+	height: 26px;
+	font-size: 13px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	transition: opacity .15s;
+}
+.wmpro-photo-item:hover .wmpro-btn-delete-photo { opacity: 1; }
+.wmpro-photo-link { display: block; height: 100%; }
+
+.wmpro-upload-area {
+	border: 2px dashed #c3c4c7;
+	border-radius: 8px;
+	padding: 28px 20px;
+	text-align: center;
+	cursor: pointer;
+	transition: border-color .15s, background .15s;
+}
+.wmpro-upload-area:hover,
+.wmpro-upload-area.dragover { border-color: #2271b1; background: #f0f6fc; }
+.wmpro-upload-label {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+	font-size: 15px;
+	color: #50575e;
+}
+.wmpro-upload-icon { font-size: 36px; }
+.wmpro-upload-label small { color: #8c8f94; font-size: 13px; }
+.wmpro-upload-progress { margin-top: 10px; }
+.wmpro-upload-bar {
+	height: 4px;
+	background: linear-gradient(90deg, #2271b1, #00a32a);
+	border-radius: 2px;
+	animation: wmpro-loading 1.2s ease-in-out infinite;
+}
+@keyframes wmpro-loading {
+	0%   { width: 10%; }
+	50%  { width: 80%; }
+	100% { width: 10%; }
+}
+.wmpro-upload-msg { font-size: 13px; color: #646970; }
+
+/* ---- SIGNATURE ---- */
+.wmpro-firma-wrapper { }
+.wmpro-firma-container {
+	border: 1px solid #c3c4c7;
+	border-radius: 8px;
+	overflow: hidden;
+	background: #fff;
+}
+.wmpro-canvas {
+	display: block;
+	width: 100%;
+	height: 200px;
+	touch-action: none;
+	cursor: crosshair;
+	background: #fafafa;
+}
+@media (min-height: 600px) { .wmpro-canvas { height: 240px; } }
+.wmpro-firma-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 14px;
+	background: #f8f9fa;
+	border-top: 1px solid #e0e0e0;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.wmpro-firma-hint { font-size: 12px; color: #8c8f94; }
+.wmpro-firma-nombre { margin: 12px 0; }
+.wmpro-firma-guardada { text-align: center; padding: 16px 0; }
+.wmpro-firma-img {
+	max-width: 300px;
+	width: 100%;
+	border: 1px solid #e0e0e0;
+	border-radius: 6px;
+	padding: 8px;
+	background: #fff;
+}
+.wmpro-firmante { font-size: 14px; color: #50575e; margin: 8px 0 12px; }
+
+/* ---- ALERTS ---- */
+.wmpro-alert {
+	padding: 14px 18px;
+	border-radius: 6px;
+	font-size: 14px;
+	margin-bottom: 16px;
+	line-height: 1.5;
+}
+.wmpro-alert--success { background: #edfaef; color: #0a7227; border: 1px solid #68de7c; }
+.wmpro-alert--error   { background: #fce8e8; color: #8a2424; border: 1px solid #f86368; }
+.wmpro-alert--info    { background: #e8f0fa; color: #1d5fa6; border: 1px solid #72aee6; }
+.wmpro-alert--warning { background: #fcf9e8; color: #996800; border: 1px solid #f5c518; }
+
+/* ---- SUBMIT SECTION ---- */
+.wmpro-section--submit {
+	border-top: 2px solid #e0e0e0;
+	padding-top: 28px;
+	text-align: center;
+}
+.wmpro-submit-info { color: #646970; font-size: 14px; margin-bottom: 20px; }
+
+/* ---- BADGES (frontend) ---- */
+.wmpro-badge {
+	display: inline-block;
+	padding: 4px 12px;
+	border-radius: 20px;
+	font-size: 12px;
+	font-weight: 600;
+}
+.wmpro-badge--pendiente    { background: #f0f0f1; color: #50575e; }
+.wmpro-badge--en_proceso   { background: #fcf9e8; color: #996800; border: 1px solid #f5c518; }
+.wmpro-badge--completado   { background: #edfaef; color: #0a7227; border: 1px solid #68de7c; }
+.wmpro-badge--enviado      { background: #e8f0fa; color: #1d5fa6; border: 1px solid #72aee6; }
+.wmpro-badge--cancelado    { background: #fce8e8; color: #8a2424; border: 1px solid #f86368; }
+.wmpro-badge--prio-baja    { background: #edfaef; color: #0a7227; }
+.wmpro-badge--prio-normal  { background: #e8f0fa; color: #1d5fa6; }
+.wmpro-badge--prio-alta    { background: #fcf2e8; color: #8a4b00; }
+.wmpro-badge--prio-urgente { background: #fce8e8; color: #8a2424; }
+
+/* ---- PROYECTOS LIST (shortcode) ---- */
+.wmpro-proyectos-list h2 { font-size: 24px; margin-bottom: 20px; }
+.wmpro-proyecto-card {
+	border: 1px solid #e0e0e0;
+	border-radius: 10px;
+	margin-bottom: 16px;
+	overflow: hidden;
+}
+.wmpro-proyecto-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 16px 20px;
+	background: #f8f9fa;
+	border-bottom: 1px solid #e0e0e0;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.wmpro-proyecto-header h3 { margin: 0; font-size: 17px; }
+.wmpro-badge-date { font-size: 13px; color: #1d5fa6; font-weight: 600; }
+.wmpro-partes-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+.wmpro-partes-list li {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 12px 20px;
+	border-bottom: 1px solid #f0f0f0;
+	gap: 10px;
+}
+.wmpro-partes-list li:last-child { border-bottom: none; }
+.wmpro-partes-list a { text-decoration: none; color: #1d5fa6; font-weight: 500; }
+.wmpro-partes-list a:hover { text-decoration: underline; }
+.wmpro-no-partes { padding: 14px 20px; color: #8c8f94; font-style: italic; margin: 0; }
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 480px) {
+	.wmpro-parte__header { gap: 10px; }
+	.wmpro-parte__title  { font-size: 18px; }
+	.wmpro-btn--send     { padding: 16px 24px; font-size: 16px; }
+	.wmpro-photos-grid   { grid-template-columns: repeat(3, 1fr); }
+	.wmpro-info-grid     { grid-template-columns: repeat(2, 1fr); }
+}
