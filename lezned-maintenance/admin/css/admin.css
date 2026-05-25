@@ -745,3 +745,112 @@
 .lznd-quick-btn:hover { background: #f0f6fc; border-color: #1d5fa6; color: #1d5fa6; }
 .lznd-quick-btn--green { border-color: #2e7d32; color: #2e7d32; }
 .lznd-quick-btn--green:hover { background: #edfaef; }
+
+/* ========================================================================
+   Tipos de trabajo management page
+   ======================================================================== */
+
+.lznd-tipos-wrap h1 {
+    margin-bottom: 20px;
+}
+
+.lznd-tipos-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.lznd-tipos-add-col {
+    flex: 0 0 280px;
+}
+
+.lznd-tipos-table-col {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.lznd-tipos-add-box {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+}
+
+.lznd-tipos-add-box h2 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e4e7;
+}
+
+.lznd-tipos-field {
+    margin-bottom: 14px;
+}
+
+.lznd-tipos-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d2327;
+    margin-bottom: 5px;
+}
+
+.lznd-tipos-field label .required {
+    color: #d63638;
+    margin-left: 2px;
+}
+
+.lznd-tipos-field .regular-text {
+    width: 100%;
+}
+
+.lznd-tipos-field .description {
+    font-size: 11px;
+    color: #646970;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.lznd-tipos-table th,
+.lznd-tipos-table td {
+    padding: 10px 12px;
+    vertical-align: middle;
+}
+
+.lznd-tipos-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.lznd-tipo-name-input,
+.lznd-tipo-slug-input {
+    width: 100%;
+    padding: 5px 8px;
+    border: 1px solid #2271b1;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.lznd-tipo-name-input:focus,
+.lznd-tipo-slug-input:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.2);
+    outline: none;
+}
+
+.lznd-tipos-table tbody tr:hover {
+    background: #f6f7f7;
+}
+
+@media (max-width: 782px) {
+    .lznd-tipos-layout {
+        flex-direction: column;
+    }
+    .lznd-tipos-add-col {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+}
