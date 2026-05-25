@@ -245,6 +245,42 @@ jQuery( function ( $ ) {
         setTimeout( function () { $n.fadeOut(); }, 3000 );
     }
 
+    /* ========================================================================
+       Tarea field type toggle + options builder
+       ======================================================================== */
+
+    var $tipoCampoRadios = $( 'input[name="_lznd_tipo_campo"]' );
+    var $opcionesWrap    = $( '#lznd-tarea-opciones-wrap' );
+
+    if ( $tipoCampoRadios.length ) {
+        $tipoCampoRadios.on( 'change', function () {
+            var val = $( this ).val();
+            if ( val === 'seleccionar' || val === 'radio' ) {
+                $opcionesWrap.show();
+            } else {
+                $opcionesWrap.hide();
+            }
+        } );
+
+        $( '#lznd-add-opcion' ).on( 'click', function () {
+            var $list = $( '#lznd-tarea-opciones-list' );
+            var $item = $( '<li class="lznd-opcion-item" style="display:flex;gap:4px;margin-bottom:4px;">' +
+                '<input type="text" name="_lznd_opciones[]" value="" class="widefat" style="flex:1;" />' +
+                '<button type="button" class="button lznd-remove-opcion" title="Eliminar opción">&#10005;</button>' +
+                '</li>' );
+            $list.append( $item );
+            $item.find( 'input' ).focus();
+        } );
+
+        $( document ).on( 'click', '.lznd-remove-opcion', function () {
+            $( this ).closest( '.lznd-opcion-item' ).remove();
+        } );
+    }
+
+    /* ========================================================================
+       Tipos de trabajo – auto-slug and inline CRUD
+       ======================================================================== */
+
     // Auto-generate slug from name in the "add" form
     $( '#lznd-tipo-name' ).on( 'input', function () {
         var $slug = $( '#lznd-tipo-slug' );

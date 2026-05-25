@@ -20,6 +20,7 @@ class LZND_Ajax {
             'lznd_toggle_task',
             'lznd_add_task',
             'lznd_delete_task',
+            'lznd_save_task_value',
             'lznd_upload_foto',
             'lznd_delete_foto',
             'lznd_save_signature',
@@ -212,6 +213,54 @@ class LZND_Ajax {
         update_post_meta( $actuacion_id, '_lznd_tareas', wp_json_encode( $tareas, JSON_UNESCAPED_UNICODE ) );
 
         wp_send_json_success( [ 'task' => $new_task ] );
+    }
+
+    /**
+     * Save the selected value for a seleccionar/radio task.
+     */
+    public static function handle_save_task_value() {
+        self::verify();
+
+        $actuacion_id = intval( $_POST['actuacion_id'] ?? 0 );
+        $task_id      = sanitize_text_field( $_POST['task_id'] ?? '' );
+        $valor        = sanitize_text_field( $_POST['valor'] ?? '' );
+
+        if ( ! $actuacion_id || ! $task_id ) {
+            wp_send_json_error( [ 'message' => __( 'Datos incompletos.', 'lezned-maintenance' ) ] );
+        }
+
+        $tareas_raw = get_post_meta( $actuacion_id, '_lznd_tareas', true );
+        $tareas     = $tareas_raw ? json_decode( $tareas_raw, true ) : [];
+        if ( ! is_array( $tareas ) ) {
+            $tareas = [];
+        }
+
+        foreach ( $tareas as &$tarea ) {
+            if ( isset( $tarea['id'] ) && $tarea['id'] === $task_id ) {
+                $tarea['valor'] = $valor;
+                if ( $valor !== '' ) {
+                    $tarea['completada'] = true;
+                    if ( empty( $tarea['completada_en'] ) ) {
+                        $tarea['completada_en'] = current_time( 'mysql' );
+                    }
+                } else {
+                    $tarea['completada']   = false;
+                    $tarea['completada_en'] = '';
+                }
+                break;
+            }
+        }
+        unset( $tarea );
+
+        update_post_meta( $actuacion_id, '_lznd_tareas', wp_json_encode( $tareas, JSON_UNESCAPED_UNICODE ) );
+
+        $total  = count( $tareas );
+        $hechas = count( array_filter( $tareas, fn( $t ) => ! empty( $t['completada'] ) ) );
+
+        wp_send_json_success( [
+            'hechas' => $hechas,
+            'total'  => $total,
+        ] );
     }
 
     /**
@@ -684,11 +733,20 @@ class LZND_Ajax {
 
         $tareas = [];
         foreach ( $source_tareas as $tarea_post ) {
+            $tipo_campo_raw = get_post_meta( $tarea_post->ID, '_lznd_tipo_campo', true ) ?: 'texto';
+            $opciones_raw   = get_post_meta( $tarea_post->ID, '_lznd_opciones',   true ) ?: '';
+            $opciones       = $opciones_raw ? json_decode( $opciones_raw, true ) : [];
+            if ( ! is_array( $opciones ) ) {
+                $opciones = [];
+            }
             $tareas[] = [
-                'id'           => uniqid( 'task_', true ),
-                'texto'        => get_the_title( $tarea_post->ID ),
-                'completada'   => false,
+                'id'            => uniqid( 'task_', true ),
+                'texto'         => get_the_title( $tarea_post->ID ),
+                'tipo_campo'    => $tipo_campo_raw,
+                'opciones'      => $opciones,
+                'completada'    => false,
                 'completada_en' => '',
+                'valor'         => '',
             ];
         }
 

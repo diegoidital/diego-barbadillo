@@ -293,6 +293,38 @@
             if ( e.key === 'Enter' ) { e.preventDefault(); $( '#lznd-add-task-btn' ).trigger( 'click' ); }
         } );
 
+        // ── Task value: seleccionar / radio ───────────────────────────────────
+        $( '#lznd-task-list' ).on( 'change', '.lznd-task-select, .lznd-task-field--radio input[type="radio"]', function () {
+            var $item  = $( this ).closest( '.lznd-task-item' );
+            var taskId = $item.data( 'task-id' );
+            var valor  = $( this ).val();
+
+            $.ajax( {
+                url:    ajax_url,
+                method: 'POST',
+                data: {
+                    action:       'lznd_save_task_value',
+                    nonce:        nonce,
+                    actuacion_id: actuacionId,
+                    task_id:      taskId,
+                    valor:        valor,
+                },
+                success: function ( res ) {
+                    if ( ! res.success ) return;
+                    var done = valor !== '';
+                    $item.toggleClass( 'lznd-task-item--done', done );
+                    $item.find( '.lznd-task-check' ).html( done ? '&#10003;' : '' );
+                    if ( done ) {
+                        var now = new Date();
+                        $item.find( '.lznd-task-time' ).text( ( '0' + now.getHours() ).slice( -2 ) + ':' + ( '0' + now.getMinutes() ).slice( -2 ) );
+                    } else {
+                        $item.find( '.lznd-task-time' ).text( '' );
+                    }
+                    updateProgress( res.data.hechas, res.data.total );
+                },
+            } );
+        } );
+
         // ── Delete task ───────────────────────────────────────────────────────
         $( '#lznd-task-list' ).on( 'click', '.lznd-task-delete', function ( e ) {
             e.stopPropagation();

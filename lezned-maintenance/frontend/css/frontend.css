@@ -1252,3 +1252,97 @@
     color: var(--lznd-primary-dark);
     text-decoration: underline;
 }
+
+/* ========================================================================
+   Task field types: seleccionar / radio
+   ======================================================================== */
+
+.lznd-task-check--auto {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 50%;
+    background: var(--lznd-light);
+    border: 2px solid var(--lznd-border);
+    font-size: 14px;
+    color: var(--lznd-green);
+    flex-shrink: 0;
+}
+
+.lznd-task-item--done .lznd-task-check--auto {
+    background: var(--lznd-green);
+    border-color: var(--lznd-green);
+    color: #fff;
+}
+
+/* Seleccionar: label left, select right on same row */
+.lznd-task-item[data-tipo-campo="seleccionar"] .lznd-task-text {
+    flex: 1;
+}
+
+.lznd-task-field {
+    min-width: 0;
+}
+
+.lznd-task-field--select {
+    flex-shrink: 0;
+}
+
+.lznd-task-field--select .lznd-select--sm {
+    width: 100%;
+    max-width: 200px;
+    font-size: 14px;
+    padding: 5px 8px;
+    height: auto;
+    border: 1px solid var(--lznd-border);
+    border-radius: 6px;
+    background: var(--lznd-white);
+    color: var(--lznd-text);
+}
+
+/* Radio: wrap to second row */
+.lznd-task-item[data-tipo-campo="radio"] {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    cursor: default;
+}
+
+.lznd-task-item[data-tipo-campo="radio"] .lznd-task-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.lznd-task-field--radio {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 6px 0 2px 38px;
+}
+
+.lznd-radio-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 10px;
+    border: 1px solid var(--lznd-border);
+    border-radius: 20px;
+    background: var(--lznd-white);
+    transition: background var(--lznd-transition), border-color var(--lznd-transition);
+}
+
+.lznd-radio-option:has(input:checked) {
+    background: #e8f0fe;
+    border-color: var(--lznd-primary);
+    color: var(--lznd-primary);
+    font-weight: 600;
+}
+
+.lznd-radio-option input[type="radio"] {
+    display: none;
+}
