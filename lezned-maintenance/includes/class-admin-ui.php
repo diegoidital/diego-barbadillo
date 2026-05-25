@@ -36,6 +36,10 @@ class LZND_Admin_UI {
 
 		// AJAX calendar navigation
 		add_action( 'wp_ajax_lznd_calendar_nav', array( __CLASS__, 'ajax_calendar' ) );
+
+		// Tipos de trabajo AJAX
+		add_action( 'wp_ajax_lznd_save_tipo',   array( __CLASS__, 'ajax_save_tipo' ) );
+		add_action( 'wp_ajax_lznd_delete_tipo', array( __CLASS__, 'ajax_delete_tipo' ) );
 	}
 
 	// ─── Cliente Columns ─────────────────────────────────────────────────────
@@ -940,6 +944,204 @@ class LZND_Admin_UI {
 
 		$html = self::render_calendar( $proyecto_id, $year, $month );
 		wp_send_json_success( array( 'html' => $html ) );
+	}
+
+	// ─── Tipos de trabajo management page ───────────────────────────────────
+
+	public static function render_tipos_page() {
+		if ( ! current_user_can( 'manage_categories' ) ) {
+			wp_die( __( 'Sin permiso.', 'lezned-maintenance' ) );
+		}
+
+		// Handle add
+		if ( isset( $_POST['lznd_tipos_action'] ) && $_POST['lznd_tipos_action'] === 'add' ) {
+			check_admin_referer( 'lznd_add_tipo' );
+			$name = sanitize_text_field( $_POST['tipo_name'] ?? '' );
+			$slug = sanitize_title( $_POST['tipo_slug'] ?? '' );
+			if ( $name ) {
+				$args = array();
+				if ( $slug ) {
+					$args['slug'] = $slug;
+				}
+				wp_insert_term( $name, 'lznd_tipo', $args );
+			}
+			wp_redirect( admin_url( 'admin.php?page=lznd-tipos&added=1' ) );
+			exit;
+		}
+
+		$terms = get_terms( array(
+			'taxonomy'   => 'lznd_tipo',
+			'hide_empty' => false,
+			'orderby'    => 'name',
+			'order'      => 'ASC',
+		) );
+		if ( is_wp_error( $terms ) ) {
+			$terms = array();
+		}
+
+		$added = isset( $_GET['added'] );
+		?>
+		<div class="wrap lznd-tipos-wrap">
+			<h1><?php esc_html_e( 'Tipos de trabajo', 'lezned-maintenance' ); ?></h1>
+
+			<?php if ( $added ) : ?>
+				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Tipo añadido correctamente.', 'lezned-maintenance' ); ?></p></div>
+			<?php endif; ?>
+
+			<div class="lznd-tipos-layout">
+
+				<!-- Add new column -->
+				<div class="lznd-tipos-add-col">
+					<div class="lznd-tipos-add-box">
+						<h2><?php esc_html_e( 'Añadir nuevo tipo', 'lezned-maintenance' ); ?></h2>
+						<form method="post" action="">
+							<?php wp_nonce_field( 'lznd_add_tipo' ); ?>
+							<input type="hidden" name="lznd_tipos_action" value="add">
+
+							<div class="lznd-tipos-field">
+								<label for="lznd-tipo-name">
+									<?php esc_html_e( 'Nombre', 'lezned-maintenance' ); ?>
+									<span class="required">*</span>
+								</label>
+								<input type="text" id="lznd-tipo-name" name="tipo_name" class="regular-text" required
+									   placeholder="<?php esc_attr_e( 'Ej: Mantenimiento preventivo', 'lezned-maintenance' ); ?>">
+								<p class="description"><?php esc_html_e( 'Nombre que verán los usuarios.', 'lezned-maintenance' ); ?></p>
+							</div>
+
+							<div class="lznd-tipos-field">
+								<label for="lznd-tipo-slug"><?php esc_html_e( 'Slug', 'lezned-maintenance' ); ?></label>
+								<input type="text" id="lznd-tipo-slug" name="tipo_slug" class="regular-text"
+									   placeholder="<?php esc_attr_e( 'ej: mantenimiento-preventivo', 'lezned-maintenance' ); ?>">
+								<p class="description"><?php esc_html_e( 'Identificador único. Se genera automáticamente si se deja vacío.', 'lezned-maintenance' ); ?></p>
+							</div>
+
+							<button type="submit" class="button button-primary">
+								<?php esc_html_e( 'Añadir tipo', 'lezned-maintenance' ); ?>
+							</button>
+						</form>
+					</div>
+				</div>
+
+				<!-- Table column -->
+				<div class="lznd-tipos-table-col">
+					<div id="lznd-tipos-notice" style="display:none;margin-bottom:10px;"></div>
+
+					<table class="wp-list-table widefat fixed striped lznd-tipos-table">
+						<thead>
+							<tr>
+								<th><?php esc_html_e( 'Nombre', 'lezned-maintenance' ); ?></th>
+								<th style="width:200px;"><?php esc_html_e( 'Slug', 'lezned-maintenance' ); ?></th>
+								<th style="width:100px;"><?php esc_html_e( 'Actuaciones', 'lezned-maintenance' ); ?></th>
+								<th style="width:180px;"><?php esc_html_e( 'Acciones', 'lezned-maintenance' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php if ( empty( $terms ) ) : ?>
+								<tr><td colspan="4" style="text-align:center;padding:20px;color:#646970;">
+									<?php esc_html_e( 'No hay tipos de trabajo todavía.', 'lezned-maintenance' ); ?>
+								</td></tr>
+							<?php else : ?>
+								<?php foreach ( $terms as $term ) : ?>
+								<tr data-term-id="<?php echo esc_attr( $term->term_id ); ?>">
+									<td>
+										<span class="lznd-view-mode lznd-tipo-name-view">
+											<strong><?php echo esc_html( $term->name ); ?></strong>
+										</span>
+										<input type="text" class="lznd-edit-mode lznd-tipo-name-input regular-text"
+											   value="<?php echo esc_attr( $term->name ); ?>"
+											   data-original="<?php echo esc_attr( $term->name ); ?>"
+											   style="display:none;" placeholder="<?php esc_attr_e( 'Nombre', 'lezned-maintenance' ); ?>">
+									</td>
+									<td>
+										<span class="lznd-view-mode lznd-tipo-slug-view">
+											<code><?php echo esc_html( $term->slug ); ?></code>
+										</span>
+										<input type="text" class="lznd-edit-mode lznd-tipo-slug-input"
+											   value="<?php echo esc_attr( $term->slug ); ?>"
+											   data-original="<?php echo esc_attr( $term->slug ); ?>"
+											   style="display:none; width:100%;" placeholder="<?php esc_attr_e( 'slug', 'lezned-maintenance' ); ?>">
+									</td>
+									<td style="text-align:center;">
+										<?php echo esc_html( $term->count ); ?>
+									</td>
+									<td class="lznd-tipos-actions">
+										<button type="button" class="button button-small lznd-tipo-edit-btn">
+											<?php esc_html_e( 'Editar', 'lezned-maintenance' ); ?>
+										</button>
+										<button type="button" class="button button-small button-primary lznd-tipo-save-btn" style="display:none;">
+											<?php esc_html_e( 'Guardar', 'lezned-maintenance' ); ?>
+										</button>
+										<button type="button" class="button button-small lznd-tipo-cancel-btn" style="display:none;">
+											<?php esc_html_e( 'Cancelar', 'lezned-maintenance' ); ?>
+										</button>
+										<button type="button" class="button button-small lznd-tipo-delete-btn"
+												data-count="<?php echo esc_attr( $term->count ); ?>">
+											<?php esc_html_e( 'Eliminar', 'lezned-maintenance' ); ?>
+										</button>
+									</td>
+								</tr>
+								<?php endforeach; ?>
+							<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+
+			</div><!-- .lznd-tipos-layout -->
+		</div>
+		<?php
+	}
+
+	public static function ajax_save_tipo() {
+		if ( ! current_user_can( 'manage_categories' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Sin permiso.', 'lezned-maintenance' ) ) );
+		}
+		check_ajax_referer( 'lznd_admin', 'nonce' );
+
+		$term_id = absint( $_POST['term_id'] ?? 0 );
+		$name    = sanitize_text_field( $_POST['name'] ?? '' );
+		$slug    = sanitize_title( $_POST['slug'] ?? '' );
+
+		if ( ! $term_id || ! $name ) {
+			wp_send_json_error( array( 'message' => __( 'Datos incompletos.', 'lezned-maintenance' ) ) );
+		}
+
+		$args = array( 'name' => $name );
+		if ( $slug ) {
+			$args['slug'] = $slug;
+		}
+
+		$result = wp_update_term( $term_id, 'lznd_tipo', $args );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		$updated_term = get_term( $result['term_id'], 'lznd_tipo' );
+
+		wp_send_json_success( array(
+			'name' => $updated_term->name,
+			'slug' => $updated_term->slug,
+		) );
+	}
+
+	public static function ajax_delete_tipo() {
+		if ( ! current_user_can( 'manage_categories' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Sin permiso.', 'lezned-maintenance' ) ) );
+		}
+		check_ajax_referer( 'lznd_admin', 'nonce' );
+
+		$term_id = absint( $_POST['term_id'] ?? 0 );
+		if ( ! $term_id ) {
+			wp_send_json_error( array( 'message' => __( 'ID inválido.', 'lezned-maintenance' ) ) );
+		}
+
+		$result = wp_delete_term( $term_id, 'lznd_tipo' );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( array( 'deleted' => true ) );
 	}
 }
 

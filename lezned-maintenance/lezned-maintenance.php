@@ -83,8 +83,8 @@ function lznd_admin_enqueue_scripts( $hook ) {
 		$is_lznd_post_type = true;
 	}
 
-	// settings page
-	if ( false !== strpos( $hook, 'lznd-settings' ) ) {
+	// tipos page
+	if ( false !== strpos( $hook, 'lznd-tipos' ) ) {
 		$is_lznd_post_type = true;
 	}
 

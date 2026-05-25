@@ -197,13 +197,14 @@ class LZND_Setup {
 		// Their label in the menu comes from the CPT 'all_items' label.
 		// Do NOT manually add them here to avoid duplicates.
 
-		// Tipos de trabajo — taxonomy page, NOT auto-added
+		// Tipos de trabajo — custom management page
 		add_submenu_page(
 			'lznd-menu',
 			__( 'Tipos de trabajo', 'lezned-maintenance' ),
 			__( 'Tipos de trabajo', 'lezned-maintenance' ),
 			'manage_categories',
-			'edit-tags.php?taxonomy=lznd_tipo'
+			'lznd-tipos',
+			array( 'LZND_Admin_UI', 'render_tipos_page' )
 		);
 
 		// Project detail hidden page
