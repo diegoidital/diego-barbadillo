@@ -405,15 +405,57 @@ if ( ! $actuacion_id ) {
         <h3 class="lznd-card__section-title"><?php esc_html_e( 'Tareas', 'lezned-maintenance' ); ?></h3>
         <ul class="lznd-task-list" id="lznd-task-list">
             <?php foreach ( $pre_tareas as $tarea ) :
-                $is_done = ! empty( $tarea['completada'] );
+                $is_done    = ! empty( $tarea['completada'] );
+                $tipo_campo = $tarea['tipo_campo'] ?? 'texto';
+                $opciones   = is_array( $tarea['opciones'] ?? null ) ? $tarea['opciones'] : [];
+                $valor      = $tarea['valor'] ?? '';
+                $time_str   = ( $is_done && ! empty( $tarea['completada_en'] ) ) ? esc_html( date_i18n( 'H:i', strtotime( $tarea['completada_en'] ) ) ) : '';
             ?>
             <li class="lznd-task-item <?php echo $is_done ? 'lznd-task-item--done' : ''; ?>"
-                data-task-id="<?php echo esc_attr( $tarea['id'] ); ?>">
-                <button type="button" class="lznd-task-toggle" aria-label="<?php esc_attr_e( 'Marcar tarea', 'lezned-maintenance' ); ?>">
-                    <span class="lznd-task-check"><?php echo $is_done ? '&#10003;' : ''; ?></span>
-                </button>
-                <span class="lznd-task-text"><?php echo esc_html( $tarea['texto'] ); ?></span>
-                <span class="lznd-task-time"><?php echo ( $is_done && ! empty( $tarea['completada_en'] ) ) ? esc_html( date_i18n( 'H:i', strtotime( $tarea['completada_en'] ) ) ) : ''; ?></span>
+                data-task-id="<?php echo esc_attr( $tarea['id'] ); ?>"
+                data-tipo-campo="<?php echo esc_attr( $tipo_campo ); ?>">
+
+                <?php if ( $tipo_campo === 'texto' ) : ?>
+
+                    <button type="button" class="lznd-task-toggle" aria-label="<?php esc_attr_e( 'Marcar tarea', 'lezned-maintenance' ); ?>">
+                        <span class="lznd-task-check"><?php echo $is_done ? '&#10003;' : ''; ?></span>
+                    </button>
+                    <span class="lznd-task-text"><?php echo esc_html( $tarea['texto'] ); ?></span>
+                    <span class="lznd-task-time"><?php echo $time_str; ?></span>
+
+                <?php elseif ( $tipo_campo === 'seleccionar' ) : ?>
+
+                    <span class="lznd-task-check lznd-task-check--auto"><?php echo $is_done ? '&#10003;' : ''; ?></span>
+                    <span class="lznd-task-text"><?php echo esc_html( $tarea['texto'] ); ?></span>
+                    <div class="lznd-task-field lznd-task-field--select">
+                        <select class="lznd-task-select lznd-select lznd-select--sm">
+                            <option value=""><?php esc_html_e( '-- Seleccionar --', 'lezned-maintenance' ); ?></option>
+                            <?php foreach ( $opciones as $opt ) : ?>
+                                <option value="<?php echo esc_attr( $opt ); ?>" <?php selected( $valor, $opt ); ?>><?php echo esc_html( $opt ); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <span class="lznd-task-time"><?php echo $time_str; ?></span>
+
+                <?php elseif ( $tipo_campo === 'radio' ) : ?>
+
+                    <span class="lznd-task-check lznd-task-check--auto"><?php echo $is_done ? '&#10003;' : ''; ?></span>
+                    <span class="lznd-task-text"><?php echo esc_html( $tarea['texto'] ); ?></span>
+                    <div class="lznd-task-field lznd-task-field--radio">
+                        <?php foreach ( $opciones as $opt ) : ?>
+                            <label class="lznd-radio-option">
+                                <input type="radio"
+                                       name="lznd_task_<?php echo esc_attr( $tarea['id'] ); ?>"
+                                       value="<?php echo esc_attr( $opt ); ?>"
+                                       <?php checked( $valor, $opt ); ?>>
+                                <?php echo esc_html( $opt ); ?>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                    <span class="lznd-task-time"><?php echo $time_str; ?></span>
+
+                <?php endif; ?>
+
                 <button type="button" class="lznd-task-delete" aria-label="<?php esc_attr_e( 'Eliminar tarea', 'lezned-maintenance' ); ?>">&#10005;</button>
             </li>
             <?php endforeach; ?>
