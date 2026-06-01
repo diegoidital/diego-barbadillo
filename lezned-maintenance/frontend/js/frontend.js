@@ -171,19 +171,22 @@
             .attr( 'data-task-id', task.id )
             .attr( 'data-tipo-campo', tipoCampo );
 
-        $li.append(
+        // First row: delete (left), toggle, text, time
+        var $row = $( '<div>' ).addClass( 'lznd-task-row' );
+
+        $row.append(
+            $( '<button>' ).attr( 'type', 'button' ).addClass( 'lznd-task-delete' ).html( '&#10005;' )
+        );
+        $row.append(
             $( '<button>' ).attr( 'type', 'button' ).addClass( 'lznd-task-toggle' )
                 .append( $( '<span>' ).addClass( 'lznd-task-check' ).html( checkmark ) )
         );
+        $row.append( $( '<span>' ).addClass( 'lznd-task-text' ).text( task.texto ) );
+        $row.append( $( '<span>' ).addClass( 'lznd-task-time' ).html( done && task.completada_en ? formatTime( task.completada_en ) : '' ) );
 
-        $li.append( $( '<span>' ).addClass( 'lznd-task-text' ).text( task.texto ) );
-        $li.append( $( '<span>' ).addClass( 'lznd-task-time' ).html( done && task.completada_en ? formatTime( task.completada_en ) : '' ) );
+        $li.append( $row );
 
-        $li.append(
-            $( '<button>' ).attr( 'type', 'button' ).addClass( 'lznd-task-delete' ).html( '&#10005;' )
-        );
-
-        // Field section for typed tasks
+        // Field below the title row
         if ( tipoCampo ) {
             $li.append( buildTaskField( task ) );
         }
