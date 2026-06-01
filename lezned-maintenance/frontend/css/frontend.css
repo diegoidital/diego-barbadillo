@@ -1272,3 +1272,154 @@
 .lznd-btn--full {
     width: 100%;
 }
+
+/* ========================================================================
+   Task field types (texto, radio, checkboxes)
+   ======================================================================== */
+
+.lznd-task-field {
+    grid-column: 1 / -1;
+    padding: 8px 0 4px 44px;
+}
+
+.lznd-task-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Text input */
+.lznd-task-input--text {
+    width: 100%;
+    max-width: 360px;
+    padding: 6px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #374151;
+    background: #fff;
+    transition: border-color 0.15s;
+}
+
+.lznd-task-input--text:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+}
+
+/* Radio pills */
+.lznd-radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.lznd-radio-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b7280;
+    background: #f9fafb;
+    transition: all 0.15s;
+    user-select: none;
+}
+
+.lznd-radio-pill input[type="radio"] {
+    display: none;
+}
+
+.lznd-radio-pill:hover {
+    border-color: #9ca3af;
+    background: #f3f4f6;
+}
+
+/* Correcto = green */
+.lznd-radio-pill--correcto {
+    border-color: #16a34a;
+    background: #dcfce7;
+    color: #15803d;
+}
+
+/* Incidencia = red */
+.lznd-radio-pill--incidencia {
+    border-color: #dc2626;
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* Any other selection = blue */
+.lznd-radio-pill--selected {
+    border-color: #2563eb;
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+/* Specific overrides take precedence */
+.lznd-radio-pill--correcto.lznd-radio-pill--selected {
+    border-color: #16a34a;
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.lznd-radio-pill--incidencia.lznd-radio-pill--selected {
+    border-color: #dc2626;
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* Checkboxes multi-select */
+.lznd-checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lznd-cbx-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.lznd-cbx-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #374151;
+    cursor: pointer;
+}
+
+.lznd-cbx-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #2563eb;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* "Otro" conditional text */
+.lznd-otro-wrap {
+    padding-left: 24px;
+}
+
+.lznd-otro-input {
+    width: 100%;
+    max-width: 320px;
+    padding: 5px 10px;
+    border: 1px solid #fbbf24;
+    border-radius: 6px;
+    font-size: 13px;
+    background: #fffbeb;
+}
+
+.lznd-otro-input:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 2px rgba(245,158,11,.15);
+}

@@ -869,7 +869,7 @@ class LZND_Ajax {
 
         $actuacion_id = intval( $_POST['actuacion_id'] ?? 0 );
         $task_id      = sanitize_text_field( $_POST['task_id'] ?? '' );
-        $valor        = sanitize_text_field( $_POST['valor'] ?? '' );
+        $valor        = sanitize_textarea_field( wp_unslash( $_POST['valor'] ?? '' ) );
 
         if ( ! $actuacion_id || ! $task_id ) {
             wp_send_json_error( [ 'message' => __( 'Datos incompletos.', 'lezned-maintenance' ) ] );

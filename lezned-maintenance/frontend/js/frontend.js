@@ -164,30 +164,159 @@
     function buildTaskItem( task ) {
         var done      = !! task.completada;
         var checkmark = done ? '&#10003;' : '';
-        var timeHtml  = '';
-        if ( done && task.completada_en ) {
-            var t = new Date( task.completada_en.replace( ' ', 'T' ) );
-            var hhmm = ( '0' + t.getHours() ).slice( -2 ) + ':' + ( '0' + t.getMinutes() ).slice( -2 );
-            timeHtml = '<span class="lznd-task-time">' + hhmm + '</span>';
-        }
+        var tipoCampo = task.tipo_campo || '';
 
-        return $( '<li>' )
+        var $li = $( '<li>' )
             .addClass( 'lznd-task-item' + ( done ? ' lznd-task-item--done' : '' ) )
             .attr( 'data-task-id', task.id )
-            .append(
-                $( '<button>' )
-                    .attr( 'type', 'button' )
-                    .addClass( 'lznd-task-toggle' )
-                    .append( $( '<span>' ).addClass( 'lznd-task-check' ).html( checkmark ) )
-            )
-            .append( $( '<span>' ).addClass( 'lznd-task-text' ).text( task.texto ) )
-            .append( $( '<span>' ).addClass( 'lznd-task-time' ).html( done && task.completada_en ? formatTime( task.completada_en ) : '' ) )
-            .append(
-                $( '<button>' )
-                    .attr( 'type', 'button' )
-                    .addClass( 'lznd-task-delete' )
-                    .html( '&#10005;' )
+            .attr( 'data-tipo-campo', tipoCampo );
+
+        $li.append(
+            $( '<button>' ).attr( 'type', 'button' ).addClass( 'lznd-task-toggle' )
+                .append( $( '<span>' ).addClass( 'lznd-task-check' ).html( checkmark ) )
+        );
+
+        $li.append( $( '<span>' ).addClass( 'lznd-task-text' ).text( task.texto ) );
+        $li.append( $( '<span>' ).addClass( 'lznd-task-time' ).html( done && task.completada_en ? formatTime( task.completada_en ) : '' ) );
+
+        $li.append(
+            $( '<button>' ).attr( 'type', 'button' ).addClass( 'lznd-task-delete' ).html( '&#10005;' )
+        );
+
+        // Field section for typed tasks
+        if ( tipoCampo && tipoCampo !== 'casilla' ) {
+            $li.append( buildTaskField( task ) );
+        }
+
+        return $li;
+    }
+
+    function buildTaskField( task ) {
+        var tipoCampo = task.tipo_campo;
+        var opciones  = task.opciones || [];
+        var valor     = task.valor    || '';
+        var $field    = $( '<div>' ).addClass( 'lznd-task-field' );
+
+        if ( tipoCampo === 'texto' ) {
+            $field.append(
+                $( '<input>' )
+                    .attr( { type: 'text', placeholder: 'Valor' } )
+                    .addClass( 'lznd-task-input lznd-task-input--text' )
+                    .attr( 'data-task-id', task.id )
+                    .val( valor )
             );
+
+        } else if ( tipoCampo === 'radio' ) {
+            var $group = $( '<div>' ).addClass( 'lznd-radio-group' );
+            $.each( opciones, function ( i, opt ) {
+                var uid     = 'radio-' + task.id + '-' + i;
+                var $label  = $( '<label>' ).addClass( 'lznd-radio-pill' ).attr( 'for', uid );
+                var $radio  = $( '<input>' ).attr( {
+                    type:  'radio',
+                    name:  'task-' + task.id,
+                    id:    uid,
+                    value: opt,
+                } ).addClass( 'lznd-task-radio' ).attr( 'data-task-id', task.id );
+                if ( valor === opt ) {
+                    $radio.prop( 'checked', true );
+                    $label.addClass( 'lznd-radio-pill--selected lznd-radio-pill--' + opt.toLowerCase().replace( /\s+/g, '-' ) );
+                }
+                $label.append( $radio ).append( document.createTextNode( opt ) );
+                $group.append( $label );
+            } );
+            $field.append( $group );
+
+        } else if ( tipoCampo === 'checkboxes' ) {
+            var selectedValues = [];
+            var otroTexto      = '';
+            try {
+                if ( valor && valor.charAt(0) === '[' ) {
+                    selectedValues = JSON.parse( valor );
+                }
+            } catch ( e ) { /* ignore */ }
+
+            // Extract "Otro: ..." text
+            $.each( selectedValues, function ( i, sv ) {
+                if ( typeof sv === 'string' && sv.indexOf( 'Otro:' ) === 0 ) {
+                    otroTexto = sv.substring(5).trim();
+                }
+            } );
+
+            var $group = $( '<div>' ).addClass( 'lznd-checkbox-group' );
+            $.each( opciones, function ( i, opt ) {
+                var uid    = 'cbx-' + task.id + '-' + i;
+                var isChecked = false;
+                $.each( selectedValues, function ( j, sv ) {
+                    if ( sv === opt || ( opt === 'Otro' && typeof sv === 'string' && sv.indexOf( 'Otro' ) === 0 ) ) {
+                        isChecked = true;
+                        return false;
+                    }
+                } );
+
+                var $wrap  = $( '<div>' ).addClass( 'lznd-cbx-item' );
+                var $label = $( '<label>' ).addClass( 'lznd-cbx-label' ).attr( 'for', uid );
+                var $cbx   = $( '<input>' ).attr( { type: 'checkbox', id: uid, value: opt } )
+                    .addClass( 'lznd-task-checkbox' )
+                    .attr( 'data-task-id', task.id )
+                    .prop( 'checked', isChecked );
+                $label.append( $cbx ).append( document.createTextNode( ' ' + opt ) );
+                $wrap.append( $label );
+
+                if ( opt === 'Otro' ) {
+                    var $otroWrap = $( '<div>' ).addClass( 'lznd-otro-wrap' )
+                        .css( 'display', isChecked ? '' : 'none' );
+                    $otroWrap.append(
+                        $( '<input>' ).attr( { type: 'text', placeholder: 'Especificar fallo' } )
+                            .addClass( 'lznd-task-input lznd-otro-input' )
+                            .attr( 'data-task-id', task.id )
+                            .val( otroTexto )
+                    );
+                    $wrap.append( $otroWrap );
+                }
+
+                $group.append( $wrap );
+            } );
+            $field.append( $group );
+        }
+
+        return $field;
+    }
+
+    /* ── Save a typed field value ──────────────────────────────────────── */
+
+    function saveTaskValue( taskId, valor, $item, autoComplete ) {
+        if ( ! actuacionId || ! taskId ) return;
+        $.ajax( {
+            url:    ajax_url,
+            method: 'POST',
+            data: {
+                action:       'lznd_save_task_value',
+                nonce:        nonce,
+                actuacion_id: actuacionId,
+                task_id:      taskId,
+                valor:        valor,
+            },
+            success: function ( res ) {
+                if ( ! res.success ) return;
+                if ( autoComplete && $item && ! $item.hasClass( 'lznd-task-item--done' ) ) {
+                    $item.find( '.lznd-task-toggle' ).trigger( 'click' );
+                }
+            },
+        } );
+    }
+
+    function collectCheckboxValues( $item ) {
+        var selected = [];
+        $item.find( '.lznd-task-checkbox:checked' ).each( function () {
+            var opt = $( this ).val();
+            if ( opt === 'Otro' ) {
+                var txt = $( this ).closest( '.lznd-cbx-item' ).find( '.lznd-otro-input' ).val().trim();
+                selected.push( 'Otro' + ( txt ? ': ' + txt : '' ) );
+            } else {
+                selected.push( opt );
+            }
+        } );
+        return JSON.stringify( selected );
     }
 
     function formatTime( datetimeStr ) {
@@ -629,6 +758,47 @@
                 $item.css( 'opacity', 1 );
             },
         } );
+    } );
+
+    // ── Text field: save on blur ────────────────────────────────────────────
+    $( '#lznd-task-list' ).on( 'blur', '.lznd-task-input--text', function () {
+        var taskId = $( this ).attr( 'data-task-id' );
+        var valor  = $( this ).val().trim();
+        saveTaskValue( taskId, valor, $( this ).closest( '.lznd-task-item' ) );
+    } );
+
+    // ── Radio: save + auto-complete on pick ─────────────────────────────────
+    $( '#lznd-task-list' ).on( 'change', '.lznd-task-radio', function () {
+        var $radio = $( this );
+        var taskId = $radio.attr( 'data-task-id' );
+        var $item  = $radio.closest( '.lznd-task-item' );
+
+        // Style pills
+        $item.find( '.lznd-radio-pill' ).removeClass( 'lznd-radio-pill--selected lznd-radio-pill--correcto lznd-radio-pill--incidencia lznd-radio-pill--selected-any' );
+        $radio.closest( '.lznd-radio-pill' )
+            .addClass( 'lznd-radio-pill--selected lznd-radio-pill--' + $radio.val().toLowerCase().replace( /\s+/g, '-' ).replace( /[^a-z0-9-]/g, '' ) );
+
+        saveTaskValue( taskId, $radio.val(), $item, true );
+    } );
+
+    // ── Checkboxes: save on change (+ toggle Otro text field) ──────────────
+    $( '#lznd-task-list' ).on( 'change', '.lznd-task-checkbox', function () {
+        var $cbx  = $( this );
+        var $item = $cbx.closest( '.lznd-task-item' );
+        var taskId = $cbx.attr( 'data-task-id' );
+
+        if ( $cbx.val() === 'Otro' ) {
+            $cbx.closest( '.lznd-cbx-item' ).find( '.lznd-otro-wrap' ).toggle( $cbx.prop( 'checked' ) );
+        }
+
+        saveTaskValue( taskId, collectCheckboxValues( $item ), $item );
+    } );
+
+    // ── "Otro" text: save on blur ───────────────────────────────────────────
+    $( '#lznd-task-list' ).on( 'blur', '.lznd-otro-input', function () {
+        var $item  = $( this ).closest( '.lznd-task-item' );
+        var taskId = $( this ).attr( 'data-task-id' );
+        saveTaskValue( taskId, collectCheckboxValues( $item ), $item );
     } );
 
     // Add task

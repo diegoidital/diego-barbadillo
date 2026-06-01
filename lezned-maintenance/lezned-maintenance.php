@@ -29,6 +29,7 @@ require_once LZND_DIR . 'includes/class-admin-ui.php';
 require_once LZND_DIR . 'includes/class-ajax.php';
 require_once LZND_DIR . 'includes/class-cron.php';
 require_once LZND_DIR . 'includes/class-frontend.php';
+require_once LZND_DIR . 'includes/class-seed-tasks.php';
 
 // ─── Activation / Deactivation ───────────────────────────────────────────────
 register_activation_hook( __FILE__, array( 'LZND_Setup', 'activate' ) );

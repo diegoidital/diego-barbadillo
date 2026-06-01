@@ -172,6 +172,31 @@ class LZND_Settings {
                     </button>
                 </p>
             </form>
+
+            <?php
+            $seed_status = isset( $_GET['lznd_seed'] ) ? sanitize_key( $_GET['lznd_seed'] ) : '';
+            ?>
+            <?php if ( 'done' === $seed_status ) : ?>
+                <div class="notice notice-success is-dismissible">
+                    <p><?php esc_html_e( 'Tareas de mantenimiento creadas correctamente.', 'lezned-maintenance' ); ?></p>
+                </div>
+            <?php elseif ( 'error' === $seed_status ) : ?>
+                <div class="notice notice-error is-dismissible">
+                    <p><?php esc_html_e( 'Error al crear las tareas. Comprueba que el tipo "Mantenimiento" puede crearse.', 'lezned-maintenance' ); ?></p>
+                </div>
+            <?php endif; ?>
+
+            <div class="lznd-settings-section" style="margin-top:24px;">
+                <h2><?php esc_html_e( 'Tareas predeterminadas', 'lezned-maintenance' ); ?></h2>
+                <p class="description"><?php esc_html_e( 'Crea las tareas de mantenimiento estándar (bomba, inyector, variador, presiones, etc.) asignadas al tipo "Mantenimiento". Si ya existen, se actualizarán.', 'lezned-maintenance' ); ?></p>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:12px;">
+                    <?php wp_nonce_field( 'lznd_seed_tasks' ); ?>
+                    <input type="hidden" name="action" value="lznd_seed_tasks">
+                    <button type="submit" class="button button-secondary">
+                        &#9881; <?php esc_html_e( 'Crear / actualizar tareas de mantenimiento', 'lezned-maintenance' ); ?>
+                    </button>
+                </form>
+            </div>
         </div>
         <?php
     }
