@@ -533,19 +533,54 @@ class LZND_Meta_Boxes {
 	public static function box_tarea( $post ) {
 		wp_nonce_field( 'lznd_save_tarea', 'lznd_tarea_nonce' );
 
-		$terms = get_terms( array(
-			'taxonomy'   => 'lznd_tipo',
-			'hide_empty' => false,
-		) );
+		$tipo_campo   = get_post_meta( $post->ID, '_lznd_tipo_campo', true ) ?: 'texto';
+		$opciones_raw = get_post_meta( $post->ID, '_lznd_opciones',   true );
+		$opciones     = $opciones_raw ? json_decode( $opciones_raw, true ) : [];
+		if ( ! is_array( $opciones ) ) {
+			$opciones = [];
+		}
 
+		$terms         = get_terms( array( 'taxonomy' => 'lznd_tipo', 'hide_empty' => false ) );
 		$current_terms = wp_get_post_terms( $post->ID, 'lznd_tipo', array( 'fields' => 'ids' ) );
 
 		echo '<div class="lznd-form">';
 
-		if ( is_wp_error( $terms ) || empty( $terms ) ) {
-			echo '<p class="description">' . esc_html__( 'No hay tipos de trabajo disponibles.', 'lezned-maintenance' ) . '</p>';
-		} else {
-			echo '<p class="description">' . esc_html__( 'Asignar esta tarea a uno o más tipos de trabajo:', 'lezned-maintenance' ) . '</p>';
+		// ── Tipo de campo ──────────────────────────────────────────────────────
+		echo '<div class="lznd-row"><p><strong>' . esc_html__( 'Tipo de campo', 'lezned-maintenance' ) . '</strong></p>';
+		$tipos_campo = array(
+			'texto'      => __( 'Texto libre',          'lezned-maintenance' ),
+			'radio'      => __( 'Selección (una opción)','lezned-maintenance' ),
+			'checkboxes' => __( 'Selección múltiple',   'lezned-maintenance' ),
+		);
+		foreach ( $tipos_campo as $val => $label ) {
+			printf(
+				'<label style="margin-right:16px;"><input type="radio" name="_lznd_tipo_campo" value="%s"%s> %s</label>',
+				esc_attr( $val ),
+				checked( $tipo_campo, $val, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</div>';
+
+		// ── Options builder (hidden for texto) ─────────────────────────────────
+		$show_opts = ( 'texto' !== $tipo_campo ) ? '' : 'display:none;';
+		echo '<div id="lznd-tarea-opts-builder" style="margin-top:12px;' . esc_attr( $show_opts ) . '">';
+		echo '<p><strong>' . esc_html__( 'Opciones', 'lezned-maintenance' ) . '</strong> <span class="description">' . esc_html__( '(una por línea / botón)', 'lezned-maintenance' ) . '</span></p>';
+		echo '<div id="lznd-tarea-opts-list">';
+		foreach ( $opciones as $opt ) {
+			echo '<div class="lznd-opt-row" style="display:flex;gap:8px;margin-bottom:6px;">';
+			echo '<input type="text" name="_lznd_opciones[]" value="' . esc_attr( $opt ) . '" class="widefat" style="max-width:320px;" />';
+			echo '<button type="button" class="button lznd-opt-remove" title="' . esc_attr__( 'Eliminar opción', 'lezned-maintenance' ) . '">&times;</button>';
+			echo '</div>';
+		}
+		echo '</div>';
+		echo '<button type="button" class="button lznd-opt-add">+ ' . esc_html__( 'Añadir opción', 'lezned-maintenance' ) . '</button>';
+		echo '</div>';
+
+		// ── Taxonomy assignment ────────────────────────────────────────────────
+		if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+			echo '<div style="margin-top:20px;border-top:1px solid #ddd;padding-top:12px;">';
+			echo '<p class="description">' . esc_html__( 'Asignar esta tarea a tipos de trabajo:', 'lezned-maintenance' ) . '</p>';
 			echo '<div class="lznd-checkboxes">';
 			foreach ( $terms as $term ) {
 				$checked = in_array( $term->term_id, (array) $current_terms, true ) ? ' checked="checked"' : '';
@@ -556,10 +591,30 @@ class LZND_Meta_Boxes {
 					esc_html( $term->name )
 				);
 			}
-			echo '</div>';
+			echo '</div></div>';
 		}
 
-		echo '</div>';
+		echo '</div>'; // .lznd-form
+		?>
+		<script>
+		(function($){
+			$('[name="_lznd_tipo_campo"]').on('change', function(){
+				$('#lznd-tarea-opts-builder').toggle( $(this).val() !== 'texto' );
+			});
+			$(document).on('click', '.lznd-opt-add', function(){
+				$('#lznd-tarea-opts-list').append(
+					'<div class="lznd-opt-row" style="display:flex;gap:8px;margin-bottom:6px;">' +
+					'<input type="text" name="_lznd_opciones[]" value="" class="widefat" style="max-width:320px;"/>' +
+					'<button type="button" class="button lznd-opt-remove">&times;</button>' +
+					'</div>'
+				);
+			});
+			$(document).on('click', '.lznd-opt-remove', function(){
+				$(this).closest('.lznd-opt-row').remove();
+			});
+		})(jQuery);
+		</script>
+		<?php
 	}
 
 	// ─── Save: Cliente ────────────────────────────────────────────────────────
@@ -780,6 +835,22 @@ class LZND_Meta_Boxes {
 			return;
 		}
 
+		// Tipo de campo
+		$valid_tipos_campo = array( 'texto', 'radio', 'checkboxes' );
+		$tipo_campo = ( isset( $_POST['_lznd_tipo_campo'] ) && in_array( $_POST['_lznd_tipo_campo'], $valid_tipos_campo, true ) )
+			? $_POST['_lznd_tipo_campo']
+			: 'texto';
+		update_post_meta( $post_id, '_lznd_tipo_campo', $tipo_campo );
+
+		// Opciones (only for non-texto types)
+		if ( 'texto' !== $tipo_campo && isset( $_POST['_lznd_opciones'] ) && is_array( $_POST['_lznd_opciones'] ) ) {
+			$opciones = array_values( array_filter( array_map( 'sanitize_text_field', $_POST['_lznd_opciones'] ) ) );
+			update_post_meta( $post_id, '_lznd_opciones', wp_json_encode( $opciones, JSON_UNESCAPED_UNICODE ) );
+		} else {
+			update_post_meta( $post_id, '_lznd_opciones', '[]' );
+		}
+
+		// Taxonomy
 		$term_ids = array();
 		if ( isset( $_POST['_lznd_tipo_terms'] ) && is_array( $_POST['_lznd_tipo_terms'] ) ) {
 			$term_ids = array_map( 'absint', $_POST['_lznd_tipo_terms'] );
