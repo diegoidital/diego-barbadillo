@@ -17,14 +17,15 @@ class LZND_Ajax {
     public static function init() {
         $actions = [
             'lznd_get_project_tasks',
+            'lznd_get_project_dashboard',
             'lznd_toggle_task',
             'lznd_add_task',
             'lznd_delete_task',
-            'lznd_save_task_value',
             'lznd_upload_foto',
             'lznd_delete_foto',
             'lznd_save_signature',
             'lznd_save_field',
+            'lznd_save_task_value',
             'lznd_submit_actuacion',
             'lznd_get_client_data',
             'lznd_calendar_nav',
@@ -53,13 +54,14 @@ class LZND_Ajax {
 
         $proyecto_id   = intval( $_POST['proyecto_id'] ?? 0 );
         $tipo_term_id  = intval( $_POST['tipo_term_id'] ?? 0 );
+        $force_new     = ! empty( $_POST['force_new'] );
 
         if ( ! $proyecto_id || ! $tipo_term_id ) {
             wp_send_json_error( [ 'message' => __( 'Datos incompletos.', 'lezned-maintenance' ) ] );
         }
 
-        // Look for an existing pending actuacion for this project + tipo
-        $existing = get_posts( [
+        // Look for an existing pending actuacion for this project + tipo (skip if force_new)
+        $existing = $force_new ? [] : get_posts( [
             'post_type'      => 'lznd_actuacion',
             'post_status'    => 'publish',
             'posts_per_page' => 1,
@@ -92,11 +94,21 @@ class LZND_Ajax {
             }
         }
 
-        $tareas_raw = get_post_meta( $actuacion_id, '_lznd_tareas', true );
-        $tareas     = $tareas_raw ? json_decode( $tareas_raw, true ) : [];
+        // Mark as in-progress so the recovery popup appears on future visits
+        update_post_meta( $actuacion_id, '_lznd_estado', 'en_curso' );
+
+        $tareas_raw   = get_post_meta( $actuacion_id, '_lznd_tareas', true );
+        $tareas       = $tareas_raw ? json_decode( $tareas_raw, true ) : [];
         if ( ! is_array( $tareas ) ) {
             $tareas = [];
         }
+        $tareas_fixed = self::fix_tareas_encoding( $tareas );
+        // Persist repaired encoding back to DB so it only runs once.
+        $tareas_json  = wp_json_encode( $tareas_fixed, JSON_UNESCAPED_UNICODE );
+        if ( $tareas_json !== $tareas_raw ) {
+            update_post_meta( $actuacion_id, '_lznd_tareas', $tareas_json );
+        }
+        $tareas = $tareas_fixed;
 
         $fotos_raw = get_post_meta( $actuacion_id, '_lznd_fotos', true );
         $fotos     = is_array( $fotos_raw ) ? $fotos_raw : [];
@@ -155,6 +167,7 @@ class LZND_Ajax {
         if ( ! is_array( $tareas ) ) {
             $tareas = [];
         }
+        $tareas = self::fix_tareas_encoding( $tareas );
 
         $completada = false;
         foreach ( $tareas as &$tarea ) {
@@ -201,6 +214,7 @@ class LZND_Ajax {
         if ( ! is_array( $tareas ) ) {
             $tareas = [];
         }
+        $tareas = self::fix_tareas_encoding( $tareas );
 
         $new_task = [
             'id'           => uniqid( 'task_', true ),
@@ -213,54 +227,6 @@ class LZND_Ajax {
         update_post_meta( $actuacion_id, '_lznd_tareas', wp_json_encode( $tareas, JSON_UNESCAPED_UNICODE ) );
 
         wp_send_json_success( [ 'task' => $new_task ] );
-    }
-
-    /**
-     * Save the selected value for a seleccionar/radio task.
-     */
-    public static function handle_save_task_value() {
-        self::verify();
-
-        $actuacion_id = intval( $_POST['actuacion_id'] ?? 0 );
-        $task_id      = sanitize_text_field( $_POST['task_id'] ?? '' );
-        $valor        = sanitize_text_field( $_POST['valor'] ?? '' );
-
-        if ( ! $actuacion_id || ! $task_id ) {
-            wp_send_json_error( [ 'message' => __( 'Datos incompletos.', 'lezned-maintenance' ) ] );
-        }
-
-        $tareas_raw = get_post_meta( $actuacion_id, '_lznd_tareas', true );
-        $tareas     = $tareas_raw ? json_decode( $tareas_raw, true ) : [];
-        if ( ! is_array( $tareas ) ) {
-            $tareas = [];
-        }
-
-        foreach ( $tareas as &$tarea ) {
-            if ( isset( $tarea['id'] ) && $tarea['id'] === $task_id ) {
-                $tarea['valor'] = $valor;
-                if ( $valor !== '' ) {
-                    $tarea['completada'] = true;
-                    if ( empty( $tarea['completada_en'] ) ) {
-                        $tarea['completada_en'] = current_time( 'mysql' );
-                    }
-                } else {
-                    $tarea['completada']   = false;
-                    $tarea['completada_en'] = '';
-                }
-                break;
-            }
-        }
-        unset( $tarea );
-
-        update_post_meta( $actuacion_id, '_lznd_tareas', wp_json_encode( $tareas, JSON_UNESCAPED_UNICODE ) );
-
-        $total  = count( $tareas );
-        $hechas = count( array_filter( $tareas, fn( $t ) => ! empty( $t['completada'] ) ) );
-
-        wp_send_json_success( [
-            'hechas' => $hechas,
-            'total'  => $total,
-        ] );
     }
 
     /**
@@ -281,6 +247,7 @@ class LZND_Ajax {
         if ( ! is_array( $tareas ) ) {
             $tareas = [];
         }
+        $tareas = self::fix_tareas_encoding( $tareas );
 
         $tareas = array_values( array_filter( $tareas, fn( $t ) => ( $t['id'] ?? '' ) !== $task_id ) );
         update_post_meta( $actuacion_id, '_lznd_tareas', wp_json_encode( $tareas, JSON_UNESCAPED_UNICODE ) );
@@ -482,6 +449,102 @@ class LZND_Ajax {
     }
 
     /**
+     * Get dashboard data for a project (stats + pending + upcoming + in-progress).
+     */
+    public static function handle_get_project_dashboard() {
+        self::verify();
+
+        $proyecto_id = intval( $_POST['proyecto_id'] ?? 0 );
+
+        if ( ! $proyecto_id ) {
+            wp_send_json_error( [ 'message' => __( 'ID de proyecto inválido.', 'lezned-maintenance' ) ] );
+        }
+
+        $all_actuaciones = get_posts( [
+            'post_type'      => 'lznd_actuacion',
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+            'meta_query'     => [
+                [
+                    'key'   => '_lznd_proyecto_id',
+                    'value' => $proyecto_id,
+                    'type'  => 'NUMERIC',
+                ],
+            ],
+        ] );
+
+        $completadas_count = 0;
+        $pendientes        = [];
+        $proximas          = [];
+        $en_curso          = null;
+        $today             = current_time( 'Y-m-d' );
+
+        foreach ( $all_actuaciones as $act ) {
+            $estado     = get_post_meta( $act->ID, '_lznd_estado', true ) ?: 'pendiente';
+            $fecha_prog = get_post_meta( $act->ID, '_lznd_fecha_prog', true ) ?: '';
+            $tipo_tid   = get_post_meta( $act->ID, '_lznd_tipo_term_id', true );
+            $tipo_term  = $tipo_tid ? get_term( $tipo_tid, 'lznd_tipo' ) : null;
+            $tipo_name  = ( $tipo_term && ! is_wp_error( $tipo_term ) ) ? $tipo_term->name : __( 'Sin tipo', 'lezned-maintenance' );
+
+            $tareas_raw = get_post_meta( $act->ID, '_lznd_tareas', true );
+            $tareas     = $tareas_raw ? json_decode( $tareas_raw, true ) : [];
+            if ( ! is_array( $tareas ) ) {
+                $tareas = [];
+            }
+            $tareas = self::fix_tareas_encoding( $tareas );
+
+            $total_t  = count( $tareas );
+            $hechas_t = count( array_filter( $tareas, fn( $t ) => ! empty( $t['completada'] ) ) );
+
+            $task_list = array_values( array_map( fn( $t ) => [
+                'texto'      => $t['texto'] ?? '',
+                'completada' => (bool) ( $t['completada'] ?? false ),
+            ], $tareas ) );
+
+            $act_data = [
+                'id'         => $act->ID,
+                'tipo'       => $tipo_name,
+                'estado'     => $estado,
+                'fecha_prog' => $fecha_prog,
+                'total'      => $total_t,
+                'hechas'     => $hechas_t,
+                'tareas'     => $task_list,
+            ];
+
+            if ( in_array( $estado, [ 'enviado', 'cerrado' ], true ) ) {
+                $completadas_count++;
+            } elseif ( $estado === 'en_curso' ) {
+                if ( ! $en_curso ) {
+                    $en_curso = $act_data;
+                }
+                $pendientes[] = $act_data;
+            } elseif ( $estado === 'pendiente' ) {
+                if ( ! empty( $fecha_prog ) && $fecha_prog > $today ) {
+                    // Future scheduled work — show in upcoming, not popup
+                    $proximas[] = $act_data;
+                } else {
+                    // Past, today, or undated — likely started/abandoned work
+                    if ( ! $en_curso ) {
+                        $en_curso = $act_data;
+                    }
+                    $pendientes[] = $act_data;
+                }
+            }
+        }
+
+        usort( $proximas, fn( $a, $b ) => strcmp( $a['fecha_prog'] ?: '9999-12-31', $b['fecha_prog'] ?: '9999-12-31' ) );
+
+        wp_send_json_success( [
+            'completadas_count' => $completadas_count,
+            'pendientes_count'  => count( $pendientes ),
+            'proximas_count'    => count( $proximas ),
+            'pendientes'        => $pendientes,
+            'proximas'          => array_slice( $proximas, 0, 5 ),
+            'en_curso'          => $en_curso,
+        ] );
+    }
+
+    /**
      * Get client data for auto-fill.
      */
     public static function handle_get_client_data() {
@@ -661,7 +724,7 @@ class LZND_Ajax {
      * @param int $tipo_term_id
      * @return int|WP_Error
      */
-    private static function create_actuacion( $proyecto_id, $tipo_term_id ) {
+    public static function create_actuacion( $proyecto_id, $tipo_term_id ) {
         $proyecto = get_post( $proyecto_id );
         if ( ! $proyecto || $proyecto->post_type !== 'lznd_proyecto' ) {
             return new WP_Error( 'invalid_project', __( 'Proyecto no encontrado.', 'lezned-maintenance' ) );
@@ -733,16 +796,16 @@ class LZND_Ajax {
 
         $tareas = [];
         foreach ( $source_tareas as $tarea_post ) {
-            $tipo_campo_raw = get_post_meta( $tarea_post->ID, '_lznd_tipo_campo', true ) ?: 'texto';
-            $opciones_raw   = get_post_meta( $tarea_post->ID, '_lznd_opciones',   true ) ?: '';
-            $opciones       = $opciones_raw ? json_decode( $opciones_raw, true ) : [];
+            $tipo_campo  = get_post_meta( $tarea_post->ID, '_lznd_tipo_campo', true ) ?: 'texto';
+            $opciones_raw = get_post_meta( $tarea_post->ID, '_lznd_opciones', true );
+            $opciones    = $opciones_raw ? json_decode( $opciones_raw, true ) : [];
             if ( ! is_array( $opciones ) ) {
                 $opciones = [];
             }
             $tareas[] = [
                 'id'            => uniqid( 'task_', true ),
-                'texto'         => get_the_title( $tarea_post->ID ),
-                'tipo_campo'    => $tipo_campo_raw,
+                'texto'         => $tarea_post->post_title,
+                'tipo_campo'    => $tipo_campo,
                 'opciones'      => $opciones,
                 'completada'    => false,
                 'completada_en' => '',
@@ -753,6 +816,87 @@ class LZND_Ajax {
         update_post_meta( $actuacion_id, '_lznd_tareas', wp_json_encode( $tareas, JSON_UNESCAPED_UNICODE ) );
 
         return $actuacion_id;
+    }
+
+    /**
+     * Fix legacy tareas whose 'texto' was stored with escaped unicode sequences.
+     *
+     * Handles two corruption patterns:
+     *  1. "Revisión"  — literal backslash-u from double JSON encoding
+     *  2. "Revisiu00f3n"   — backslash was lost, leaving bare "u00f3" in the string
+     *
+     * @param array $tareas
+     * @return array
+     */
+    public static function fix_tareas_encoding( array $tareas ) {
+        foreach ( $tareas as &$tarea ) {
+            if ( ! isset( $tarea['texto'] ) || ! is_string( $tarea['texto'] ) ) {
+                continue;
+            }
+
+            $cb = function ( $m ) {
+                $decoded = json_decode( '"\\u' . $m[1] . '"' );
+                return ( $decoded !== null ) ? $decoded : $m[0];
+            };
+
+            // Pass 1: literal \uXXXX with backslash (double-encoded JSON)
+            $tarea['texto'] = preg_replace_callback(
+                '/\\\\u([0-9a-fA-F]{4})/',
+                $cb,
+                $tarea['texto']
+            );
+
+            // Pass 2: bare uXXXX without backslash (backslash was stripped).
+            // Only targets Latin Extended range U+00C0..U+00FF (all Western accents)
+            // guarded by a letter on the left so we don't corrupt hex literals.
+            $tarea['texto'] = preg_replace_callback(
+                '/(?<=[a-zA-Z])(u00[c-fC-F][0-9a-fA-F])/',
+                function ( $m ) use ( $cb ) {
+                    return $cb( [ $m[0], substr( $m[1], 1 ) ] );
+                },
+                $tarea['texto']
+            );
+        }
+        unset( $tarea );
+        return $tareas;
+    }
+
+    /**
+     * Save a task field value (text, select, radio) for an actuacion.
+     */
+    public static function handle_save_task_value() {
+        self::verify();
+
+        $actuacion_id = intval( $_POST['actuacion_id'] ?? 0 );
+        $task_id      = sanitize_text_field( $_POST['task_id'] ?? '' );
+        $valor        = sanitize_text_field( $_POST['valor'] ?? '' );
+
+        if ( ! $actuacion_id || ! $task_id ) {
+            wp_send_json_error( [ 'message' => __( 'Datos incompletos.', 'lezned-maintenance' ) ] );
+        }
+
+        $tareas_raw = get_post_meta( $actuacion_id, '_lznd_tareas', true );
+        $tareas     = $tareas_raw ? json_decode( $tareas_raw, true ) : [];
+        if ( ! is_array( $tareas ) ) {
+            $tareas = [];
+        }
+
+        $found = false;
+        foreach ( $tareas as &$t ) {
+            if ( isset( $t['id'] ) && $t['id'] === $task_id ) {
+                $t['valor'] = $valor;
+                $found = true;
+                break;
+            }
+        }
+        unset( $t );
+
+        if ( ! $found ) {
+            wp_send_json_error( [ 'message' => __( 'Tarea no encontrada.', 'lezned-maintenance' ) ] );
+        }
+
+        update_post_meta( $actuacion_id, '_lznd_tareas', wp_json_encode( $tareas, JSON_UNESCAPED_UNICODE ) );
+        wp_send_json_success();
     }
 }
 

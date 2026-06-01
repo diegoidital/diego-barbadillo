@@ -226,9 +226,9 @@ class LZND_Cron {
             date_i18n( 'd/m/Y', $domingo )
         );
 
-        add_filter( 'wp_mail_content_type', fn() => 'text/html' );
+        add_filter( 'wp_mail_content_type', [ __CLASS__, '_mail_html' ] );
         wp_mail( $admin_email, $subject, $body );
-        remove_filter( 'wp_mail_content_type', fn() => 'text/html' );
+        remove_filter( 'wp_mail_content_type', [ __CLASS__, '_mail_html' ] );
     }
 
     /**
@@ -264,6 +264,7 @@ class LZND_Cron {
         if ( ! is_array( $tareas ) ) {
             $tareas = [];
         }
+        $tareas = self::fix_tareas_encoding( $tareas );
 
         $fotos_raw = get_post_meta( $actuacion_id, '_lznd_fotos', true );
         $fotos     = is_array( $fotos_raw ) ? $fotos_raw : [];
@@ -336,7 +337,7 @@ class LZND_Cron {
             if ( ! empty( $tareas ) ) {
                 $lines[] = '*Detalle de tareas:*';
                 foreach ( $tareas as $tarea ) {
-                    $check   = ! empty( $tarea['completada'] ) ? '✅' : '⬜';
+                    $check   = ! empty( $tarea['completada'] ) ? '✅' : '⭕';
                     $lines[] = $check . ' ' . $tarea['texto'];
                 }
                 $lines[] = '';
@@ -577,15 +578,30 @@ class LZND_Cron {
         foreach ( $term_tareas as $tarea_post ) {
             $tareas[] = [
                 'id'           => uniqid( 'task_', true ),
-                'texto'        => get_the_title( $tarea_post->ID ),
+                'texto'        => $tarea_post->post_title,
                 'completada'   => false,
                 'completada_en' => '',
             ];
         }
 
-        update_post_meta( $actuacion_id, '_lznd_tareas', wp_json_encode( $tareas ) );
+        update_post_meta( $actuacion_id, '_lznd_tareas', wp_json_encode( $tareas, JSON_UNESCAPED_UNICODE ) );
 
         return $actuacion_id;
+    }
+
+    /**
+     * Fix legacy tareas with escaped unicode in texto field.
+     *
+     * @param array $tareas
+     * @return array
+     */
+    /** @internal Named callback for wp_mail_content_type filter (required for remove_filter). */
+    public static function _mail_html() {
+        return 'text/html';
+    }
+
+    private static function fix_tareas_encoding( array $tareas ) {
+        return LZND_Ajax::fix_tareas_encoding( $tareas );
     }
 }
 

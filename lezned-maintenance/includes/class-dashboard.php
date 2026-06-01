@@ -1,502 +1,620 @@
 <?php
 /**
- * LZND_Dashboard — Admin dashboard page.
- *
- * Shows: stats cards, per-client summary, this week's schedule,
- * recent completed actuaciones.
+ * LZND_Dashboard — Admin visual dashboard.
  *
  * @package Lezned_Maintenance
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 
 class LZND_Dashboard {
 
-	public static function init() {
-		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
-	}
+    public static function init() {
+        add_action( 'admin_enqueue_scripts', [ __CLASS__, 'enqueue' ] );
+        add_action( 'wp_ajax_lznd_get_dashboard_data', [ __CLASS__, 'ajax_data' ] );
+    }
 
-	public static function enqueue( $hook ) {
-		if ( 'toplevel_page_lznd-menu' !== $hook ) {
-			return;
-		}
-		// Chart.js for mini sparkline bars
-		wp_enqueue_script(
-			'lznd-chartjs',
-			'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
-			array(),
-			'4.4.0',
-			true
-		);
-	}
+    public static function enqueue( $hook ) {
+        if ( 'toplevel_page_lznd-menu' !== $hook ) {
+            return;
+        }
+        wp_enqueue_script(
+            'lznd-chartjs',
+            'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+            [],
+            '4.4.0',
+            true
+        );
+    }
 
-	/* ------------------------------------------------------------------ */
-	/* Render                                                               */
-	/* ------------------------------------------------------------------ */
-	public static function render() {
-		$stats   = self::get_stats();
-		$clientes = self::get_client_summaries();
-		$semana  = self::get_week_schedule();
-		$recientes = self::get_recent_completed( 8 );
-		?>
-		<div class="wrap lznd-dashboard">
-			<h1 class="lznd-dash__heading">
-				<span class="dashicons dashicons-hammer" style="font-size:28px;height:28px;width:28px;margin-right:8px;vertical-align:middle;color:#1d5fa6"></span>
-				Dashboard — Mantenimiento
-			</h1>
+    public static function render() {
+        $cur_year  = (int) current_time( 'Y' );
+        $cur_month = (int) current_time( 'n' );
+        $years     = range( $cur_year - 2, $cur_year + 1 );
+        $meses     = [
+            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
+        ];
+        $ajax_url = admin_url( 'admin-ajax.php' );
+        $nonce    = wp_create_nonce( 'lznd_admin' );
+        ?>
+        <div class="wrap lznd-dashboard">
+            <h1 class="lznd-dash__heading">
+                <span class="dashicons dashicons-hammer" style="font-size:28px;height:28px;width:28px;margin-right:8px;vertical-align:middle;color:#1d5fa6"></span>
+                Dashboard &mdash; Mantenimiento
+            </h1>
 
-			<!-- ═══ STATS CARDS ═══ -->
-			<div class="lznd-stats-grid">
-				<?php
-				$cards = array(
-					array(
-						'label' => 'Clientes activos',
-						'value' => $stats['clientes'],
-						'icon'  => 'dashicons-groups',
-						'color' => '#1d5fa6',
-						'url'   => admin_url( 'edit.php?post_type=lznd_cliente' ),
-					),
-					array(
-						'label' => 'Proyectos activos',
-						'value' => $stats['proyectos'],
-						'icon'  => 'dashicons-building',
-						'color' => '#2e7d32',
-						'url'   => admin_url( 'edit.php?post_type=lznd_proyecto' ),
-					),
-					array(
-						'label' => 'Actuaciones pendientes',
-						'value' => $stats['pendientes'],
-						'icon'  => 'dashicons-clock',
-						'color' => '#996800',
-						'url'   => admin_url( 'edit.php?post_type=lznd_actuacion&lznd_filter_estado=pendiente' ),
-					),
-					array(
-						'label' => 'En proceso',
-						'value' => $stats['en_proceso'],
-						'icon'  => 'dashicons-hammer',
-						'color' => '#1565c0',
-						'url'   => admin_url( 'edit.php?post_type=lznd_actuacion' ),
-					),
-					array(
-						'label' => 'Vencidas',
-						'value' => $stats['vencidas'],
-						'icon'  => 'dashicons-warning',
-						'color' => '#b71c1c',
-						'url'   => admin_url( 'edit.php?post_type=lznd_actuacion' ),
-					),
-					array(
-						'label' => 'Completadas este mes',
-						'value' => $stats['completadas_mes'],
-						'icon'  => 'dashicons-yes-alt',
-						'color' => '#00695c',
-						'url'   => admin_url( 'edit.php?post_type=lznd_actuacion' ),
-					),
-				);
-				foreach ( $cards as $card ) :
-					?>
-					<a href="<?php echo esc_url( $card['url'] ); ?>" class="lznd-stat-card" style="--card-color:<?php echo esc_attr( $card['color'] ); ?>">
-						<div class="lznd-stat-card__icon">
-							<span class="dashicons <?php echo esc_attr( $card['icon'] ); ?>"></span>
-						</div>
-						<div class="lznd-stat-card__body">
-							<div class="lznd-stat-card__value"><?php echo esc_html( $card['value'] ); ?></div>
-							<div class="lznd-stat-card__label"><?php echo esc_html( $card['label'] ); ?></div>
-						</div>
-					</a>
-					<?php
-				endforeach;
-				?>
-			</div>
+            <div class="lznd-dash-filterbar">
+                <div class="lznd-period-tabs">
+                    <button class="lznd-period-tab" data-period="week">Semana</button>
+                    <button class="lznd-period-tab" data-period="month">Mes</button>
+                    <button class="lznd-period-tab" data-period="year">A&ntilde;o</button>
+                    <button class="lznd-period-tab lznd-period-tab--active" data-period="all">Todo</button>
+                </div>
+                <div class="lznd-filter-selects">
+                    <span class="lznd-filter-label" id="lznd-month-label">Mes:</span>
+                    <select id="lznd-filter-month">
+                        <?php foreach ( $meses as $n => $nombre ) : ?>
+                            <option value="<?php echo $n; ?>" <?php selected( $n, $cur_month ); ?>><?php echo esc_html( $nombre ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <span class="lznd-filter-label">A&ntilde;o:</span>
+                    <select id="lznd-filter-year">
+                        <?php foreach ( $years as $y ) : ?>
+                            <option value="<?php echo $y; ?>" <?php selected( $y, $cur_year ); ?>><?php echo $y; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <button id="lznd-dash-apply" class="button button-primary">Actualizar</button>
+                </div>
+            </div>
 
-			<div class="lznd-dash__cols">
+            <div class="lznd-charts-grid" id="lznd-charts-grid">
 
-				<!-- ═══ COLUMN LEFT: Clientes ═══ -->
-				<div class="lznd-dash__col lznd-dash__col--wide">
-					<div class="lznd-dash-box">
-						<div class="lznd-dash-box__header">
-							<h2 class="lznd-dash-box__title">
-								<span class="dashicons dashicons-groups"></span> Resumen por cliente
-							</h2>
-							<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=lznd_cliente' ) ); ?>" class="button button-small">
-								+ Nuevo cliente
-							</a>
-						</div>
-						<div class="lznd-dash-box__body">
-							<?php if ( empty( $clientes ) ) : ?>
-								<p class="lznd-dash-empty">No hay clientes creados. <a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=lznd_cliente' ) ); ?>">Crear el primero</a>.</p>
-							<?php else : ?>
-							<table class="lznd-dash-table widefat striped">
-								<thead>
-									<tr>
-										<th>Cliente</th>
-										<th class="center">Proyectos</th>
-										<th class="center">Pendientes</th>
-										<th class="center">Completadas</th>
-										<th>Próxima cita</th>
-										<th></th>
-									</tr>
-								</thead>
-								<tbody>
-									<?php foreach ( $clientes as $c ) :
-										$proxima_ts = $c['proxima_fecha'] ? strtotime( $c['proxima_fecha'] ) : 0;
-										$hoy        = strtotime( current_time( 'Y-m-d' ) );
-										$diff_dias  = $proxima_ts ? (int) ceil( ( $proxima_ts - $hoy ) / DAY_IN_SECONDS ) : null;
-										$fecha_cls  = '';
-										if ( $diff_dias !== null ) {
-											if ( $diff_dias < 0 )     $fecha_cls = 'style="color:#b71c1c;font-weight:600"';
-											elseif ( $diff_dias <= 7 ) $fecha_cls = 'style="color:#e65100;font-weight:600"';
-										}
-										?>
-										<tr>
-											<td>
-												<strong>
-													<a href="<?php echo esc_url( admin_url( 'post.php?post=' . $c['id'] . '&action=edit' ) ); ?>">
-														<?php echo esc_html( $c['nombre'] ); ?>
-													</a>
-												</strong>
-												<?php if ( $c['email'] ) : ?>
-													<br><small class="lznd-text-muted"><?php echo esc_html( $c['email'] ); ?></small>
-												<?php endif; ?>
-											</td>
-											<td class="center">
-												<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=lznd_proyecto&lznd_cliente_filter=' . $c['id'] ) ); ?>">
-													<strong><?php echo esc_html( $c['proyectos'] ); ?></strong>
-												</a>
-											</td>
-											<td class="center">
-												<?php if ( $c['pendientes'] > 0 ) : ?>
-													<span class="lznd-badge lznd-badge--en_proceso"><?php echo esc_html( $c['pendientes'] ); ?></span>
-												<?php else : ?>
-													<span class="lznd-text-muted">0</span>
-												<?php endif; ?>
-											</td>
-											<td class="center">
-												<span class="lznd-badge lznd-badge--completado"><?php echo esc_html( $c['completadas'] ); ?></span>
-											</td>
-											<td <?php echo $fecha_cls; // phpcs:ignore ?>>
-												<?php if ( $c['proxima_fecha'] ) : ?>
-													<?php echo esc_html( date_i18n( 'd/m/Y', $proxima_ts ) ); ?>
-													<?php if ( $diff_dias !== null && $diff_dias >= 0 ) : ?>
-														<br><small>(<?php echo esc_html( $diff_dias ); ?> días)</small>
-													<?php elseif ( $diff_dias !== null && $diff_dias < 0 ) : ?>
-														<br><small>Vencida</small>
-													<?php endif; ?>
-												<?php else : ?>
-													<span class="lznd-text-muted">—</span>
-												<?php endif; ?>
-											</td>
-											<td>
-												<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=lznd_proyecto&lznd_cliente_filter=' . $c['id'] ) ); ?>" class="button button-small">
-													Ver proyectos
-												</a>
-											</td>
-										</tr>
-									<?php endforeach; ?>
-								</tbody>
-							</table>
-							<?php endif; ?>
-						</div>
-					</div>
-				</div>
+                <div class="lznd-chart-card lznd-chart-card--gauge" id="card-totales">
+                    <h3 class="lznd-chart-card__title">Trabajos totales</h3>
+                    <div class="lznd-gauge-wrap">
+                        <canvas id="chart-totales"></canvas>
+                        <div class="lznd-gauge-center">
+                            <span class="lznd-gauge-value" id="gauge-totales-val">—</span>
+                            <span class="lznd-gauge-sublabel">Total</span>
+                        </div>
+                    </div>
+                    <div class="lznd-gauge-legend" id="gauge-totales-legend"></div>
+                </div>
 
-				<!-- ═══ COLUMN RIGHT: Semana + Recientes ═══ -->
-				<div class="lznd-dash__col lznd-dash__col--narrow">
+                <div class="lznd-chart-card lznd-chart-card--gauge" id="card-pendientes">
+                    <h3 class="lznd-chart-card__title">Trabajos pendientes</h3>
+                    <div class="lznd-gauge-wrap">
+                        <canvas id="chart-pendientes"></canvas>
+                        <div class="lznd-gauge-center">
+                            <span class="lznd-gauge-value" id="gauge-pend-val">—</span>
+                            <span class="lznd-gauge-sublabel">Pendiente</span>
+                        </div>
+                    </div>
+                    <div class="lznd-gauge-legend" id="gauge-pend-legend"></div>
+                </div>
 
-					<!-- Semana actual -->
-					<div class="lznd-dash-box">
-						<div class="lznd-dash-box__header">
-							<h2 class="lznd-dash-box__title">
-								<span class="dashicons dashicons-calendar-alt"></span> Esta semana
-							</h2>
-						</div>
-						<div class="lznd-dash-box__body lznd-dash-box__body--no-pad">
-							<?php
-							$dias_semana = array( 'Lunes', 'Martes', 'Mi&#233;rcoles', 'Jueves', 'Viernes', 'S&#225;bado', 'Domingo' );
-							$lunes = new DateTime( 'monday this week', new DateTimeZone( wp_timezone_string() ) );
-							$has_any = false;
-							for ( $d = 0; $d < 7; $d++ ) :
-								$dia_dt   = clone $lunes;
-								$dia_dt->modify( "+{$d} days" );
-								$dia_key  = $dia_dt->format( 'Y-m-d' );
-								$dia_acts = isset( $semana[ $dia_key ] ) ? $semana[ $dia_key ] : array();
-								$is_today = $dia_key === current_time( 'Y-m-d' );
-								if ( empty( $dia_acts ) && ! $is_today ) continue;
-								$has_any = true;
-								?>
-								<div class="lznd-week-day <?php echo $is_today ? 'lznd-week-day--today' : ''; ?>">
-									<div class="lznd-week-day__header">
-										<strong><?php echo $dias_semana[ $d ]; // phpcs:ignore ?></strong>
-										<span class="lznd-week-day__date"><?php echo esc_html( $dia_dt->format( 'd/m' ) ); ?></span>
-									</div>
-									<?php if ( empty( $dia_acts ) ) : ?>
-										<p class="lznd-week-empty">Sin actuaciones</p>
-									<?php else : ?>
-										<ul class="lznd-week-list">
-											<?php foreach ( $dia_acts as $act ) :
-												$estado = get_post_meta( $act->ID, '_lznd_estado', true ) ?: 'pendiente';
-												?>
-												<li class="lznd-week-item">
-													<span class="lznd-dot lznd-dot--<?php echo esc_attr( $estado ); ?>"></span>
-													<a href="<?php echo esc_url( admin_url( 'post.php?post=' . $act->ID . '&action=edit' ) ); ?>">
-														<?php echo esc_html( $act->post_title ); ?>
-													</a>
-												</li>
-											<?php endforeach; ?>
-										</ul>
-									<?php endif; ?>
-								</div>
-							<?php endfor; ?>
-							<?php if ( ! $has_any ) : ?>
-								<p class="lznd-dash-empty" style="padding:16px">No hay actuaciones programadas esta semana.</p>
-							<?php endif; ?>
-						</div>
-					</div>
+                <div class="lznd-chart-card lznd-chart-card--timeline" id="card-proximos">
+                    <h3 class="lznd-chart-card__title">Pr&oacute;ximos trabajos</h3>
+                    <div id="lznd-timeline" class="lznd-timeline">
+                        <p class="lznd-loading-text">Cargando...</p>
+                    </div>
+                </div>
 
-					<!-- Completadas recientes -->
-					<div class="lznd-dash-box" style="margin-top:20px">
-						<div class="lznd-dash-box__header">
-							<h2 class="lznd-dash-box__title">
-								<span class="dashicons dashicons-yes-alt"></span> &#218;ltimas completadas
-							</h2>
-						</div>
-						<div class="lznd-dash-box__body lznd-dash-box__body--no-pad">
-							<?php if ( empty( $recientes ) ) : ?>
-								<p class="lznd-dash-empty" style="padding:16px">Sin actuaciones completadas.</p>
-							<?php else : ?>
-								<ul class="lznd-recent-list">
-									<?php foreach ( $recientes as $act ) :
-										$proy_id  = get_post_meta( $act->ID, '_lznd_proyecto_id', true );
-										$proy     = $proy_id ? get_post( $proy_id ) : null;
-										$fecha_fin = get_post_meta( $act->ID, '_lznd_fecha_fin', true );
-										?>
-										<li class="lznd-recent-item">
-											<div class="lznd-recent-item__icon">
-												<span class="dashicons dashicons-yes-alt" style="color:#2e7d32"></span>
-											</div>
-											<div class="lznd-recent-item__body">
-												<a href="<?php echo esc_url( admin_url( 'post.php?post=' . $act->ID . '&action=edit' ) ); ?>" class="lznd-recent-item__title">
-													<?php echo esc_html( $act->post_title ); ?>
-												</a>
-												<?php if ( $proy ) : ?>
-													<span class="lznd-recent-item__sub"><?php echo esc_html( $proy->post_title ); ?></span>
-												<?php endif; ?>
-											</div>
-											<div class="lznd-recent-item__date">
-												<?php echo $fecha_fin ? esc_html( date_i18n( 'd/m', strtotime( $fecha_fin ) ) ) : esc_html( date_i18n( 'd/m', strtotime( $act->post_modified ) ) ); ?>
-											</div>
-										</li>
-									<?php endforeach; ?>
-								</ul>
-							<?php endif; ?>
-						</div>
-					</div>
+                <div class="lznd-chart-card lznd-chart-card--clients" id="card-clientes">
+                    <h3 class="lznd-chart-card__title">Clientes</h3>
+                    <div class="lznd-table-scroll">
+                        <table class="lznd-dash-table widefat striped">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Estado</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientes-tbody">
+                                <tr><td colspan="3" class="lznd-loading-text">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
-				</div><!-- .lznd-dash__col--narrow -->
-			</div><!-- .lznd-dash__cols -->
+                <div class="lznd-chart-card lznd-chart-card--matrix" id="card-estado">
+                    <h3 class="lznd-chart-card__title">Estado trabajos</h3>
+                    <div id="lznd-matrix" class="lznd-matrix-wrap">
+                        <p class="lznd-loading-text">Cargando...</p>
+                    </div>
+                </div>
 
-			<!-- ═══ QUICK ACTIONS ═══ -->
-			<div class="lznd-quick-actions">
-				<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=lznd_proyecto' ) ); ?>" class="lznd-quick-btn">
-					<span class="dashicons dashicons-building"></span> Nuevo proyecto
-				</a>
-				<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=lznd_cliente' ) ); ?>" class="lznd-quick-btn">
-					<span class="dashicons dashicons-admin-users"></span> Nuevo cliente
-				</a>
-				<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=lznd_actuacion' ) ); ?>" class="lznd-quick-btn">
-					<span class="dashicons dashicons-hammer"></span> Nueva actuaci&#243;n
-				</a>
-				<a href="<?php echo esc_url( get_permalink( get_option( 'lznd_page_id' ) ) ); ?>" class="lznd-quick-btn lznd-quick-btn--green" target="_blank">
-					<span class="dashicons dashicons-smartphone"></span> Abrir frontend m&#243;vil
-				</a>
-			</div>
+                <div class="lznd-chart-card lznd-chart-card--stats" id="card-stats">
+                    <h3 class="lznd-chart-card__title">Estad&iacute;sticas de trabajo</h3>
+                    <div class="lznd-chart-canvas-wrap">
+                        <canvas id="chart-stats"></canvas>
+                    </div>
+                </div>
 
-		</div><!-- .lznd-dashboard -->
-		<?php
-	}
+            </div><!-- .lznd-charts-grid -->
+        </div><!-- .lznd-dashboard -->
 
-	/* ------------------------------------------------------------------ */
-	/* Data queries                                                          */
-	/* ------------------------------------------------------------------ */
+        <script>
+        (function($){
+            'use strict';
 
-	private static function get_stats() {
-		$today     = current_time( 'Y-m-d' );
-		$mes_inicio = current_time( 'Y-m' ) . '-01';
+            var AJAX  = <?php echo json_encode( $ajax_url ); ?>;
+            var NONCE = <?php echo json_encode( $nonce ); ?>;
+            var charts = {};
+            var period = 'all';
 
-		return array(
-			'clientes'        => wp_count_posts( 'lznd_cliente' )->publish,
-			'proyectos'       => wp_count_posts( 'lznd_proyecto' )->publish,
-			'pendientes'      => self::count_actuaciones_by_estado( array( 'pendiente' ) ),
-			'en_proceso'      => self::count_actuaciones_by_estado( array( 'en_proceso' ) ),
-			'vencidas'        => self::count_vencidas( $today ),
-			'completadas_mes' => self::count_completadas_mes( $mes_inicio ),
-		);
-	}
+            // ── Period tabs ──────────────────────────────────────────────────
 
-	private static function count_actuaciones_by_estado( array $estados ) {
-		$posts = get_posts( array(
-			'post_type'      => 'lznd_actuacion',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'meta_query'     => array(
-				array( 'key' => '_lznd_estado', 'value' => $estados, 'compare' => 'IN' ),
-			),
-		) );
-		return count( $posts );
-	}
+            $('.lznd-period-tab').on('click', function(){
+                $('.lznd-period-tab').removeClass('lznd-period-tab--active');
+                $(this).addClass('lznd-period-tab--active');
+                period = $(this).data('period');
+                if (period === 'month') {
+                    $('#lznd-month-label').show();
+                    $('#lznd-filter-month').show();
+                    $('#lznd-filter-year').show();
+                    $('#lznd-dash-apply').show();
+                } else if (period === 'year') {
+                    $('#lznd-month-label').hide();
+                    $('#lznd-filter-month').hide();
+                    $('#lznd-filter-year').show();
+                    $('#lznd-dash-apply').show();
+                } else {
+                    $('#lznd-month-label').hide();
+                    $('#lznd-filter-month').hide();
+                    $('#lznd-filter-year').hide();
+                    $('#lznd-dash-apply').hide();
+                }
+                if (period !== 'month' && period !== 'year') {
+                    load();
+                }
+            });
 
-	private static function count_vencidas( $today ) {
-		$posts = get_posts( array(
-			'post_type'      => 'lznd_actuacion',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'meta_query'     => array(
-				'relation' => 'AND',
-				array( 'key' => '_lznd_estado',     'value' => array( 'pendiente', 'en_proceso' ), 'compare' => 'IN' ),
-				array( 'key' => '_lznd_fecha_prog', 'value' => $today, 'compare' => '<', 'type' => 'DATE' ),
-			),
-		) );
-		return count( $posts );
-	}
+            $('#lznd-dash-apply').on('click', function(){ load(); });
 
-	private static function count_completadas_mes( $desde ) {
-		$posts = get_posts( array(
-			'post_type'      => 'lznd_actuacion',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'meta_query'     => array(
-				'relation' => 'AND',
-				array( 'key' => '_lznd_estado',   'value' => array( 'completado', 'enviado' ), 'compare' => 'IN' ),
-				array( 'key' => '_lznd_fecha_fin', 'value' => $desde, 'compare' => '>=', 'type' => 'DATE' ),
-			),
-		) );
-		return count( $posts );
-	}
+            // ── Load ─────────────────────────────────────────────────────────
 
-	private static function get_client_summaries() {
-		$clientes = get_posts( array(
-			'post_type'      => 'lznd_cliente',
-			'posts_per_page' => -1,
-			'post_status'    => 'publish',
-			'orderby'        => 'title',
-			'order'          => 'ASC',
-		) );
+            function load() {
+                $('#lznd-charts-grid').css('opacity', 0.5);
+                $.post(AJAX, {
+                    action: 'lznd_get_dashboard_data',
+                    nonce:  NONCE,
+                    period: period,
+                    year:   $('#lznd-filter-year').val(),
+                    month:  $('#lznd-filter-month').val(),
+                }, function(res){
+                    $('#lznd-charts-grid').css('opacity', 1);
+                    if (res && res.success) render(res.data);
+                });
+            }
 
-		$summaries = array();
+            function render(d) {
+                gaugeTotal(d);
+                gaugePendiente(d);
+                timeline(d.proximas || []);
+                clientes(d.clientes || []);
+                matrix(d.por_tipo || {}, d.estados || []);
+                barStats(d.por_tipo || {});
+            }
 
-		foreach ( $clientes as $cli ) {
-			// Projects for this client
-			$proyectos = get_posts( array(
-				'post_type'      => 'lznd_proyecto',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'meta_query'     => array(
-					array( 'key' => '_lznd_cliente_id', 'value' => $cli->ID ),
-				),
-			) );
+            // ── Gauge: Totales ────────────────────────────────────────────
 
-			if ( empty( $proyectos ) ) {
-				$summaries[] = array(
-					'id'            => $cli->ID,
-					'nombre'        => $cli->post_title,
-					'email'         => get_post_meta( $cli->ID, '_lznd_email', true ),
-					'proyectos'     => 0,
-					'pendientes'    => 0,
-					'completadas'   => 0,
-					'proxima_fecha' => null,
-				);
-				continue;
-			}
+            function gaugeTotal(d) {
+                var total = d.totales || 0;
+                var comp  = d.completados || 0;
+                var pend  = d.pendientes  || 0;
+                var curs  = d.en_curso    || 0;
+                var rest  = Math.max(0, total - comp - pend - curs);
 
-			// Actuaciones for these projects
-			$pending_count   = 0;
-			$completed_count = 0;
-			$proxima_fecha   = null;
+                $('#gauge-totales-val').text(total);
 
-			$actuaciones = get_posts( array(
-				'post_type'      => 'lznd_actuacion',
-				'posts_per_page' => -1,
-				'meta_query'     => array(
-					array( 'key' => '_lznd_proyecto_id', 'value' => $proyectos, 'compare' => 'IN' ),
-				),
-			) );
+                if (charts.total) charts.total.destroy();
+                var ctx = document.getElementById('chart-totales');
+                if (!ctx) return;
 
-			foreach ( $actuaciones as $act ) {
-				$estado = get_post_meta( $act->ID, '_lznd_estado', true ) ?: 'pendiente';
-				if ( in_array( $estado, array( 'pendiente', 'en_proceso' ), true ) ) {
-					$pending_count++;
-				}
-				if ( in_array( $estado, array( 'completado', 'enviado' ), true ) ) {
-					$completed_count++;
-				}
-			}
+                charts.total = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Completados','Pendientes','En curso','Otros'],
+                        datasets:[{
+                            data: [comp, pend, curs, total > 0 ? rest : 1],
+                            backgroundColor: ['#22c55e','#f59e0b','#3b82f6','#e5e7eb'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        rotation: 270, circumference: 180, cutout: '72%',
+                        plugins: { legend:{display:false}, tooltip:{enabled:true} },
+                        animation: { duration: 600 }
+                    }
+                });
 
-			// Next scheduled date from projects
-			foreach ( $proyectos as $pid ) {
-				$fecha = get_post_meta( $pid, '_lznd_fecha_proxima', true );
-				if ( $fecha ) {
-					if ( ! $proxima_fecha || $fecha < $proxima_fecha ) {
-						$proxima_fecha = $fecha;
-					}
-				}
-			}
+                $('#gauge-totales-legend').html(
+                    leg('#22c55e','Completados',comp) +
+                    leg('#f59e0b','Pendientes',pend) +
+                    leg('#3b82f6','En curso',curs)
+                );
+            }
 
-			$summaries[] = array(
-				'id'            => $cli->ID,
-				'nombre'        => $cli->post_title,
-				'email'         => get_post_meta( $cli->ID, '_lznd_email', true ),
-				'proyectos'     => count( $proyectos ),
-				'pendientes'    => $pending_count,
-				'completadas'   => $completed_count,
-				'proxima_fecha' => $proxima_fecha,
-			);
-		}
+            // ── Gauge: Pendientes % ───────────────────────────────────────
 
-		return $summaries;
-	}
+            function gaugePendiente(d) {
+                var total = d.totales || 0;
+                var pend  = (d.pendientes||0) + (d.en_curso||0);
+                var pct   = total > 0 ? Math.round((pend/total)*100) : 0;
+                var color = pct < 30 ? '#22c55e' : pct < 70 ? '#f59e0b' : '#ef4444';
 
-	private static function get_week_schedule() {
-		$lunes   = new DateTime( 'monday this week', new DateTimeZone( wp_timezone_string() ) );
-		$domingo = clone $lunes;
-		$domingo->modify( '+6 days' );
+                $('#gauge-pend-val').text(pct + '%');
 
-		$desde = $lunes->format( 'Y-m-d' );
-		$hasta = $domingo->format( 'Y-m-d' );
+                if (charts.pend) charts.pend.destroy();
+                var ctx = document.getElementById('chart-pendientes');
+                if (!ctx) return;
 
-		$actuaciones = get_posts( array(
-			'post_type'      => 'lznd_actuacion',
-			'posts_per_page' => -1,
-			'orderby'        => 'meta_value',
-			'meta_key'       => '_lznd_fecha_prog',
-			'order'          => 'ASC',
-			'meta_query'     => array(
-				array( 'key' => '_lznd_fecha_prog', 'value' => array( $desde, $hasta ), 'compare' => 'BETWEEN', 'type' => 'DATE' ),
-			),
-		) );
+                charts.pend = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        datasets:[{
+                            data: [pct, 100-pct],
+                            backgroundColor: [color, '#e5e7eb'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        rotation: 270, circumference: 180, cutout: '72%',
+                        plugins: { legend:{display:false}, tooltip:{enabled:false} },
+                        animation: { duration: 600 }
+                    }
+                });
 
-		$by_day = array();
-		foreach ( $actuaciones as $act ) {
-			$fecha = get_post_meta( $act->ID, '_lznd_fecha_prog', true );
-			if ( $fecha ) {
-				$by_day[ $fecha ][] = $act;
-			}
-		}
+                $('#gauge-pend-legend').html(
+                    leg(color, 'Pendiente+En curso', pend + ' / ' + total)
+                );
+            }
 
-		return $by_day;
-	}
+            // ── Timeline ─────────────────────────────────────────────────
 
-	private static function get_recent_completed( $limit = 8 ) {
-		return get_posts( array(
-			'post_type'      => 'lznd_actuacion',
-			'posts_per_page' => $limit,
-			'orderby'        => 'modified',
-			'order'          => 'DESC',
-			'meta_query'     => array(
-				array( 'key' => '_lznd_estado', 'value' => array( 'completado', 'enviado' ), 'compare' => 'IN' ),
-			),
-		) );
-	}
+            function timeline(proximas) {
+                var $tl = $('#lznd-timeline');
+                if (!proximas.length) {
+                    $tl.html('<p class="lznd-dash-empty">No hay pr&#243;ximas actuaciones.</p>');
+                    return;
+                }
+
+                var today     = new Date();
+                var lastDate  = new Date(proximas[proximas.length-1].fecha_prog);
+                var spanDays  = Math.max(7, Math.ceil((lastDate - today) / 86400000) + 14);
+                var colors    = {pendiente:'#f59e0b', en_curso:'#3b82f6', enviado:'#22c55e'};
+
+                var html = '<div class="lznd-tl-head">'
+                    + '<span>' + fmtDate(today) + '</span>'
+                    + '<span class="lznd-tl-heading">TIMELINE</span>'
+                    + '<span>' + fmtDate(lastDate) + '</span>'
+                    + '</div><div class="lznd-tl-rows">';
+
+                $.each(proximas, function(i, act){
+                    var d    = new Date(act.fecha_prog);
+                    var days = Math.max(0, (d - today) / 86400000);
+                    var pct  = Math.min(92, Math.round((days / spanDays) * 100));
+                    var col  = colors[act.estado] || '#94a3b8';
+                    html += '<div class="lznd-tl-row">'
+                        + '<div class="lznd-tl-label">' + esc(act.proyecto || act.titulo) + '</div>'
+                        + '<div class="lznd-tl-track">'
+                        + '<div class="lznd-tl-dot" style="left:' + pct + '%;background:' + col + '" title="' + esc(act.titulo) + '">'
+                        + '<div class="lznd-tl-tip">' + fmtDate(d) + '</div>'
+                        + '</div></div></div>';
+                });
+                html += '</div>';
+                $tl.html(html);
+            }
+
+            // ── Clients table ─────────────────────────────────────────────
+
+            function clientes(list) {
+                var $tb = $('#clientes-tbody');
+                if (!list.length) {
+                    $tb.html('<tr><td colspan="3" class="lznd-dash-empty">Sin clientes.</td></tr>');
+                    return;
+                }
+                var statusLabels = {pendiente:'Pendiente',en_curso:'En curso',enviado:'Enviado',cerrado:'Cerrado'};
+                var statusClass  = {pendiente:'lznd-sbadge--orange',en_curso:'lznd-sbadge--blue',enviado:'lznd-sbadge--green',cerrado:'lznd-sbadge--gray'};
+                var html = '';
+                $.each(list, function(i,c){
+                    var sc = statusClass[c.ultimo_estado] || 'lznd-sbadge--gray';
+                    var sl = statusLabels[c.ultimo_estado] || (c.ultimo_estado || '—');
+                    html += '<tr>'
+                        + '<td><strong>' + esc(c.nombre) + '</strong><br><small>' + c.total + ' trabajos</small></td>'
+                        + '<td><span class="lznd-sbadge ' + sc + '">' + sl + '</span></td>'
+                        + '<td>' + (c.ultima_fecha || '—') + '</td>'
+                        + '</tr>';
+                });
+                $tb.html(html);
+            }
+
+            // ── Status matrix ─────────────────────────────────────────────
+
+            function matrix(porTipo, estados) {
+                var $wrap = $('#lznd-matrix');
+                var tipos = Object.keys(porTipo);
+                if (!tipos.length) {
+                    $wrap.html('<p class="lznd-dash-empty">Sin datos.</p>');
+                    return;
+                }
+
+                var cols    = estados.length ? estados : ['pendiente','en_curso','enviado','cerrado'];
+                var labels  = {pendiente:'Pendiente',en_curso:'En curso',enviado:'Enviado',cerrado:'Cerrado'};
+                var bgcols  = {pendiente:'#f59e0b',en_curso:'#3b82f6',enviado:'#22c55e',cerrado:'#6b7280'};
+
+                var html = '<table class="lznd-matrix-tbl"><thead><tr><th>Tipo</th>';
+                $.each(cols, function(i,e){ html += '<th>' + (labels[e]||e) + '</th>'; });
+                html += '</tr></thead><tbody>';
+                $.each(porTipo, function(tipo, data){
+                    html += '<tr><td class="lznd-matrix-tipo">' + esc(tipo) + '</td>';
+                    $.each(cols, function(i,e){
+                        var cnt = data[e] || 0;
+                        var bg  = cnt > 0 ? bgcols[e] : '#f3f4f6';
+                        var fg  = cnt > 0 ? '#fff'    : '#9ca3af';
+                        html += '<td class="lznd-matrix-cell" style="background:' + bg + ';color:' + fg + '">' + cnt + '</td>';
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+                $wrap.html(html);
+            }
+
+            // ── Bar chart: stats ──────────────────────────────────────────
+
+            function barStats(porTipo) {
+                var ctx = document.getElementById('chart-stats');
+                if (!ctx) return;
+                if (charts.stats) charts.stats.destroy();
+
+                var tipos   = Object.keys(porTipo);
+                var pending = tipos.map(function(t){ return (porTipo[t].pendiente||0)+(porTipo[t].en_curso||0); });
+                var done    = tipos.map(function(t){ return (porTipo[t].enviado||0)+(porTipo[t].cerrado||0); });
+
+                charts.stats = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: tipos,
+                        datasets: [
+                            { label:'Pendiente', data:pending, backgroundColor:'#93c5fd', borderRadius:4 },
+                            { label:'Completado', data:done,   backgroundColor:'#4ade80', borderRadius:4 }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend:{ position:'bottom' } },
+                        scales: { y:{ beginAtZero:true, ticks:{ stepSize:1 } } }
+                    }
+                });
+            }
+
+            // ── Helpers ───────────────────────────────────────────────────
+
+            function leg(color, label, val) {
+                return '<span class="lznd-leg-dot" style="background:' + color + '"></span>'
+                    + '<span class="lznd-leg-label">' + label + ': <strong>' + val + '</strong></span> ';
+            }
+
+            function fmtDate(d) {
+                return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();
+            }
+
+            function esc(s) {
+                return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            }
+
+            // Init: hide selectors (default period is 'all'), load when Chart.js is ready
+            $('#lznd-month-label').hide();
+            $('#lznd-filter-month').hide();
+            $('#lznd-filter-year').hide();
+            $('#lznd-dash-apply').hide();
+
+            $(document).ready(function() {
+                load();
+            });
+
+        })(jQuery);
+        </script>
+        <?php
+    }
+
+    /* ─── AJAX: Dashboard data ────────────────────────────────────────── */
+
+    public static function ajax_data() {
+        check_ajax_referer( 'lznd_admin', 'nonce' );
+        if ( ! current_user_can( 'edit_posts' ) ) {
+            wp_send_json_error( [ 'message' => 'Sin permiso.' ], 403 );
+        }
+
+        $period = sanitize_key( $_POST['period'] ?? 'month' );
+        $year   = intval( $_POST['year']  ?? current_time( 'Y' ) );
+        $month  = intval( $_POST['month'] ?? current_time( 'n' ) );
+
+        // Date range
+        switch ( $period ) {
+            case 'week':
+                $desde = date( 'Y-m-d', strtotime( 'monday this week' ) );
+                $hasta = date( 'Y-m-d', strtotime( 'sunday this week' ) );
+                break;
+            case 'month':
+                $desde = sprintf( '%04d-%02d-01', $year, $month );
+                $hasta = date( 'Y-m-t', strtotime( $desde ) );
+                break;
+            case 'year':
+                $desde = sprintf( '%04d-01-01', $year );
+                $hasta = sprintf( '%04d-12-31', $year );
+                break;
+            default:
+                $desde = '2000-01-01';
+                $hasta = '2099-12-31';
+                break;
+        }
+
+        // Actuaciones in period
+        $mq = ( $period === 'all' )
+            ? [ [ 'key' => '_lznd_estado', 'compare' => 'EXISTS' ] ]
+            : [ [
+                'key'     => '_lznd_fecha_prog',
+                'value'   => [ $desde, $hasta . ' 23:59:59' ],
+                'compare' => 'BETWEEN',
+                'type'    => 'DATETIME',
+            ] ];
+
+        $acts = get_posts( [
+            'post_type'      => 'lznd_actuacion',
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+            'meta_query'     => $mq,
+        ] );
+
+        $total       = count( $acts );
+        $completados = 0;
+        $pendientes  = 0;
+        $en_curso    = 0;
+        $por_tipo    = [];
+        $estados_set = [];
+
+        foreach ( $acts as $act ) {
+            $estado   = get_post_meta( $act->ID, '_lznd_estado', true ) ?: 'pendiente';
+            $tipo_tid = get_post_meta( $act->ID, '_lznd_tipo_term_id', true );
+            $tipo_t   = $tipo_tid ? get_term( $tipo_tid, 'lznd_tipo' ) : null;
+            $tipo_n   = ( $tipo_t && ! is_wp_error( $tipo_t ) ) ? $tipo_t->name : 'Sin tipo';
+
+            if ( in_array( $estado, [ 'enviado', 'cerrado' ], true ) ) {
+                $completados++;
+            } elseif ( $estado === 'en_curso' ) {
+                $en_curso++;
+            } else {
+                $pendientes++;
+            }
+
+            if ( ! isset( $por_tipo[ $tipo_n ] ) ) {
+                $por_tipo[ $tipo_n ] = [];
+            }
+            $por_tipo[ $tipo_n ][ $estado ] = ( $por_tipo[ $tipo_n ][ $estado ] ?? 0 ) + 1;
+
+            if ( ! in_array( $estado, $estados_set, true ) ) {
+                $estados_set[] = $estado;
+            }
+        }
+
+        // Upcoming actuaciones (next 90 days)
+        $today  = current_time( 'Y-m-d' );
+        $future = date( 'Y-m-d', strtotime( '+90 days' ) );
+
+        $prox_posts = get_posts( [
+            'post_type'      => 'lznd_actuacion',
+            'post_status'    => 'publish',
+            'posts_per_page' => 12,
+            'orderby'        => 'meta_value',
+            'meta_key'       => '_lznd_fecha_prog',
+            'order'          => 'ASC',
+            'meta_query'     => [
+                'relation' => 'AND',
+                [
+                    'key'     => '_lznd_fecha_prog',
+                    'value'   => [ $today, $future ],
+                    'compare' => 'BETWEEN',
+                    'type'    => 'DATE',
+                ],
+                [
+                    'key'     => '_lznd_estado',
+                    'value'   => [ 'pendiente', 'en_curso' ],
+                    'compare' => 'IN',
+                ],
+            ],
+        ] );
+
+        $proximas = [];
+        foreach ( $prox_posts as $p ) {
+            $proy_id = get_post_meta( $p->ID, '_lznd_proyecto_id', true );
+            $proy    = $proy_id ? get_post( $proy_id ) : null;
+            $proximas[] = [
+                'id'         => $p->ID,
+                'titulo'     => $p->post_title,
+                'proyecto'   => $proy ? $proy->post_title : '',
+                'fecha_prog' => get_post_meta( $p->ID, '_lznd_fecha_prog', true ) ?: '',
+                'estado'     => get_post_meta( $p->ID, '_lznd_estado', true ) ?: 'pendiente',
+            ];
+        }
+
+        // Clients summary
+        $cli_posts = get_posts( [
+            'post_type'      => 'lznd_cliente',
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        ] );
+
+        $clientes = [];
+        foreach ( $cli_posts as $cli ) {
+            $proy_ids = get_posts( [
+                'post_type'      => 'lznd_proyecto',
+                'post_status'    => 'publish',
+                'posts_per_page' => -1,
+                'fields'         => 'ids',
+                'meta_query'     => [ [ 'key' => '_lznd_cliente_id', 'value' => $cli->ID ] ],
+            ] );
+
+            $total_acts    = 0;
+            $ultimo_estado = '';
+            $ultima_fecha  = '';
+
+            if ( ! empty( $proy_ids ) ) {
+                $all_acts = get_posts( [
+                    'post_type'      => 'lznd_actuacion',
+                    'post_status'    => 'publish',
+                    'posts_per_page' => -1,
+                    'fields'         => 'ids',
+                    'meta_query'     => [ [ 'key' => '_lznd_proyecto_id', 'value' => $proy_ids, 'compare' => 'IN' ] ],
+                ] );
+                $total_acts = count( $all_acts );
+
+                $last = get_posts( [
+                    'post_type'      => 'lznd_actuacion',
+                    'post_status'    => 'publish',
+                    'posts_per_page' => 1,
+                    'orderby'        => 'meta_value',
+                    'meta_key'       => '_lznd_fecha_prog',
+                    'order'          => 'DESC',
+                    'meta_query'     => [ [ 'key' => '_lznd_proyecto_id', 'value' => $proy_ids, 'compare' => 'IN' ] ],
+                ] );
+                if ( ! empty( $last ) ) {
+                    $ultimo_estado = get_post_meta( $last[0]->ID, '_lznd_estado', true ) ?: '';
+                    $f             = get_post_meta( $last[0]->ID, '_lznd_fecha_prog', true );
+                    $ultima_fecha  = $f ? date_i18n( 'd/m/Y', strtotime( $f ) ) : '';
+                }
+            }
+
+            $clientes[] = [
+                'nombre'        => $cli->post_title,
+                'total'         => $total_acts,
+                'ultimo_estado' => $ultimo_estado,
+                'ultima_fecha'  => $ultima_fecha,
+            ];
+        }
+
+        $order_e = [ 'pendiente', 'en_curso', 'enviado', 'cerrado' ];
+        $estados = array_values( array_intersect( $order_e, $estados_set ) );
+
+        wp_send_json_success( [
+            'totales'    => $total,
+            'completados'=> $completados,
+            'pendientes' => $pendientes,
+            'en_curso'   => $en_curso,
+            'proximas'   => $proximas,
+            'clientes'   => $clientes,
+            'por_tipo'   => $por_tipo,
+            'estados'    => $estados,
+        ] );
+    }
 }
 
 LZND_Dashboard::init();

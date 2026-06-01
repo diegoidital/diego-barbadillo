@@ -154,11 +154,10 @@ $c_green   = '#28a745';
                       $act_tipo_term    = $act_tipo_tid ? get_term( $act_tipo_tid, 'lznd_tipo' ) : null;
                       $act_tipo_name    = ( $act_tipo_term && ! is_wp_error( $act_tipo_term ) ) ? $act_tipo_term->name : '—';
                       $estado_colors    = [
-                          'pendiente'  => '#fd7e14',
-                          'en_proceso' => $c_primary,
-                          'completado' => $c_green,
-                          'enviado'    => $c_green,
-                          'cancelado'  => $c_muted,
+                          'pendiente' => '#fd7e14',
+                          'en_curso'  => $c_primary,
+                          'enviado'   => $c_green,
+                          'cerrado'   => $c_muted,
                       ];
                       $estado_color = $estado_colors[ $act_estado ] ?? $c_muted;
               ?>

@@ -28,7 +28,6 @@ require_once LZND_DIR . 'includes/class-meta-boxes.php';
 require_once LZND_DIR . 'includes/class-admin-ui.php';
 require_once LZND_DIR . 'includes/class-ajax.php';
 require_once LZND_DIR . 'includes/class-cron.php';
-require_once LZND_DIR . 'includes/class-settings.php';
 require_once LZND_DIR . 'includes/class-frontend.php';
 
 // ─── Activation / Deactivation ───────────────────────────────────────────────
@@ -78,13 +77,10 @@ function lznd_admin_enqueue_scripts( $hook ) {
 		}
 	}
 
-	// custom admin page
-	if ( false !== strpos( $hook, 'lznd-project-detail' ) ) {
-		$is_lznd_post_type = true;
-	}
-
-	// tipos page
-	if ( false !== strpos( $hook, 'lznd-tipos' ) ) {
+	// custom admin pages
+	if ( false !== strpos( $hook, 'lznd-project-detail' )
+		|| false !== strpos( $hook, 'lznd-client-dashboard' )
+		|| false !== strpos( $hook, 'lznd-tipos' ) ) {
 		$is_lznd_post_type = true;
 	}
 

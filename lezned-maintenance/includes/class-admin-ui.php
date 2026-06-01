@@ -30,16 +30,26 @@ class LZND_Admin_UI {
 		add_action( 'restrict_manage_posts', array( __CLASS__, 'add_actuacion_filters' ) );
 		add_action( 'pre_get_posts',         array( __CLASS__, 'apply_actuacion_filters' ) );
 
-		// Project detail page registration + row action
+		// Project detail page registration
 		add_action( 'admin_menu', array( __CLASS__, 'add_project_detail_page' ) );
-		add_filter( 'post_row_actions', array( __CLASS__, 'proyecto_row_actions' ), 10, 2 );
 
-		// AJAX calendar navigation
+		// Client dashboard page registration
+		add_action( 'admin_menu', array( __CLASS__, 'add_client_dashboard_page' ) );
+
+		// "Ver panel" row action on cliente list
+		add_filter( 'post_row_actions', array( __CLASS__, 'cliente_row_actions' ), 10, 2 );
+
+		// Enqueue Chart.js on project detail and client dashboard pages
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_project_detail' ) );
+
+		// AJAX calendar navigation (project)
 		add_action( 'wp_ajax_lznd_calendar_nav', array( __CLASS__, 'ajax_calendar' ) );
 
-		// Tipos de trabajo AJAX
-		add_action( 'wp_ajax_lznd_save_tipo',   array( __CLASS__, 'ajax_save_tipo' ) );
-		add_action( 'wp_ajax_lznd_delete_tipo', array( __CLASS__, 'ajax_delete_tipo' ) );
+		// AJAX project stats chart
+		add_action( 'wp_ajax_lznd_get_project_stats', array( __CLASS__, 'ajax_project_stats' ) );
+
+		// AJAX client stats chart
+		add_action( 'wp_ajax_lznd_get_client_stats', array( __CLASS__, 'ajax_client_stats' ) );
 	}
 
 	// ─── Cliente Columns ─────────────────────────────────────────────────────
@@ -133,12 +143,9 @@ class LZND_Admin_UI {
 			case 'lznd_recurrencia':
 				$rec = get_post_meta( $post_id, '_lznd_recurrencia', true );
 				$labels = array(
-					'ninguna'    => __( 'Sin recurrencia', 'lezned-maintenance' ),
-					'mensual'    => __( 'Mensual',         'lezned-maintenance' ),
-					'bimestral'  => __( 'Bimestral',       'lezned-maintenance' ),
-					'trimestral' => __( 'Trimestral',      'lezned-maintenance' ),
-					'semestral'  => __( 'Cada 6 meses',    'lezned-maintenance' ),
-					'anual'      => __( 'Anual',            'lezned-maintenance' ),
+					'ninguna'   => __( 'Sin recurrencia', 'lezned-maintenance' ),
+					'semestral' => __( 'Cada 6 meses',    'lezned-maintenance' ),
+					'anual'     => __( 'Anual',            'lezned-maintenance' ),
 				);
 				$label = isset( $labels[ $rec ] ) ? $labels[ $rec ] : __( 'Sin recurrencia', 'lezned-maintenance' );
 				$badge_class = ( 'ninguna' === $rec || ! $rec ) ? 'lznd-badge lznd-badge-gray' : 'lznd-badge lznd-badge-blue';
@@ -233,21 +240,31 @@ class LZND_Admin_UI {
 				break;
 
 			case 'lznd_tecnico':
-				$tecnico = get_post_meta( $post_id, '_lznd_tecnico', true );
-				if ( $tecnico ) {
-					echo esc_html( $tecnico );
+				$tecnico_id = get_post_meta( $post_id, '_lznd_tecnico', true );
+				if ( $tecnico_id ) {
+					$user = get_userdata( $tecnico_id );
+					if ( $user ) {
+						echo esc_html( $user->display_name );
+					} else {
+						echo '<span class="lznd-empty">—</span>';
+					}
 				} else {
 					echo '<span class="lznd-empty">—</span>';
 				}
 				break;
 
 			case 'lznd_tareas':
-				$tareas_raw = get_post_meta( $post_id, '_lznd_tareas', true );
-				if ( $tareas_raw ) {
-					$tasks = json_decode( $tareas_raw, true );
+				$checklist = get_post_meta( $post_id, '_lznd_tareas_checklist', true );
+				if ( $checklist ) {
+					$tasks = json_decode( $checklist, true );
 					if ( is_array( $tasks ) ) {
 						$total = count( $tasks );
-						$done  = count( array_filter( $tasks, fn( $t ) => ! empty( $t['completada'] ) ) );
+						$done  = 0;
+						foreach ( $tasks as $task ) {
+							if ( ! empty( $task['done'] ) ) {
+								$done++;
+							}
+						}
 						$pct = $total > 0 ? round( ( $done / $total ) * 100 ) : 0;
 						echo '<div class="lznd-progress-wrap" title="' . esc_attr( "$done/$total" ) . '">';
 						echo '<div class="lznd-progress-bar"><div class="lznd-progress-fill" style="width:' . esc_attr( $pct ) . '%"></div></div>';
@@ -342,23 +359,44 @@ class LZND_Admin_UI {
 		}
 		echo '</select>';
 
-		// Estado filter
+		// Estado filter — color-coded pill buttons
 		$estados = array(
-			'pendiente'  => __( 'Pendiente',   'lezned-maintenance' ),
-			'en_proceso' => __( 'En proceso',  'lezned-maintenance' ),
-			'completado' => __( 'Completado',  'lezned-maintenance' ),
-			'enviado'    => __( 'Enviado',     'lezned-maintenance' ),
-			'cancelado'  => __( 'Cancelado',   'lezned-maintenance' ),
+			'pendiente'  => array( 'label' => __( 'Pendiente',  'lezned-maintenance' ), 'color' => '#fd7e14' ),
+			'en_proceso' => array( 'label' => __( 'En proceso', 'lezned-maintenance' ), 'color' => '#1a73e8' ),
+			'completado' => array( 'label' => __( 'Completado', 'lezned-maintenance' ), 'color' => '#28a745' ),
+			'enviado'    => array( 'label' => __( 'Enviado',    'lezned-maintenance' ), 'color' => '#6f42c1' ),
+			'cancelado'  => array( 'label' => __( 'Cancelado',  'lezned-maintenance' ), 'color' => '#6c757d' ),
 		);
 
 		$current_estado = isset( $_GET['lznd_filter_estado'] ) ? sanitize_key( $_GET['lznd_filter_estado'] ) : '';
 
-		echo '<select name="lznd_filter_estado">';
-		echo '<option value="">' . esc_html__( 'Todos los estados', 'lezned-maintenance' ) . '</option>';
-		foreach ( $estados as $val => $label ) {
-			echo '<option value="' . esc_attr( $val ) . '"' . selected( $current_estado, $val, false ) . '>' . esc_html( $label ) . '</option>';
+		// Build base URL preserving other active filters
+		$preserve = array( 'post_type' => 'lznd_actuacion' );
+		if ( ! empty( $_GET['lznd_filter_proyecto'] ) ) {
+			$preserve['lznd_filter_proyecto'] = absint( $_GET['lznd_filter_proyecto'] );
 		}
-		echo '</select>';
+		if ( ! empty( $_GET['lznd_filter_tipo'] ) ) {
+			$preserve['lznd_filter_tipo'] = absint( $_GET['lznd_filter_tipo'] );
+		}
+		$base_url = add_query_arg( $preserve, admin_url( 'edit.php' ) );
+
+		echo '<span class="lznd-estado-pills">';
+
+		// "Todos" pill
+		$is_all = empty( $current_estado );
+		echo '<a href="' . esc_url( $base_url ) . '" class="lznd-pill' . ( $is_all ? ' lznd-pill--active' : '' ) . '" style="' . ( $is_all ? 'background:#333;color:#fff;' : 'background:#eee;color:#333;' ) . '">';
+		echo esc_html__( 'Todos', 'lezned-maintenance' );
+		echo '</a>';
+
+		foreach ( $estados as $val => $info ) {
+			$url       = add_query_arg( 'lznd_filter_estado', $val, $base_url );
+			$is_active = ( $current_estado === $val );
+			echo '<a href="' . esc_url( $url ) . '" class="lznd-pill lznd-pill--' . esc_attr( $val ) . ( $is_active ? ' lznd-pill--active' : '' ) . '" style="background:' . ( $is_active ? esc_attr( $info['color'] ) : '#eee' ) . ';color:' . ( $is_active ? '#fff' : esc_attr( $info['color'] ) ) . ';border-color:' . esc_attr( $info['color'] ) . ';">';
+			echo esc_html( $info['label'] );
+			echo '</a>';
+		}
+
+		echo '</span>';
 	}
 
 	public static function apply_actuacion_filters( $query ) {
@@ -412,17 +450,435 @@ class LZND_Admin_UI {
 		}
 	}
 
-	// ─── Proyecto Row Action ─────────────────────────────────────────────────
+	// ─── Enqueue Chart.js on project detail and client dashboard pages ──────
 
-	public static function proyecto_row_actions( $actions, $post ) {
-		if ( 'lznd_proyecto' !== $post->post_type ) {
+	public static function enqueue_project_detail( $hook ) {
+		if ( false === strpos( $hook, 'lznd-project-detail' )
+			&& false === strpos( $hook, 'lznd-client-dashboard' ) ) {
+			return;
+		}
+		wp_enqueue_script(
+			'lznd-chartjs',
+			'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+			array(),
+			'4.4.0',
+			true
+		);
+	}
+
+	// ─── Cliente row action: Ver panel ───────────────────────────────────────
+
+	public static function cliente_row_actions( $actions, $post ) {
+		if ( 'lznd_cliente' !== $post->post_type ) {
 			return $actions;
 		}
-
-		$detail_url = admin_url( 'admin.php?page=lznd-project-detail&id=' . $post->ID );
-		$actions['lznd_detail'] = '<a href="' . esc_url( $detail_url ) . '">' . esc_html__( 'Ver detalle', 'lezned-maintenance' ) . '</a>';
-
+		$url = admin_url( 'admin.php?page=lznd-client-dashboard&id=' . $post->ID );
+		$actions['lznd_panel'] = '<a href="' . esc_url( $url ) . '" style="color:#1875B8;font-weight:600;">'
+			. esc_html__( 'Ver panel', 'lezned-maintenance' )
+			. '</a>';
 		return $actions;
+	}
+
+	// ─── Register Client Dashboard Page ──────────────────────────────────────
+
+	public static function add_client_dashboard_page() {
+		add_submenu_page(
+			'',
+			__( 'Panel del cliente', 'lezned-maintenance' ),
+			__( 'Panel del cliente', 'lezned-maintenance' ),
+			'edit_posts',
+			'lznd-client-dashboard',
+			array( __CLASS__, 'render_client_dashboard' )
+		);
+	}
+
+	// ─── Render Client Dashboard Page ────────────────────────────────────────
+
+	public static function render_client_dashboard() {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_die( esc_html__( 'No tienes permiso para acceder a esta página.', 'lezned-maintenance' ) );
+		}
+
+		$cliente_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		if ( ! $cliente_id ) {
+			echo '<div class="wrap"><p>' . esc_html__( 'ID de cliente no válido.', 'lezned-maintenance' ) . '</p></div>';
+			return;
+		}
+
+		$cliente = get_post( $cliente_id );
+		if ( ! $cliente || 'lznd_cliente' !== $cliente->post_type ) {
+			echo '<div class="wrap"><p>' . esc_html__( 'Cliente no encontrado.', 'lezned-maintenance' ) . '</p></div>';
+			return;
+		}
+
+		$back_url = admin_url( 'edit.php?post_type=lznd_cliente' );
+		$today    = current_time( 'Y-m-d' );
+		$year     = isset( $_GET['cal_year'] )  ? absint( $_GET['cal_year'] )  : (int) current_time( 'Y' );
+		$month    = isset( $_GET['cal_month'] ) ? absint( $_GET['cal_month'] ) : (int) current_time( 'm' );
+
+		// All projects for this client
+		$proyectos = get_posts( array(
+			'post_type'      => 'lznd_proyecto',
+			'posts_per_page' => -1,
+			'post_status'    => 'publish',
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+			'meta_query'     => array( array( 'key' => '_lznd_cliente_id', 'value' => $cliente_id ) ),
+		) );
+		$proyecto_ids = wp_list_pluck( $proyectos, 'ID' );
+
+		// Base meta query for all actuaciones of this client
+		if ( empty( $proyecto_ids ) ) {
+			$base_cond = array( 'key' => '_lznd_proyecto_id', 'value' => 0, 'type' => 'NUMERIC' );
+		} else {
+			$base_cond = array( 'key' => '_lznd_proyecto_id', 'value' => $proyecto_ids, 'compare' => 'IN' );
+		}
+
+		// Total actuaciones
+		$all_ids    = get_posts( array(
+			'post_type' => 'lznd_actuacion', 'post_status' => 'publish',
+			'posts_per_page' => -1, 'fields' => 'ids',
+			'meta_query' => array( $base_cond ),
+		) );
+		$total_acts = count( $all_ids );
+
+		// Completadas (enviado / cerrado / completado)
+		$past = get_posts( array(
+			'post_type' => 'lznd_actuacion', 'post_status' => 'publish',
+			'posts_per_page' => 10,
+			'orderby' => 'meta_value', 'meta_key' => '_lznd_fecha_prog', 'order' => 'DESC',
+			'meta_query' => array(
+				'relation' => 'AND', $base_cond,
+				array( 'key' => '_lznd_estado', 'value' => array( 'completado', 'enviado', 'cerrado' ), 'compare' => 'IN' ),
+			),
+		) );
+
+		// Pendientes
+		$pending = get_posts( array(
+			'post_type' => 'lznd_actuacion', 'post_status' => 'publish',
+			'posts_per_page' => -1,
+			'orderby' => 'meta_value', 'meta_key' => '_lznd_fecha_prog', 'order' => 'ASC',
+			'meta_query' => array(
+				'relation' => 'AND', $base_cond,
+				array( 'key' => '_lznd_estado', 'value' => array( 'pendiente', 'en_proceso', 'en_curso' ), 'compare' => 'IN' ),
+			),
+		) );
+
+		// Próximas
+		$upcoming = get_posts( array(
+			'post_type' => 'lznd_actuacion', 'post_status' => 'publish',
+			'posts_per_page' => -1,
+			'orderby' => 'meta_value', 'meta_key' => '_lznd_fecha_prog', 'order' => 'ASC',
+			'meta_query' => array(
+				'relation' => 'AND', $base_cond,
+				array( 'key' => '_lznd_fecha_prog', 'value' => $today, 'compare' => '>=', 'type' => 'DATE' ),
+				array( 'key' => '_lznd_estado', 'value' => array( 'completado', 'enviado', 'cerrado', 'cancelado' ), 'compare' => 'NOT IN' ),
+			),
+		) );
+
+		$completadas_n = count( $past );
+		$pendientes_n  = count( $pending );
+		$proximas_n    = count( $upcoming );
+
+		$telefono = get_post_meta( $cliente_id, '_lznd_telefono', true );
+		$email    = get_post_meta( $cliente_id, '_lznd_email', true );
+		$ajax_url = admin_url( 'admin-ajax.php' );
+		$nonce    = wp_create_nonce( 'lznd_admin' );
+		?>
+		<div class="wrap lznd-client-dashboard">
+
+			<div class="lznd-detail-header">
+				<div class="lznd-detail-header-left">
+					<a href="<?php echo esc_url( $back_url ); ?>" class="lznd-back-btn">&#8592; <?php esc_html_e( 'Volver a clientes', 'lezned-maintenance' ); ?></a>
+					<h1 class="lznd-detail-title">
+						<span class="dashicons dashicons-admin-users" style="font-size:22px;width:22px;height:22px;vertical-align:middle;margin-right:6px;color:#1875B8;"></span>
+						<?php echo esc_html( $cliente->post_title ); ?>
+					</h1>
+					<?php if ( $telefono || $email ) : ?>
+						<p class="lznd-detail-meta">
+							<?php if ( $telefono ) : ?>
+								<span class="dashicons dashicons-phone" style="font-size:13px;width:13px;height:13px;vertical-align:middle;"></span>
+								<a href="tel:<?php echo esc_attr( $telefono ); ?>"><?php echo esc_html( $telefono ); ?></a>
+								&nbsp;&nbsp;
+							<?php endif; ?>
+							<?php if ( $email ) : ?>
+								<span class="dashicons dashicons-email-alt" style="font-size:13px;width:13px;height:13px;vertical-align:middle;"></span>
+								<a href="mailto:<?php echo esc_attr( $email ); ?>"><?php echo esc_html( $email ); ?></a>
+							<?php endif; ?>
+						</p>
+					<?php endif; ?>
+				</div>
+				<div class="lznd-detail-header-right">
+					<a href="<?php echo esc_url( get_edit_post_link( $cliente_id ) ); ?>" class="button"><?php esc_html_e( 'Editar cliente', 'lezned-maintenance' ); ?></a>
+					<?php if ( ! empty( $proyecto_ids ) ) : ?>
+						<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=lznd_proyecto&lznd_cliente_id=' . $cliente_id ) ); ?>" class="button"><?php esc_html_e( 'Ver proyectos', 'lezned-maintenance' ); ?></a>
+					<?php endif; ?>
+				</div>
+			</div>
+
+			<!-- Stats cards -->
+			<div class="lznd-pd-stats">
+				<div class="lznd-pd-stat lznd-pd-stat--total">
+					<div class="lznd-pd-stat__icon dashicons dashicons-hammer"></div>
+					<div class="lznd-pd-stat__body">
+						<div class="lznd-pd-stat__value"><?php echo (int) $total_acts; ?></div>
+						<div class="lznd-pd-stat__label"><?php esc_html_e( 'Total actuaciones', 'lezned-maintenance' ); ?></div>
+					</div>
+				</div>
+				<div class="lznd-pd-stat lznd-pd-stat--completadas">
+					<div class="lznd-pd-stat__icon dashicons dashicons-yes-alt"></div>
+					<div class="lznd-pd-stat__body">
+						<div class="lznd-pd-stat__value"><?php echo (int) $completadas_n; ?></div>
+						<div class="lznd-pd-stat__label"><?php esc_html_e( 'Completadas', 'lezned-maintenance' ); ?></div>
+					</div>
+				</div>
+				<div class="lznd-pd-stat lznd-pd-stat--pendientes">
+					<div class="lznd-pd-stat__icon dashicons dashicons-clock"></div>
+					<div class="lznd-pd-stat__body">
+						<div class="lznd-pd-stat__value"><?php echo (int) $pendientes_n; ?></div>
+						<div class="lznd-pd-stat__label"><?php esc_html_e( 'Pendientes', 'lezned-maintenance' ); ?></div>
+					</div>
+				</div>
+				<div class="lznd-pd-stat lznd-pd-stat--proximas">
+					<div class="lznd-pd-stat__icon dashicons dashicons-calendar-alt"></div>
+					<div class="lznd-pd-stat__body">
+						<div class="lznd-pd-stat__value"><?php echo (int) $proximas_n; ?></div>
+						<div class="lznd-pd-stat__label"><?php esc_html_e( 'Próximas', 'lezned-maintenance' ); ?></div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Calendar + chart -->
+			<div class="lznd-cd-two-col">
+				<div class="lznd-cd-col-left">
+					<h2 style="font-size:15px;margin:0 0 12px;font-weight:700;"><?php esc_html_e( 'Calendario de actuaciones', 'lezned-maintenance' ); ?></h2>
+					<?php echo self::render_client_calendar( $cliente_id, $proyecto_ids, $year, $month ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				</div>
+				<div class="lznd-cd-col-right">
+					<div class="lznd-pd-chart-card">
+						<h2 class="lznd-pd-chart-title"><?php esc_html_e( 'Estadísticas de trabajos', 'lezned-maintenance' ); ?></h2>
+						<div class="lznd-pd-chart-wrap">
+							<canvas id="lznd-cd-bar-chart"></canvas>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Projects -->
+			<?php if ( ! empty( $proyectos ) ) : ?>
+			<div class="lznd-cd-projects-section">
+				<h2><?php esc_html_e( 'Proyectos', 'lezned-maintenance' ); ?></h2>
+				<div class="lznd-cd-projects-grid">
+					<?php foreach ( $proyectos as $proyecto ) : ?>
+						<?php
+						$proj_act_ids = get_posts( array(
+							'post_type' => 'lznd_actuacion', 'post_status' => 'publish',
+							'posts_per_page' => -1, 'fields' => 'ids',
+							'meta_query' => array( array( 'key' => '_lznd_proyecto_id', 'value' => $proyecto->ID ) ),
+						) );
+						$proj_done = 0;
+						$proj_pend = 0;
+						foreach ( $proj_act_ids as $aid ) {
+							$es = get_post_meta( $aid, '_lznd_estado', true );
+							if ( in_array( $es, array( 'completado', 'enviado', 'cerrado' ), true ) ) {
+								$proj_done++;
+							} elseif ( 'cancelado' !== $es ) {
+								$proj_pend++;
+							}
+						}
+						$detail_url = admin_url( 'admin.php?page=lznd-project-detail&id=' . $proyecto->ID );
+						$fecha_prox = get_post_meta( $proyecto->ID, '_lznd_fecha_proxima', true );
+						?>
+						<div class="lznd-cd-project-card">
+							<div class="lznd-cd-project-name">
+								<a href="<?php echo esc_url( $detail_url ); ?>"><?php echo esc_html( $proyecto->post_title ); ?></a>
+							</div>
+							<div class="lznd-cd-project-meta">
+								<span class="lznd-sbadge lznd-sbadge--green"><?php echo (int) $proj_done; ?> <?php esc_html_e( 'completadas', 'lezned-maintenance' ); ?></span>
+								<span class="lznd-sbadge lznd-sbadge--orange"><?php echo (int) $proj_pend; ?> <?php esc_html_e( 'pendientes', 'lezned-maintenance' ); ?></span>
+							</div>
+							<?php if ( $fecha_prox ) : ?>
+								<div class="lznd-cd-project-fecha">
+									<?php echo esc_html__( 'Próxima:', 'lezned-maintenance' ) . ' ' . esc_html( date_i18n( get_option( 'date_format' ), strtotime( $fecha_prox ) ) ); ?>
+								</div>
+							<?php endif; ?>
+							<a href="<?php echo esc_url( $detail_url ); ?>" class="button button-small"><?php esc_html_e( 'Ver detalle', 'lezned-maintenance' ); ?></a>
+						</div>
+					<?php endforeach; ?>
+				</div>
+			</div>
+			<?php endif; ?>
+
+		</div><!-- .lznd-client-dashboard -->
+
+		<script>
+		(function($){
+			var AJAX      = <?php echo wp_json_encode( $ajax_url ); ?>;
+			var NONCE     = <?php echo wp_json_encode( $nonce ); ?>;
+			var CLIENT_ID = <?php echo (int) $cliente_id; ?>;
+			var barChart  = null;
+
+			$(document).ready(function(){
+				$.post(AJAX, {
+					action:     'lznd_get_client_stats',
+					nonce:      NONCE,
+					cliente_id: CLIENT_ID,
+				}, function(res){
+					if (!res || !res.success) return;
+					var d   = res.data;
+					var ctx = document.getElementById('lznd-cd-bar-chart');
+					if (!ctx) return;
+					if (barChart) barChart.destroy();
+					barChart = new Chart(ctx, {
+						type: 'bar',
+						data: {
+							labels: d.labels,
+							datasets: [
+								{ label: 'Completadas', data: d.completadas, backgroundColor: '#22c55e', borderRadius: 4 },
+								{ label: 'Pendientes',  data: d.pendientes,  backgroundColor: '#f59e0b', borderRadius: 4 },
+							]
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							plugins: { legend: { position: 'bottom' } },
+							scales: {
+								x: { stacked: false },
+								y: { beginAtZero: true, ticks: { stepSize: 1 } }
+							}
+						}
+					});
+				});
+			});
+		})(jQuery);
+		</script>
+		<?php
+	}
+
+	// ─── Render Client Calendar ───────────────────────────────────────────────
+
+	public static function render_client_calendar( $cliente_id, $proyecto_ids, $year, $month ) {
+		if ( $month < 1 )  { $month = 12; $year--; }
+		if ( $month > 12 ) { $month = 1;  $year++; }
+
+		$days_in_month = (int) date( 't', mktime( 0, 0, 0, $month, 1, $year ) );
+		$first_day_dow = (int) date( 'N', mktime( 0, 0, 0, $month, 1, $year ) );
+
+		$month_start = sprintf( '%04d-%02d-01', $year, $month );
+		$month_end   = sprintf( '%04d-%02d-%02d', $year, $month, $days_in_month );
+
+		// Fetch actuaciones across all projects of this client in this month
+		$acts = array();
+		if ( ! empty( $proyecto_ids ) ) {
+			$acts = get_posts( array(
+				'post_type'      => 'lznd_actuacion',
+				'posts_per_page' => -1,
+				'post_status'    => 'publish',
+				'meta_query'     => array(
+					'relation' => 'AND',
+					array( 'key' => '_lznd_proyecto_id', 'value' => $proyecto_ids, 'compare' => 'IN' ),
+					array( 'key' => '_lznd_fecha_prog', 'value' => array( $month_start, $month_end ), 'compare' => 'BETWEEN', 'type' => 'DATE' ),
+				),
+			) );
+		}
+
+		$acts_by_day = array();
+		foreach ( $acts as $act ) {
+			$fecha = get_post_meta( $act->ID, '_lznd_fecha_prog', true );
+			if ( $fecha ) {
+				$day = (int) date( 'j', strtotime( $fecha ) );
+				if ( ! isset( $acts_by_day[ $day ] ) ) {
+					$acts_by_day[ $day ] = array();
+				}
+				$acts_by_day[ $day ][] = $act;
+			}
+		}
+
+		$prev_month = $month - 1; $prev_year = $year;
+		if ( $prev_month < 1 )  { $prev_month = 12; $prev_year--; }
+		$next_month = $month + 1; $next_year = $year;
+		if ( $next_month > 12 ) { $next_month = 1;  $next_year++; }
+
+		$base_url   = admin_url( 'admin.php?page=lznd-client-dashboard&id=' . $cliente_id );
+		$prev_url   = add_query_arg( array( 'cal_year' => $prev_year, 'cal_month' => $prev_month ), $base_url );
+		$next_url   = add_query_arg( array( 'cal_year' => $next_year, 'cal_month' => $next_month ), $base_url );
+		$month_name = date_i18n( 'F Y', mktime( 0, 0, 0, $month, 1, $year ) );
+
+		$today_day   = (int) current_time( 'j' );
+		$today_month = (int) current_time( 'm' );
+		$today_year  = (int) current_time( 'Y' );
+
+		$day_names = array(
+			__( 'Lun', 'lezned-maintenance' ), __( 'Mar', 'lezned-maintenance' ),
+			__( 'Mié', 'lezned-maintenance' ), __( 'Jue', 'lezned-maintenance' ),
+			__( 'Vie', 'lezned-maintenance' ), __( 'Sáb', 'lezned-maintenance' ),
+			__( 'Dom', 'lezned-maintenance' ),
+		);
+
+		ob_start();
+		?>
+		<div class="lznd-calendar">
+			<div class="lznd-calendar-nav">
+				<a href="<?php echo esc_url( $prev_url ); ?>" class="button button-small" data-year="<?php echo esc_attr( $prev_year ); ?>" data-month="<?php echo esc_attr( $prev_month ); ?>">&#8592;</a>
+				<span class="lznd-cal-month-title"><?php echo esc_html( ucfirst( $month_name ) ); ?></span>
+				<a href="<?php echo esc_url( $next_url ); ?>" class="button button-small" data-year="<?php echo esc_attr( $next_year ); ?>" data-month="<?php echo esc_attr( $next_month ); ?>">&#8594;</a>
+			</div>
+			<table class="lznd-calendar-table">
+				<thead><tr>
+					<?php foreach ( $day_names as $dn ) : ?><th><?php echo esc_html( $dn ); ?></th><?php endforeach; ?>
+				</tr></thead>
+				<tbody>
+				<?php
+				$total_cells = $days_in_month + ( $first_day_dow - 1 );
+				$rows        = (int) ceil( $total_cells / 7 );
+				for ( $row = 0; $row < $rows; $row++ ) :
+				?>
+					<tr>
+					<?php for ( $dow = 1; $dow <= 7; $dow++ ) : ?>
+						<?php
+						$cell_index = $row * 7 + $dow;
+						$is_empty   = $cell_index < $first_day_dow;
+						$day_num    = $cell_index - $first_day_dow + 1;
+						$is_over    = $day_num > $days_in_month;
+						$is_today   = ( $year === $today_year && $month === $today_month && $day_num === $today_day );
+
+						$cell_class = 'lznd-cal-cell';
+						if ( $is_empty || $is_over ) { $cell_class .= ' lznd-cal-empty'; }
+						if ( $is_today ) { $cell_class .= ' lznd-cal-today'; }
+						if ( ! $is_empty && ! $is_over && isset( $acts_by_day[ $day_num ] ) ) { $cell_class .= ' lznd-cal-has-acts'; }
+						?>
+						<td class="<?php echo esc_attr( $cell_class ); ?>">
+						<?php if ( ! $is_empty && ! $is_over ) : ?>
+							<span class="lznd-cal-day-num"><?php echo (int) $day_num; ?></span>
+							<?php if ( isset( $acts_by_day[ $day_num ] ) ) : ?>
+								<div class="lznd-cal-dots">
+									<?php foreach ( $acts_by_day[ $day_num ] as $dot_act ) : ?>
+										<?php
+										$dot_estado = get_post_meta( $dot_act->ID, '_lznd_estado', true );
+										$dot_class  = 'lznd-cal-dot lznd-dot-' . ( $dot_estado ? esc_attr( $dot_estado ) : 'pendiente' );
+										?>
+										<a href="<?php echo esc_url( get_edit_post_link( $dot_act->ID ) ); ?>" title="<?php echo esc_attr( $dot_act->post_title ); ?>" class="<?php echo esc_attr( $dot_class ); ?>"></a>
+									<?php endforeach; ?>
+								</div>
+							<?php endif; ?>
+						<?php endif; ?>
+						</td>
+					<?php endfor; ?>
+					</tr>
+				<?php endfor; ?>
+				</tbody>
+			</table>
+			<?php if ( ! empty( $acts ) ) : ?>
+			<div class="lznd-cal-legend">
+				<span class="lznd-cal-dot lznd-dot-pendiente"></span> <?php esc_html_e( 'Pendiente', 'lezned-maintenance' ); ?>
+				<span class="lznd-cal-dot lznd-dot-en_proceso"></span> <?php esc_html_e( 'En proceso', 'lezned-maintenance' ); ?>
+				<span class="lznd-cal-dot lznd-dot-completado"></span> <?php esc_html_e( 'Completado', 'lezned-maintenance' ); ?>
+				<span class="lznd-cal-dot lznd-dot-enviado"></span> <?php esc_html_e( 'Enviado', 'lezned-maintenance' ); ?>
+			</div>
+			<?php endif; ?>
+		</div>
+		<?php
+		return ob_get_clean();
 	}
 
 	// ─── Register Project Detail Admin Page ──────────────────────────────────
@@ -564,7 +1020,19 @@ class LZND_Admin_UI {
 		$recurrencia = get_post_meta( $proyecto_id, '_lznd_recurrencia', true );
 		$fecha_prox  = get_post_meta( $proyecto_id, '_lznd_fecha_proxima', true );
 
+		// ── Stats counts ────────────────────────────────────────────────────
+		$all_acts = get_posts( array_merge( $args_base, array(
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		) ) );
+		$total_acts    = count( $all_acts );
+		$completadas_n = count( $past );
+		$pendientes_n  = count( $pending );
+		$proximas_n    = count( $upcoming );
+
 		// ── Render ──────────────────────────────────────────────────────────
+		$ajax_url = admin_url( 'admin-ajax.php' );
+		$nonce    = wp_create_nonce( 'lznd_admin' );
 		?>
 		<div class="wrap lznd-project-detail">
 
@@ -595,6 +1063,38 @@ class LZND_Admin_UI {
 				<div class="lznd-detail-header-right">
 					<a href="<?php echo esc_url( $edit_url ); ?>" class="button"><?php esc_html_e( 'Editar proyecto', 'lezned-maintenance' ); ?></a>
 					<a href="<?php echo esc_url( $new_act_url ); ?>" class="button button-primary"><?php esc_html_e( '+ Nueva actuación', 'lezned-maintenance' ); ?></a>
+				</div>
+			</div>
+
+			<!-- Stats cards -->
+			<div class="lznd-pd-stats">
+				<div class="lznd-pd-stat lznd-pd-stat--total">
+					<div class="lznd-pd-stat__icon dashicons dashicons-hammer"></div>
+					<div class="lznd-pd-stat__body">
+						<div class="lznd-pd-stat__value"><?php echo (int) $total_acts; ?></div>
+						<div class="lznd-pd-stat__label"><?php esc_html_e( 'Total actuaciones', 'lezned-maintenance' ); ?></div>
+					</div>
+				</div>
+				<div class="lznd-pd-stat lznd-pd-stat--completadas">
+					<div class="lznd-pd-stat__icon dashicons dashicons-yes-alt"></div>
+					<div class="lznd-pd-stat__body">
+						<div class="lznd-pd-stat__value"><?php echo (int) $completadas_n; ?></div>
+						<div class="lznd-pd-stat__label"><?php esc_html_e( 'Completadas', 'lezned-maintenance' ); ?></div>
+					</div>
+				</div>
+				<div class="lznd-pd-stat lznd-pd-stat--pendientes">
+					<div class="lznd-pd-stat__icon dashicons dashicons-clock"></div>
+					<div class="lznd-pd-stat__body">
+						<div class="lznd-pd-stat__value"><?php echo (int) $pendientes_n; ?></div>
+						<div class="lznd-pd-stat__label"><?php esc_html_e( 'Pendientes', 'lezned-maintenance' ); ?></div>
+					</div>
+				</div>
+				<div class="lznd-pd-stat lznd-pd-stat--proximas">
+					<div class="lznd-pd-stat__icon dashicons dashicons-calendar-alt"></div>
+					<div class="lznd-pd-stat__body">
+						<div class="lznd-pd-stat__value"><?php echo (int) $proximas_n; ?></div>
+						<div class="lznd-pd-stat__label"><?php esc_html_e( 'Próximas', 'lezned-maintenance' ); ?></div>
+					</div>
 				</div>
 			</div>
 
@@ -662,7 +1162,69 @@ class LZND_Admin_UI {
 
 			</div><!-- .lznd-actuaciones-grid -->
 
+			<!-- Estadísticas de trabajos bar chart -->
+			<div class="lznd-pd-chart-section">
+				<div class="lznd-pd-chart-card">
+					<h2 class="lznd-pd-chart-title"><?php esc_html_e( 'Estadísticas de trabajos', 'lezned-maintenance' ); ?></h2>
+					<div class="lznd-pd-chart-wrap">
+						<canvas id="lznd-pd-bar-chart"></canvas>
+					</div>
+				</div>
+			</div>
+
 		</div><!-- .lznd-project-detail -->
+
+		<script>
+		(function($){
+			var AJAX     = <?php echo wp_json_encode( $ajax_url ); ?>;
+			var NONCE    = <?php echo wp_json_encode( $nonce ); ?>;
+			var PROJ_ID  = <?php echo (int) $proyecto_id; ?>;
+			var barChart = null;
+
+			$(document).ready(function(){
+				$.post(AJAX, {
+					action:      'lznd_get_project_stats',
+					nonce:       NONCE,
+					proyecto_id: PROJ_ID,
+				}, function(res){
+					if (!res || !res.success) return;
+					var d = res.data;
+					var ctx = document.getElementById('lznd-pd-bar-chart');
+					if (!ctx) return;
+					if (barChart) barChart.destroy();
+					barChart = new Chart(ctx, {
+						type: 'bar',
+						data: {
+							labels: d.labels,
+							datasets: [
+								{
+									label: 'Completadas',
+									data: d.completadas,
+									backgroundColor: '#22c55e',
+									borderRadius: 4,
+								},
+								{
+									label: 'Pendientes',
+									data: d.pendientes,
+									backgroundColor: '#f59e0b',
+									borderRadius: 4,
+								},
+							]
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							plugins: { legend: { position: 'bottom' } },
+							scales: {
+								x: { stacked: false },
+								y: { beginAtZero: true, ticks: { stepSize: 1 } }
+							}
+						}
+					});
+				});
+			});
+		})(jQuery);
+		</script>
 		<?php
 	}
 
@@ -673,7 +1235,7 @@ class LZND_Admin_UI {
 		$estado      = get_post_meta( $act->ID, '_lznd_estado',        true );
 		$fecha_prog  = get_post_meta( $act->ID, '_lznd_fecha_prog',    true );
 		$tecnico_id  = get_post_meta( $act->ID, '_lznd_tecnico',       true );
-		$tareas_raw  = get_post_meta( $act->ID, '_lznd_tareas', true );
+		$checklist   = get_post_meta( $act->ID, '_lznd_tareas_checklist', true );
 
 		$terms = wp_get_post_terms( $act->ID, 'lznd_tipo' );
 		$tipo_html = '';
@@ -681,15 +1243,26 @@ class LZND_Admin_UI {
 			$tipo_html = '<span class="lznd-badge lznd-badge-tipo">' . esc_html( $terms[0]->name ) . '</span>';
 		}
 
-		$tecnico_name = $tecnico_id ? (string) $tecnico_id : '';
+		$tecnico_name = '';
+		if ( $tecnico_id ) {
+			$user = get_userdata( $tecnico_id );
+			if ( $user ) {
+				$tecnico_name = $user->display_name;
+			}
+		}
 
 		$progress_html = '';
-		if ( $tareas_raw ) {
-			$tasks = json_decode( $tareas_raw, true );
+		if ( $checklist ) {
+			$tasks = json_decode( $checklist, true );
 			if ( is_array( $tasks ) ) {
 				$total = count( $tasks );
-				$done  = count( array_filter( $tasks, fn( $t ) => ! empty( $t['completada'] ) ) );
-				$pct   = $total > 0 ? round( ( $done / $total ) * 100 ) : 0;
+				$done  = 0;
+				foreach ( $tasks as $task ) {
+					if ( ! empty( $task['done'] ) ) {
+						$done++;
+					}
+				}
+				$pct = $total > 0 ? round( ( $done / $total ) * 100 ) : 0;
 				$progress_html = '<div class="lznd-progress-wrap">'
 					. '<div class="lznd-progress-bar"><div class="lznd-progress-fill" style="width:' . esc_attr( $pct ) . '%"></div></div>'
 					. '<span class="lznd-progress-label">' . esc_html( "$done/$total" ) . '</span>'
@@ -928,202 +1501,148 @@ class LZND_Admin_UI {
 		wp_send_json_success( array( 'html' => $html ) );
 	}
 
-	// ─── Tipos de trabajo management page ───────────────────────────────────
+	// ─── AJAX: Project Stats ─────────────────────────────────────────────────
 
-	public static function render_tipos_page() {
-		if ( ! current_user_can( 'manage_categories' ) ) {
-			wp_die( __( 'Sin permiso.', 'lezned-maintenance' ) );
-		}
-
-		// Handle add
-		if ( isset( $_POST['lznd_tipos_action'] ) && $_POST['lznd_tipos_action'] === 'add' ) {
-			check_admin_referer( 'lznd_add_tipo' );
-			$name = sanitize_text_field( $_POST['tipo_name'] ?? '' );
-			$slug = sanitize_title( $_POST['tipo_slug'] ?? '' );
-			if ( $name ) {
-				$args = array();
-				if ( $slug ) {
-					$args['slug'] = $slug;
-				}
-				wp_insert_term( $name, 'lznd_tipo', $args );
-			}
-			wp_redirect( admin_url( 'admin.php?page=lznd-tipos&added=1' ) );
-			exit;
-		}
-
-		$terms = get_terms( array(
-			'taxonomy'   => 'lznd_tipo',
-			'hide_empty' => false,
-			'orderby'    => 'name',
-			'order'      => 'ASC',
-		) );
-		if ( is_wp_error( $terms ) ) {
-			$terms = array();
-		}
-
-		$added = isset( $_GET['added'] );
-		?>
-		<div class="wrap lznd-tipos-wrap">
-			<h1><?php esc_html_e( 'Tipos de trabajo', 'lezned-maintenance' ); ?></h1>
-
-			<?php if ( $added ) : ?>
-				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Tipo añadido correctamente.', 'lezned-maintenance' ); ?></p></div>
-			<?php endif; ?>
-
-			<div class="lznd-tipos-layout">
-
-				<!-- Add new column -->
-				<div class="lznd-tipos-add-col">
-					<div class="lznd-tipos-add-box">
-						<h2><?php esc_html_e( 'Añadir nuevo tipo', 'lezned-maintenance' ); ?></h2>
-						<form method="post" action="">
-							<?php wp_nonce_field( 'lznd_add_tipo' ); ?>
-							<input type="hidden" name="lznd_tipos_action" value="add">
-
-							<div class="lznd-tipos-field">
-								<label for="lznd-tipo-name">
-									<?php esc_html_e( 'Nombre', 'lezned-maintenance' ); ?>
-									<span class="required">*</span>
-								</label>
-								<input type="text" id="lznd-tipo-name" name="tipo_name" class="regular-text" required
-									   placeholder="<?php esc_attr_e( 'Ej: Mantenimiento preventivo', 'lezned-maintenance' ); ?>">
-								<p class="description"><?php esc_html_e( 'Nombre que verán los usuarios.', 'lezned-maintenance' ); ?></p>
-							</div>
-
-							<div class="lznd-tipos-field">
-								<label for="lznd-tipo-slug"><?php esc_html_e( 'Slug', 'lezned-maintenance' ); ?></label>
-								<input type="text" id="lznd-tipo-slug" name="tipo_slug" class="regular-text"
-									   placeholder="<?php esc_attr_e( 'ej: mantenimiento-preventivo', 'lezned-maintenance' ); ?>">
-								<p class="description"><?php esc_html_e( 'Identificador único. Se genera automáticamente si se deja vacío.', 'lezned-maintenance' ); ?></p>
-							</div>
-
-							<button type="submit" class="button button-primary">
-								<?php esc_html_e( 'Añadir tipo', 'lezned-maintenance' ); ?>
-							</button>
-						</form>
-					</div>
-				</div>
-
-				<!-- Table column -->
-				<div class="lznd-tipos-table-col">
-					<div id="lznd-tipos-notice" style="display:none;margin-bottom:10px;"></div>
-
-					<table class="wp-list-table widefat fixed striped lznd-tipos-table">
-						<thead>
-							<tr>
-								<th><?php esc_html_e( 'Nombre', 'lezned-maintenance' ); ?></th>
-								<th style="width:200px;"><?php esc_html_e( 'Slug', 'lezned-maintenance' ); ?></th>
-								<th style="width:100px;"><?php esc_html_e( 'Actuaciones', 'lezned-maintenance' ); ?></th>
-								<th style="width:180px;"><?php esc_html_e( 'Acciones', 'lezned-maintenance' ); ?></th>
-							</tr>
-						</thead>
-						<tbody>
-							<?php if ( empty( $terms ) ) : ?>
-								<tr><td colspan="4" style="text-align:center;padding:20px;color:#646970;">
-									<?php esc_html_e( 'No hay tipos de trabajo todavía.', 'lezned-maintenance' ); ?>
-								</td></tr>
-							<?php else : ?>
-								<?php foreach ( $terms as $term ) : ?>
-								<tr data-term-id="<?php echo esc_attr( $term->term_id ); ?>">
-									<td>
-										<span class="lznd-view-mode lznd-tipo-name-view">
-											<strong><?php echo esc_html( $term->name ); ?></strong>
-										</span>
-										<input type="text" class="lznd-edit-mode lznd-tipo-name-input regular-text"
-											   value="<?php echo esc_attr( $term->name ); ?>"
-											   data-original="<?php echo esc_attr( $term->name ); ?>"
-											   style="display:none;" placeholder="<?php esc_attr_e( 'Nombre', 'lezned-maintenance' ); ?>">
-									</td>
-									<td>
-										<span class="lznd-view-mode lznd-tipo-slug-view">
-											<code><?php echo esc_html( $term->slug ); ?></code>
-										</span>
-										<input type="text" class="lznd-edit-mode lznd-tipo-slug-input"
-											   value="<?php echo esc_attr( $term->slug ); ?>"
-											   data-original="<?php echo esc_attr( $term->slug ); ?>"
-											   style="display:none; width:100%;" placeholder="<?php esc_attr_e( 'slug', 'lezned-maintenance' ); ?>">
-									</td>
-									<td style="text-align:center;">
-										<?php echo esc_html( $term->count ); ?>
-									</td>
-									<td class="lznd-tipos-actions">
-										<button type="button" class="button button-small lznd-tipo-edit-btn">
-											<?php esc_html_e( 'Editar', 'lezned-maintenance' ); ?>
-										</button>
-										<button type="button" class="button button-small button-primary lznd-tipo-save-btn" style="display:none;">
-											<?php esc_html_e( 'Guardar', 'lezned-maintenance' ); ?>
-										</button>
-										<button type="button" class="button button-small lznd-tipo-cancel-btn" style="display:none;">
-											<?php esc_html_e( 'Cancelar', 'lezned-maintenance' ); ?>
-										</button>
-										<button type="button" class="button button-small lznd-tipo-delete-btn"
-												data-count="<?php echo esc_attr( $term->count ); ?>">
-											<?php esc_html_e( 'Eliminar', 'lezned-maintenance' ); ?>
-										</button>
-									</td>
-								</tr>
-								<?php endforeach; ?>
-							<?php endif; ?>
-						</tbody>
-					</table>
-				</div>
-
-			</div><!-- .lznd-tipos-layout -->
-		</div>
-		<?php
-	}
-
-	public static function ajax_save_tipo() {
-		if ( ! current_user_can( 'manage_categories' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Sin permiso.', 'lezned-maintenance' ) ) );
-		}
+	public static function ajax_project_stats() {
 		check_ajax_referer( 'lznd_admin', 'nonce' );
 
-		$term_id = absint( $_POST['term_id'] ?? 0 );
-		$name    = sanitize_text_field( $_POST['name'] ?? '' );
-		$slug    = sanitize_title( $_POST['slug'] ?? '' );
-
-		if ( ! $term_id || ! $name ) {
-			wp_send_json_error( array( 'message' => __( 'Datos incompletos.', 'lezned-maintenance' ) ) );
-		}
-
-		$args = array( 'name' => $name );
-		if ( $slug ) {
-			$args['slug'] = $slug;
-		}
-
-		$result = wp_update_term( $term_id, 'lznd_tipo', $args );
-
-		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
-		}
-
-		$updated_term = get_term( $result['term_id'], 'lznd_tipo' );
-
-		wp_send_json_success( array(
-			'name' => $updated_term->name,
-			'slug' => $updated_term->slug,
-		) );
-	}
-
-	public static function ajax_delete_tipo() {
-		if ( ! current_user_can( 'manage_categories' ) ) {
+		if ( ! current_user_can( 'edit_posts' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Sin permiso.', 'lezned-maintenance' ) ) );
 		}
-		check_ajax_referer( 'lznd_admin', 'nonce' );
 
-		$term_id = absint( $_POST['term_id'] ?? 0 );
-		if ( ! $term_id ) {
+		$proyecto_id = isset( $_POST['proyecto_id'] ) ? absint( $_POST['proyecto_id'] ) : 0;
+		if ( ! $proyecto_id ) {
 			wp_send_json_error( array( 'message' => __( 'ID inválido.', 'lezned-maintenance' ) ) );
 		}
 
-		$result = wp_delete_term( $term_id, 'lznd_tipo' );
+		// Last 12 months
+		$labels      = array();
+		$completadas = array();
+		$pendientes  = array();
 
-		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		for ( $i = 11; $i >= 0; $i-- ) {
+			$ts         = strtotime( "-{$i} months" );
+			$m          = (int) date( 'n', $ts );
+			$y          = (int) date( 'Y', $ts );
+			$month_str  = date_i18n( 'M Y', $ts );
+			$month_start = sprintf( '%04d-%02d-01', $y, $m );
+			$month_end   = date( 'Y-m-t', strtotime( $month_start ) );
+
+			$acts = get_posts( array(
+				'post_type'      => 'lznd_actuacion',
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'meta_query'     => array(
+					'relation' => 'AND',
+					array(
+						'key'   => '_lznd_proyecto_id',
+						'value' => $proyecto_id,
+						'type'  => 'NUMERIC',
+					),
+					array(
+						'key'     => '_lznd_fecha_prog',
+						'value'   => array( $month_start, $month_end ),
+						'compare' => 'BETWEEN',
+						'type'    => 'DATE',
+					),
+				),
+			) );
+
+			$comp = 0;
+			$pend = 0;
+			foreach ( $acts as $act_id ) {
+				$estado = get_post_meta( $act_id, '_lznd_estado', true );
+				if ( in_array( $estado, array( 'enviado', 'cerrado', 'completado' ), true ) ) {
+					$comp++;
+				} else {
+					$pend++;
+				}
+			}
+
+			$labels[]      = $month_str;
+			$completadas[] = $comp;
+			$pendientes[]  = $pend;
 		}
 
-		wp_send_json_success( array( 'deleted' => true ) );
+		wp_send_json_success( array(
+			'labels'      => $labels,
+			'completadas' => $completadas,
+			'pendientes'  => $pendientes,
+		) );
+	}
+
+	// ─── AJAX: Client Stats chart ─────────────────────────────────────────────
+
+	public static function ajax_client_stats() {
+		check_ajax_referer( 'lznd_admin', 'nonce' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Sin permiso.', 'lezned-maintenance' ) ) );
+		}
+
+		$cliente_id = isset( $_POST['cliente_id'] ) ? absint( $_POST['cliente_id'] ) : 0;
+		if ( ! $cliente_id ) {
+			wp_send_json_error( array( 'message' => __( 'ID inválido.', 'lezned-maintenance' ) ) );
+		}
+
+		$proyecto_ids = get_posts( array(
+			'post_type'      => 'lznd_proyecto',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_query'     => array( array( 'key' => '_lznd_cliente_id', 'value' => $cliente_id ) ),
+		) );
+
+		if ( empty( $proyecto_ids ) ) {
+			wp_send_json_success( array( 'labels' => array(), 'completadas' => array(), 'pendientes' => array() ) );
+			return;
+		}
+
+		$labels      = array();
+		$completadas = array();
+		$pendientes  = array();
+
+		for ( $i = 11; $i >= 0; $i-- ) {
+			$ts          = strtotime( "-{$i} months" );
+			$m           = (int) date( 'n', $ts );
+			$y           = (int) date( 'Y', $ts );
+			$month_start = sprintf( '%04d-%02d-01', $y, $m );
+			$month_end   = date( 'Y-m-t', strtotime( $month_start ) );
+
+			$acts = get_posts( array(
+				'post_type'      => 'lznd_actuacion',
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'meta_query'     => array(
+					'relation' => 'AND',
+					array( 'key' => '_lznd_proyecto_id', 'value' => $proyecto_ids, 'compare' => 'IN' ),
+					array( 'key' => '_lznd_fecha_prog', 'value' => array( $month_start, $month_end ), 'compare' => 'BETWEEN', 'type' => 'DATE' ),
+				),
+			) );
+
+			$comp = 0;
+			$pend = 0;
+			foreach ( $acts as $act_id ) {
+				$estado = get_post_meta( $act_id, '_lznd_estado', true );
+				if ( in_array( $estado, array( 'enviado', 'cerrado', 'completado' ), true ) ) {
+					$comp++;
+				} else {
+					$pend++;
+				}
+			}
+
+			$labels[]      = date_i18n( 'M Y', $ts );
+			$completadas[] = $comp;
+			$pendientes[]  = $pend;
+		}
+
+		wp_send_json_success( array(
+			'labels'      => $labels,
+			'completadas' => $completadas,
+			'pendientes'  => $pendientes,
+		) );
 	}
 }
 
