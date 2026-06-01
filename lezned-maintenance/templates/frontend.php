@@ -46,6 +46,7 @@ if ( $actuacion_id > 0 ) {
             $pre_tareas = [];
         }
         $pre_tareas = LZND_Ajax::fix_tareas_encoding( $pre_tareas );
+        $pre_tareas = LZND_Ajax::enrich_tareas( $pre_tareas, intval( $pre_tipo_tid ), $actuacion_id );
 
         $fotos_raw  = get_post_meta( $actuacion_id, '_lznd_fotos', true );
         $fotos_arr  = is_array( $fotos_raw ) ? $fotos_raw : [];
@@ -281,22 +282,6 @@ $prioridad        = $actuacion_id ? ( get_post_meta( $actuacion_id, '_lznd_prior
             <h3 class="lznd-card__section-title"><?php esc_html_e( 'Tareas', 'lezned-maintenance' ); ?></h3>
 
             <ul class="lznd-task-list" id="lznd-task-list">
-                <?php if ( ! empty( $pre_tareas ) ) :
-                    foreach ( $pre_tareas as $tarea ) :
-                        $is_done = ! empty( $tarea['completada'] );
-                ?>
-                <li class="lznd-task-item <?php echo $is_done ? 'lznd-task-item--done' : ''; ?>"
-                    data-task-id="<?php echo esc_attr( $tarea['id'] ); ?>">
-                    <button type="button" class="lznd-task-toggle" aria-label="<?php esc_attr_e( 'Marcar tarea', 'lezned-maintenance' ); ?>">
-                        <span class="lznd-task-check"><?php echo $is_done ? '&#10003;' : ''; ?></span>
-                    </button>
-                    <span class="lznd-task-text"><?php echo esc_html( $tarea['texto'] ); ?></span>
-                    <?php if ( $is_done && ! empty( $tarea['completada_en'] ) ) : ?>
-                        <span class="lznd-task-time"><?php echo esc_html( date_i18n( 'H:i', strtotime( $tarea['completada_en'] ) ) ); ?></span>
-                    <?php endif; ?>
-                    <button type="button" class="lznd-task-delete" aria-label="<?php esc_attr_e( 'Eliminar tarea', 'lezned-maintenance' ); ?>">&#10005;</button>
-                </li>
-                <?php endforeach; endif; ?>
             </ul>
 
             <div class="lznd-add-task-row">
@@ -467,6 +452,15 @@ $prioridad        = $actuacion_id ? ( get_post_meta( $actuacion_id, '_lznd_prior
     </div><!-- #lznd-step-2 -->
 
 </div><!-- .lznd-app -->
+
+<?php if ( $actuacion_id > 0 && ! empty( $pre_tareas ) ) : ?>
+<script>
+window.lzndPreload = {
+    actuacionId: <?php echo intval( $actuacion_id ); ?>,
+    tareas: <?php echo wp_json_encode( $pre_tareas, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP ); ?>
+};
+</script>
+<?php endif; ?>
 
 <?php /* ---- Pending work modal ---- */ ?>
 <div class="lznd-modal" id="lznd-pending-modal" role="dialog" aria-modal="true" style="display:none;">

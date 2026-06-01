@@ -1273,6 +1273,11 @@
             $( '#lznd-steps-indicator .lznd-step-dot[data-step="2"]' ).addClass( 'lznd-step-dot--active' );
             initSignaturePad( 'lznd-sig-tecnico' );
             initSignaturePad( 'lznd-sig-cliente' );
+
+            // Re-render tasks via JS so field types (casilla/radio/checkboxes/texto) are displayed correctly
+            if ( window.lzndPreload && window.lzndPreload.tareas ) {
+                renderTasks( window.lzndPreload.tareas );
+            }
         }
     }
 
