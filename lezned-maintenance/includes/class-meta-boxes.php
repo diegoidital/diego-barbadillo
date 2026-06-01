@@ -17,6 +17,7 @@ class LZND_Meta_Boxes {
 		add_action( 'add_meta_boxes',             array( __CLASS__, 'register' ) );
 		add_action( 'save_post_lznd_cliente',     array( __CLASS__, 'save_cliente' ),   10, 2 );
 		add_action( 'save_post_lznd_proyecto',    array( __CLASS__, 'save_proyecto' ),  10, 2 );
+		add_action( 'save_post_lznd_proyecto',    array( __CLASS__, 'maybe_auto_create_actuacion' ), 20, 2 );
 		add_action( 'save_post_lznd_actuacion',   array( __CLASS__, 'save_actuacion' ), 10, 2 );
 		add_action( 'save_post_lznd_tarea',       array( __CLASS__, 'save_tarea' ),     10, 2 );
 	}
@@ -84,10 +85,10 @@ class LZND_Meta_Boxes {
 		// ── lznd_tarea ──────────────────────────────────────────────────────
 		add_meta_box(
 			'lznd_box_tarea',
-			__( 'Configuración de tarea', 'lezned-maintenance' ),
+			__( 'Categoría', 'lezned-maintenance' ),
 			array( __CLASS__, 'box_tarea' ),
 			'lznd_tarea',
-			'normal',
+			'side',
 			'high'
 		);
 	}
@@ -168,11 +169,12 @@ class LZND_Meta_Boxes {
 	public static function box_proyecto_info( $post ) {
 		wp_nonce_field( 'lznd_save_proyecto', 'lznd_proyecto_nonce' );
 
-		$cliente_id       = get_post_meta( $post->ID, '_lznd_cliente_id',       true );
-		$contacto_nombre  = get_post_meta( $post->ID, '_lznd_contacto_nombre',  true );
-		$contacto_tel     = get_post_meta( $post->ID, '_lznd_contacto_telefono', true );
-		$contacto_email   = get_post_meta( $post->ID, '_lznd_contacto_email',   true );
-		$notas            = get_post_meta( $post->ID, '_lznd_notas',            true );
+		$cliente_id        = get_post_meta( $post->ID, '_lznd_cliente_id',         true );
+		$contacto_nombre   = get_post_meta( $post->ID, '_lznd_contacto_nombre',   true );
+		$contacto_tel      = get_post_meta( $post->ID, '_lznd_contacto_telefono', true );
+		$contacto_email    = get_post_meta( $post->ID, '_lznd_contacto_email',    true );
+		$fecha_finalizacion = get_post_meta( $post->ID, '_lznd_fecha_finalizacion', true );
+		$notas             = get_post_meta( $post->ID, '_lznd_notas',             true );
 
 		// Build clients list
 		$clientes = get_posts( array(
@@ -198,11 +200,37 @@ class LZND_Meta_Boxes {
 		echo '<p class="description">' . esc_html__( 'Auto-rellenar desde cliente: los datos de contacto se rellenarán automáticamente al seleccionar un cliente.', 'lezned-maintenance' ) . '</p>';
 		echo '</div></div>';
 
+		// Tipo de trabajo
+		$tipo_term_id = get_post_meta( $post->ID, '_lznd_tipo_term_id', true );
+		$tipos = get_terms( array(
+			'taxonomy'   => 'lznd_tipo',
+			'hide_empty' => false,
+		) );
+
+		echo '<div class="lznd-row">';
+		echo '<div class="lznd-col lznd-col-label"><label for="_lznd_tipo_term_id">' . esc_html__( 'Tipo de trabajo', 'lezned-maintenance' ) . '</label></div>';
+		echo '<div class="lznd-col lznd-col-field">';
+		echo '<select id="_lznd_tipo_term_id" name="_lznd_tipo_term_id" class="widefat">';
+		echo '<option value="">' . esc_html__( '— Seleccionar tipo —', 'lezned-maintenance' ) . '</option>';
+		if ( ! is_wp_error( $tipos ) ) {
+			foreach ( $tipos as $term ) {
+				echo '<option value="' . esc_attr( $term->term_id ) . '"' . selected( $tipo_term_id, $term->term_id, false ) . '>' . esc_html( $term->name ) . '</option>';
+			}
+		}
+		echo '</select>';
+		echo '</div></div>';
+
 		// Contact override fields
 		echo '<div class="lznd-section-title"><strong>' . esc_html__( 'Datos de contacto del proyecto', 'lezned-maintenance' ) . '</strong></div>';
 		self::text_row( __( 'Nombre contacto',    'lezned-maintenance' ), '_lznd_contacto_nombre',   $contacto_nombre );
 		self::text_row( __( 'Teléfono contacto',  'lezned-maintenance' ), '_lznd_contacto_telefono', $contacto_tel, 'tel' );
 		self::text_row( __( 'Email contacto',     'lezned-maintenance' ), '_lznd_contacto_email',    $contacto_email, 'email' );
+
+		// Fecha de finalización
+		echo '<div class="lznd-row">';
+		echo '<div class="lznd-col lznd-col-label"><label for="_lznd_fecha_finalizacion">' . esc_html__( 'Fecha de finalización', 'lezned-maintenance' ) . '</label></div>';
+		echo '<div class="lznd-col lznd-col-field"><input type="date" id="_lznd_fecha_finalizacion" name="_lznd_fecha_finalizacion" value="' . esc_attr( $fecha_finalizacion ) . '" class="widefat" /></div>';
+		echo '</div>';
 
 		// Notes
 		self::textarea_row( __( 'Notas', 'lezned-maintenance' ), '_lznd_notas', $notas );
@@ -215,7 +243,6 @@ class LZND_Meta_Boxes {
 	public static function box_proyecto_recurrencia( $post ) {
 		$recurrencia  = get_post_meta( $post->ID, '_lznd_recurrencia',   true );
 		$fecha_prox   = get_post_meta( $post->ID, '_lznd_fecha_proxima', true );
-		$auto_crear   = get_post_meta( $post->ID, '_lznd_auto_crear',    true );
 		$aviso_email  = get_post_meta( $post->ID, '_lznd_aviso_email',   true );
 
 		if ( ! $recurrencia ) {
@@ -224,11 +251,11 @@ class LZND_Meta_Boxes {
 
 		$options = array(
 			'ninguna'    => __( 'Sin recurrencia', 'lezned-maintenance' ),
-			'mensual'    => __( 'Mensual',          'lezned-maintenance' ),
-			'bimestral'  => __( 'Bimestral',        'lezned-maintenance' ),
-			'trimestral' => __( 'Trimestral',       'lezned-maintenance' ),
-			'semestral'  => __( 'Cada 6 meses',     'lezned-maintenance' ),
-			'anual'      => __( 'Anual',             'lezned-maintenance' ),
+			'mensual'    => __( 'Mensual',         'lezned-maintenance' ),
+			'bimestral'  => __( 'Bimestral',       'lezned-maintenance' ),
+			'trimestral' => __( 'Trimestral',      'lezned-maintenance' ),
+			'semestral'  => __( 'Cada 6 meses',    'lezned-maintenance' ),
+			'anual'      => __( 'Anual',            'lezned-maintenance' ),
 		);
 
 		$show_rec_opts = ( 'ninguna' !== $recurrencia ) ? '' : 'display:none;';
@@ -253,11 +280,12 @@ class LZND_Meta_Boxes {
 		echo '<input type="date" id="_lznd_fecha_proxima" name="_lznd_fecha_proxima" value="' . esc_attr( $fecha_prox ) . '" class="widefat" style="margin-top:4px;" />';
 		echo '</div>';
 
-		echo '<div class="lznd-row" style="margin-top:10px;">';
-		echo '<label>';
-		echo '<input type="checkbox" name="_lznd_auto_crear" value="1"' . checked( $auto_crear, '1', false ) . ' />';
-		echo ' ' . esc_html__( 'Crear actuación automáticamente', 'lezned-maintenance' );
-		echo '</label>';
+		// Weekend alert inline dialog
+		echo '<div id="lznd-weekend-alert" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:12px 16px;margin-top:8px;">';
+		echo '<p style="margin:0 0 6px;font-weight:600;">&#9888; ' . esc_html__( 'La fecha cae en fin de semana', 'lezned-maintenance' ) . '</p>';
+		echo '<p style="margin:0 0 10px;font-size:12px;color:#555;">' . esc_html__( '¿Qué día prefieres?', 'lezned-maintenance' ) . '</p>';
+		echo '<button type="button" id="lznd-weekend-mon" class="button" data-date="">' . esc_html__( 'Lunes siguiente', 'lezned-maintenance' ) . ' (<span id="lznd-weekend-mon-date"></span>)</button>';
+		echo '<button type="button" id="lznd-weekend-fri" class="button" style="margin-left:8px;" data-date="">' . esc_html__( 'Viernes anterior', 'lezned-maintenance' ) . ' (<span id="lznd-weekend-fri-date"></span>)</button>';
 		echo '</div>';
 
 		echo '<div class="lznd-row" style="margin-top:10px;">';
@@ -266,19 +294,60 @@ class LZND_Meta_Boxes {
 		echo '</div>';
 
 		echo '</div>'; // #lznd-rec-opts
-
 		echo '</div>'; // .lznd-form
 
-		// Inline JS to toggle rec opts
+		// Inline JS: toggle rec opts + auto-calculate date + weekend alert
 		?>
 		<script>
 		(function($){
+			var monthsMap = { mensual: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12 };
+
+			function pad(n) { return ('0' + n).slice(-2); }
+
+			function formatYMD(d) {
+				return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+			}
+
+			function formatDMY(d) {
+				return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
+			}
+
+			function applyDate(d) {
+				var dow = d.getDay(); // 0=Dom, 6=Sáb
+				if (dow === 0 || dow === 6) {
+					var mon = new Date(d), fri = new Date(d);
+					if (dow === 6) { mon.setDate(mon.getDate() + 2); fri.setDate(fri.getDate() - 1); }
+					else           { mon.setDate(mon.getDate() + 1); fri.setDate(fri.getDate() - 2); }
+					$('#lznd-weekend-mon').data('date', formatYMD(mon));
+					$('#lznd-weekend-fri').data('date', formatYMD(fri));
+					$('#lznd-weekend-mon-date').text(formatDMY(mon));
+					$('#lznd-weekend-fri-date').text(formatDMY(fri));
+					$('#lznd-weekend-alert').slideDown(150);
+				} else {
+					$('#lznd-weekend-alert').hide();
+					$('#_lznd_fecha_proxima').val(formatYMD(d));
+				}
+			}
+
 			$('#_lznd_recurrencia').on('change', function(){
-				if ( $(this).val() !== 'ninguna' ) {
+				var val = $(this).val();
+				if (val !== 'ninguna') {
 					$('#lznd-rec-opts').slideDown();
+					var months = monthsMap[val];
+					if (months) {
+						var d = new Date();
+						d.setMonth(d.getMonth() + months);
+						applyDate(d);
+					}
 				} else {
 					$('#lznd-rec-opts').slideUp();
+					$('#lznd-weekend-alert').hide();
 				}
+			});
+
+			$('#lznd-weekend-mon, #lznd-weekend-fri').on('click', function(){
+				$('#_lznd_fecha_proxima').val($(this).data('date'));
+				$('#lznd-weekend-alert').slideUp(150);
 			});
 		})(jQuery);
 		</script>
@@ -459,75 +528,24 @@ class LZND_Meta_Boxes {
 		echo '<p><input type="text" value="' . esc_url( $url ) . '" class="widefat" readonly onclick="this.select();" /></p>';
 	}
 
-	// ─── Box: Tarea — Field type + taxonomy ─────────────────────────────────
+	// ─── Box: Tarea — Taxonomy Assignment ────────────────────────────────────
 
 	public static function box_tarea( $post ) {
 		wp_nonce_field( 'lznd_save_tarea', 'lznd_tarea_nonce' );
 
-		$tipo_campo   = get_post_meta( $post->ID, '_lznd_tipo_campo', true ) ?: 'texto';
-		$opciones_raw = get_post_meta( $post->ID, '_lznd_opciones',   true ) ?: '';
-		$opciones     = $opciones_raw ? json_decode( $opciones_raw, true ) : [];
-		if ( ! is_array( $opciones ) ) {
-			$opciones = [];
-		}
+		$terms = get_terms( array(
+			'taxonomy'   => 'lznd_tipo',
+			'hide_empty' => false,
+		) );
 
-		$terms         = get_terms( array( 'taxonomy' => 'lznd_tipo', 'hide_empty' => false ) );
 		$current_terms = wp_get_post_terms( $post->ID, 'lznd_tipo', array( 'fields' => 'ids' ) );
 
 		echo '<div class="lznd-form">';
 
-		// ── Tipo de campo ────────────────────────────────────────────────────
-		echo '<div class="lznd-row">';
-		echo '<div class="lznd-col lznd-col-label"><strong>' . esc_html__( 'Tipo de campo', 'lezned-maintenance' ) . '</strong></div>';
-		echo '<div class="lznd-col lznd-col-field">';
-		echo '<div class="lznd-tipo-campo-opts" style="display:flex;gap:16px;margin-top:4px;">';
-		$tipo_campo_options = array(
-			'texto'       => __( 'Texto',       'lezned-maintenance' ),
-			'seleccionar' => __( 'Seleccionar', 'lezned-maintenance' ),
-			'radio'       => __( 'Radio',       'lezned-maintenance' ),
-		);
-		foreach ( $tipo_campo_options as $val => $label ) {
-			$checked = checked( $tipo_campo, $val, false );
-			printf(
-				'<label><input type="radio" name="_lznd_tipo_campo" value="%s"%s /> %s</label>',
-				esc_attr( $val ),
-				$checked,
-				esc_html( $label )
-			);
-		}
-		echo '</div>';
-		echo '</div></div>';
-
-		// ── Options builder (shown for seleccionar/radio) ────────────────────
-		$show_opts = in_array( $tipo_campo, array( 'seleccionar', 'radio' ), true ) ? '' : 'display:none;';
-		echo '<div id="lznd-tarea-opciones-wrap" style="' . esc_attr( $show_opts ) . '">';
-		echo '<div class="lznd-row" style="margin-top:10px;">';
-		echo '<div class="lznd-col lznd-col-label"><strong>' . esc_html__( 'Opciones', 'lezned-maintenance' ) . '</strong></div>';
-		echo '<div class="lznd-col lznd-col-field">';
-		echo '<ul id="lznd-tarea-opciones-list" style="margin:0 0 6px 0;padding:0;list-style:none;">';
-		foreach ( $opciones as $opt ) {
-			printf(
-				'<li class="lznd-opcion-item" style="display:flex;gap:4px;margin-bottom:4px;">
-					<input type="text" name="_lznd_opciones[]" value="%s" class="widefat" style="flex:1;" />
-					<button type="button" class="button lznd-remove-opcion" title="%s">&#10005;</button>
-				</li>',
-				esc_attr( $opt ),
-				esc_attr__( 'Eliminar opción', 'lezned-maintenance' )
-			);
-		}
-		echo '</ul>';
-		echo '<button type="button" class="button" id="lznd-add-opcion">' . esc_html__( '+ Añadir opción', 'lezned-maintenance' ) . '</button>';
-		echo '</div></div>';
-		echo '</div>'; // #lznd-tarea-opciones-wrap
-
-		// ── Taxonomy assignment ──────────────────────────────────────────────
-		echo '<div class="lznd-row" style="margin-top:14px;">';
-		echo '<div class="lznd-col lznd-col-label"><strong>' . esc_html__( 'Tipos de trabajo', 'lezned-maintenance' ) . '</strong></div>';
-		echo '<div class="lznd-col lznd-col-field">';
 		if ( is_wp_error( $terms ) || empty( $terms ) ) {
 			echo '<p class="description">' . esc_html__( 'No hay tipos de trabajo disponibles.', 'lezned-maintenance' ) . '</p>';
 		} else {
-			echo '<p class="description" style="margin-bottom:6px;">' . esc_html__( 'Asignar esta tarea a uno o más tipos de trabajo:', 'lezned-maintenance' ) . '</p>';
+			echo '<p class="description">' . esc_html__( 'Asignar esta tarea a uno o más tipos de trabajo:', 'lezned-maintenance' ) . '</p>';
 			echo '<div class="lznd-checkboxes">';
 			foreach ( $terms as $term ) {
 				$checked = in_array( $term->term_id, (array) $current_terms, true ) ? ' checked="checked"' : '';
@@ -540,9 +558,8 @@ class LZND_Meta_Boxes {
 			}
 			echo '</div>';
 		}
-		echo '</div></div>';
 
-		echo '</div>'; // .lznd-form
+		echo '</div>';
 	}
 
 	// ─── Save: Cliente ────────────────────────────────────────────────────────
@@ -609,6 +626,7 @@ class LZND_Meta_Boxes {
 			'_lznd_contacto_telefono',
 			'_lznd_recurrencia',
 			'_lznd_fecha_proxima',
+			'_lznd_fecha_finalizacion',
 			'_lznd_aviso_email',
 			'_lznd_notas',
 		);
@@ -630,20 +648,62 @@ class LZND_Meta_Boxes {
 			update_post_meta( $post_id, '_lznd_contacto_email', sanitize_email( $_POST['_lznd_contacto_email'] ) );
 		}
 
-		// Integer: cliente_id
-		if ( isset( $_POST['_lznd_cliente_id'] ) ) {
-			update_post_meta( $post_id, '_lznd_cliente_id', absint( $_POST['_lznd_cliente_id'] ) );
+		// Integer fields: cliente_id, tipo_term_id
+		foreach ( array( '_lznd_cliente_id', '_lznd_tipo_term_id' ) as $int_field ) {
+			if ( isset( $_POST[ $int_field ] ) ) {
+				update_post_meta( $post_id, $int_field, absint( $_POST[ $int_field ] ) );
+			}
 		}
-
-		// Checkbox: auto_crear
-		$auto_crear = isset( $_POST['_lznd_auto_crear'] ) ? '1' : '0';
-		update_post_meta( $post_id, '_lznd_auto_crear', $auto_crear );
 
 		// Validate recurrencia
 		$valid_recurrencias = array( 'ninguna', 'mensual', 'bimestral', 'trimestral', 'semestral', 'anual' );
 		if ( isset( $_POST['_lznd_recurrencia'] ) && in_array( $_POST['_lznd_recurrencia'], $valid_recurrencias, true ) ) {
 			update_post_meta( $post_id, '_lznd_recurrencia', $_POST['_lznd_recurrencia'] );
 		}
+	}
+
+	// ─── Auto-create actuación on project save ────────────────────────────────
+
+	public static function maybe_auto_create_actuacion( $post_id, $post ) {
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			return;
+		}
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+		if ( ! in_array( $post->post_status, array( 'publish', 'pending', 'private' ), true ) ) {
+			return;
+		}
+		// Only act when saving from the edit form (nonce present)
+		if ( empty( $_POST['lznd_proyecto_nonce'] ) ) {
+			return;
+		}
+
+		$tipo_term_id = get_post_meta( $post_id, '_lznd_tipo_term_id', true );
+		if ( ! $tipo_term_id ) {
+			return;
+		}
+
+		// Only create if no actuaciones exist for this project yet
+		$existing = get_posts( array(
+			'post_type'      => 'lznd_actuacion',
+			'post_status'    => 'publish',
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+			'meta_query'     => array(
+				array(
+					'key'   => '_lznd_proyecto_id',
+					'value' => $post_id,
+					'type'  => 'NUMERIC',
+				),
+			),
+		) );
+
+		if ( ! empty( $existing ) ) {
+			return;
+		}
+
+		LZND_Ajax::create_actuacion( $post_id, intval( $tipo_term_id ) );
 	}
 
 	// ─── Save: Actuación ─────────────────────────────────────────────────────
@@ -720,27 +780,6 @@ class LZND_Meta_Boxes {
 			return;
 		}
 
-		// Tipo de campo
-		$valid_tipos = array( 'texto', 'seleccionar', 'radio' );
-		$tipo_campo  = ( isset( $_POST['_lznd_tipo_campo'] ) && in_array( $_POST['_lznd_tipo_campo'], $valid_tipos, true ) )
-			? $_POST['_lznd_tipo_campo'] : 'texto';
-		update_post_meta( $post_id, '_lznd_tipo_campo', $tipo_campo );
-
-		// Opciones (only relevant for seleccionar/radio)
-		$opciones = array();
-		if ( in_array( $tipo_campo, array( 'seleccionar', 'radio' ), true ) ) {
-			if ( isset( $_POST['_lznd_opciones'] ) && is_array( $_POST['_lznd_opciones'] ) ) {
-				foreach ( $_POST['_lznd_opciones'] as $opt ) {
-					$clean = sanitize_text_field( $opt );
-					if ( $clean !== '' ) {
-						$opciones[] = $clean;
-					}
-				}
-			}
-		}
-		update_post_meta( $post_id, '_lznd_opciones', wp_json_encode( $opciones, JSON_UNESCAPED_UNICODE ) );
-
-		// Taxonomy terms
 		$term_ids = array();
 		if ( isset( $_POST['_lznd_tipo_terms'] ) && is_array( $_POST['_lznd_tipo_terms'] ) ) {
 			$term_ids = array_map( 'absint', $_POST['_lznd_tipo_terms'] );

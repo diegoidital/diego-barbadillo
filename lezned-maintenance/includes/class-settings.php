@@ -15,7 +15,22 @@ class LZND_Settings {
      * Register hooks.
      */
     public static function init() {
+        add_action( 'admin_menu',              [ __CLASS__, 'add_page' ] );
         add_action( 'admin_post_lznd_save_settings', [ __CLASS__, 'save' ] );
+    }
+
+    /**
+     * Add settings submenu.
+     */
+    public static function add_page() {
+        add_submenu_page(
+            'lznd-menu',
+            __( 'Configuración', 'lezned-maintenance' ),
+            __( 'Configuración', 'lezned-maintenance' ),
+            'manage_options',
+            'lznd-settings',
+            [ __CLASS__, 'render' ]
+        );
     }
 
     /**
