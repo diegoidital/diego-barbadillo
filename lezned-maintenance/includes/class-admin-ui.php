@@ -133,9 +133,12 @@ class LZND_Admin_UI {
 			case 'lznd_recurrencia':
 				$rec = get_post_meta( $post_id, '_lznd_recurrencia', true );
 				$labels = array(
-					'ninguna'   => __( 'Sin recurrencia', 'lezned-maintenance' ),
-					'semestral' => __( 'Cada 6 meses',    'lezned-maintenance' ),
-					'anual'     => __( 'Anual',            'lezned-maintenance' ),
+					'ninguna'    => __( 'Sin recurrencia', 'lezned-maintenance' ),
+					'mensual'    => __( 'Mensual',         'lezned-maintenance' ),
+					'bimestral'  => __( 'Bimestral',       'lezned-maintenance' ),
+					'trimestral' => __( 'Trimestral',      'lezned-maintenance' ),
+					'semestral'  => __( 'Cada 6 meses',    'lezned-maintenance' ),
+					'anual'      => __( 'Anual',            'lezned-maintenance' ),
 				);
 				$label = isset( $labels[ $rec ] ) ? $labels[ $rec ] : __( 'Sin recurrencia', 'lezned-maintenance' );
 				$badge_class = ( 'ninguna' === $rec || ! $rec ) ? 'lznd-badge lznd-badge-gray' : 'lznd-badge lznd-badge-blue';
@@ -230,31 +233,21 @@ class LZND_Admin_UI {
 				break;
 
 			case 'lznd_tecnico':
-				$tecnico_id = get_post_meta( $post_id, '_lznd_tecnico', true );
-				if ( $tecnico_id ) {
-					$user = get_userdata( $tecnico_id );
-					if ( $user ) {
-						echo esc_html( $user->display_name );
-					} else {
-						echo '<span class="lznd-empty">—</span>';
-					}
+				$tecnico = get_post_meta( $post_id, '_lznd_tecnico', true );
+				if ( $tecnico ) {
+					echo esc_html( $tecnico );
 				} else {
 					echo '<span class="lznd-empty">—</span>';
 				}
 				break;
 
 			case 'lznd_tareas':
-				$checklist = get_post_meta( $post_id, '_lznd_tareas_checklist', true );
-				if ( $checklist ) {
-					$tasks = json_decode( $checklist, true );
+				$tareas_raw = get_post_meta( $post_id, '_lznd_tareas', true );
+				if ( $tareas_raw ) {
+					$tasks = json_decode( $tareas_raw, true );
 					if ( is_array( $tasks ) ) {
 						$total = count( $tasks );
-						$done  = 0;
-						foreach ( $tasks as $task ) {
-							if ( ! empty( $task['done'] ) ) {
-								$done++;
-							}
-						}
+						$done  = count( array_filter( $tasks, fn( $t ) => ! empty( $t['completada'] ) ) );
 						$pct = $total > 0 ? round( ( $done / $total ) * 100 ) : 0;
 						echo '<div class="lznd-progress-wrap" title="' . esc_attr( "$done/$total" ) . '">';
 						echo '<div class="lznd-progress-bar"><div class="lznd-progress-fill" style="width:' . esc_attr( $pct ) . '%"></div></div>';
@@ -680,7 +673,7 @@ class LZND_Admin_UI {
 		$estado      = get_post_meta( $act->ID, '_lznd_estado',        true );
 		$fecha_prog  = get_post_meta( $act->ID, '_lznd_fecha_prog',    true );
 		$tecnico_id  = get_post_meta( $act->ID, '_lznd_tecnico',       true );
-		$checklist   = get_post_meta( $act->ID, '_lznd_tareas_checklist', true );
+		$tareas_raw  = get_post_meta( $act->ID, '_lznd_tareas', true );
 
 		$terms = wp_get_post_terms( $act->ID, 'lznd_tipo' );
 		$tipo_html = '';
@@ -688,26 +681,15 @@ class LZND_Admin_UI {
 			$tipo_html = '<span class="lznd-badge lznd-badge-tipo">' . esc_html( $terms[0]->name ) . '</span>';
 		}
 
-		$tecnico_name = '';
-		if ( $tecnico_id ) {
-			$user = get_userdata( $tecnico_id );
-			if ( $user ) {
-				$tecnico_name = $user->display_name;
-			}
-		}
+		$tecnico_name = $tecnico_id ? (string) $tecnico_id : '';
 
 		$progress_html = '';
-		if ( $checklist ) {
-			$tasks = json_decode( $checklist, true );
+		if ( $tareas_raw ) {
+			$tasks = json_decode( $tareas_raw, true );
 			if ( is_array( $tasks ) ) {
 				$total = count( $tasks );
-				$done  = 0;
-				foreach ( $tasks as $task ) {
-					if ( ! empty( $task['done'] ) ) {
-						$done++;
-					}
-				}
-				$pct = $total > 0 ? round( ( $done / $total ) * 100 ) : 0;
+				$done  = count( array_filter( $tasks, fn( $t ) => ! empty( $t['completada'] ) ) );
+				$pct   = $total > 0 ? round( ( $done / $total ) * 100 ) : 0;
 				$progress_html = '<div class="lznd-progress-wrap">'
 					. '<div class="lznd-progress-bar"><div class="lznd-progress-fill" style="width:' . esc_attr( $pct ) . '%"></div></div>'
 					. '<span class="lznd-progress-label">' . esc_html( "$done/$total" ) . '</span>'
