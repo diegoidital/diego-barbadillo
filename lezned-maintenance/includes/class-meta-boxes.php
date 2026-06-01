@@ -548,9 +548,10 @@ class LZND_Meta_Boxes {
 		// ── Tipo de campo ──────────────────────────────────────────────────────
 		echo '<div class="lznd-row"><p><strong>' . esc_html__( 'Tipo de campo', 'lezned-maintenance' ) . '</strong></p>';
 		$tipos_campo = array(
-			'texto'      => __( 'Texto libre',          'lezned-maintenance' ),
-			'radio'      => __( 'Selección (una opción)','lezned-maintenance' ),
-			'checkboxes' => __( 'Selección múltiple',   'lezned-maintenance' ),
+			'texto'      => __( 'Texto libre',                          'lezned-maintenance' ),
+			'casilla'    => __( 'Casilla Correcto / Incidencia',         'lezned-maintenance' ),
+			'radio'      => __( 'Selección una opción (radio)',          'lezned-maintenance' ),
+			'checkboxes' => __( 'Selección múltiple (checkboxes)',       'lezned-maintenance' ),
 		);
 		foreach ( $tipos_campo as $val => $label ) {
 			printf(
@@ -836,7 +837,7 @@ class LZND_Meta_Boxes {
 		}
 
 		// Tipo de campo
-		$valid_tipos_campo = array( 'texto', 'radio', 'checkboxes' );
+		$valid_tipos_campo = array( 'texto', 'casilla', 'radio', 'checkboxes' );
 		$tipo_campo = ( isset( $_POST['_lznd_tipo_campo'] ) && in_array( $_POST['_lznd_tipo_campo'], $valid_tipos_campo, true ) )
 			? $_POST['_lznd_tipo_campo']
 			: 'texto';

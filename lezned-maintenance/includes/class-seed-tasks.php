@@ -74,46 +74,46 @@ class LZND_Seed_Tasks {
 	private static function task_definitions() {
 		return array(
 
-			// ── Estado de componentes (radio: Correcto / Incidencia) ─────────
+			// ── Casilla de verificación (Correcto / Incidencia) ──────────────
 			array(
 				'titulo'     => 'Estado de la bomba',
-				'tipo_campo' => 'radio',
+				'tipo_campo' => 'casilla',
 				'opciones'   => array( 'Correcto', 'Incidencia' ),
 				'orden'      => 10,
 			),
 			array(
 				'titulo'     => 'Estado del inyector',
-				'tipo_campo' => 'radio',
+				'tipo_campo' => 'casilla',
 				'opciones'   => array( 'Correcto', 'Incidencia' ),
 				'orden'      => 20,
 			),
 			array(
 				'titulo'     => 'Estado del variador',
-				'tipo_campo' => 'radio',
+				'tipo_campo' => 'casilla',
 				'opciones'   => array( 'Correcto', 'Incidencia' ),
 				'orden'      => 30,
 			),
 			array(
 				'titulo'     => 'Estado de la válvula de retención',
-				'tipo_campo' => 'radio',
+				'tipo_campo' => 'casilla',
 				'opciones'   => array( 'Correcto', 'Incidencia' ),
 				'orden'      => 40,
 			),
 			array(
 				'titulo'     => 'Llave de entrada',
-				'tipo_campo' => 'radio',
+				'tipo_campo' => 'casilla',
 				'opciones'   => array( 'Correcto', 'Incidencia' ),
 				'orden'      => 50,
 			),
 			array(
 				'titulo'     => 'Llave de salida',
-				'tipo_campo' => 'radio',
+				'tipo_campo' => 'casilla',
 				'opciones'   => array( 'Correcto', 'Incidencia' ),
 				'orden'      => 60,
 			),
 			array(
 				'titulo'     => 'Llave by-pass',
-				'tipo_campo' => 'radio',
+				'tipo_campo' => 'casilla',
 				'opciones'   => array( 'Correcto', 'Incidencia' ),
 				'orden'      => 70,
 			),

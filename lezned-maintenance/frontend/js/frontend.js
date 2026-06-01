@@ -184,7 +184,7 @@
         );
 
         // Field section for typed tasks
-        if ( tipoCampo && tipoCampo !== 'casilla' ) {
+        if ( tipoCampo ) {
             $li.append( buildTaskField( task ) );
         }
 
@@ -205,6 +205,28 @@
                     .attr( 'data-task-id', task.id )
                     .val( valor )
             );
+
+        } else if ( tipoCampo === 'casilla' ) {
+            var $casGroup = $( '<div>' ).addClass( 'lznd-casilla-group' );
+            var casOpciones = opciones.length ? opciones : [ 'Correcto', 'Incidencia' ];
+            $.each( casOpciones, function ( i, opt ) {
+                var uid    = 'casilla-' + task.id + '-' + i;
+                var $label = $( '<label>' ).addClass( 'lznd-casilla-btn' ).attr( 'for', uid );
+                var $radio = $( '<input>' ).attr( {
+                    type:  'radio',
+                    name:  'task-' + task.id,
+                    id:    uid,
+                    value: opt,
+                } ).addClass( 'lznd-task-radio' ).attr( 'data-task-id', task.id );
+                if ( valor === opt ) {
+                    $radio.prop( 'checked', true );
+                    $label.addClass( 'lznd-casilla-btn--' + opt.toLowerCase().replace( /\s+/g, '-' ).replace( /[^a-z0-9-]/g, '' ) );
+                }
+                var icon = opt === 'Correcto' ? '✓ ' : ( opt === 'Incidencia' ? '✗ ' : '' );
+                $label.append( $radio ).append( document.createTextNode( icon + opt ) );
+                $casGroup.append( $label );
+            } );
+            $field.append( $casGroup );
 
         } else if ( tipoCampo === 'radio' ) {
             var $group = $( '<div>' ).addClass( 'lznd-radio-group' );
@@ -767,16 +789,21 @@
         saveTaskValue( taskId, valor, $( this ).closest( '.lznd-task-item' ) );
     } );
 
-    // ── Radio: save + auto-complete on pick ─────────────────────────────────
+    // ── Radio / Casilla: save + auto-complete on pick ───────────────────────
     $( '#lznd-task-list' ).on( 'change', '.lznd-task-radio', function () {
-        var $radio = $( this );
-        var taskId = $radio.attr( 'data-task-id' );
-        var $item  = $radio.closest( '.lznd-task-item' );
+        var $radio    = $( this );
+        var taskId    = $radio.attr( 'data-task-id' );
+        var $item     = $radio.closest( '.lznd-task-item' );
+        var tipoCampo = $item.attr( 'data-tipo-campo' );
+        var slug      = $radio.val().toLowerCase().replace( /\s+/g, '-' ).replace( /[^a-z0-9-]/g, '' );
 
-        // Style pills
-        $item.find( '.lznd-radio-pill' ).removeClass( 'lznd-radio-pill--selected lznd-radio-pill--correcto lznd-radio-pill--incidencia lznd-radio-pill--selected-any' );
-        $radio.closest( '.lznd-radio-pill' )
-            .addClass( 'lznd-radio-pill--selected lznd-radio-pill--' + $radio.val().toLowerCase().replace( /\s+/g, '-' ).replace( /[^a-z0-9-]/g, '' ) );
+        if ( tipoCampo === 'casilla' ) {
+            $item.find( '.lznd-casilla-btn' ).removeClass( 'lznd-casilla-btn--correcto lznd-casilla-btn--incidencia' );
+            $radio.closest( '.lznd-casilla-btn' ).addClass( 'lznd-casilla-btn--' + slug );
+        } else {
+            $item.find( '.lznd-radio-pill' ).removeClass( 'lznd-radio-pill--selected lznd-radio-pill--correcto lznd-radio-pill--incidencia' );
+            $radio.closest( '.lznd-radio-pill' ).addClass( 'lznd-radio-pill--selected lznd-radio-pill--' + slug );
+        }
 
         saveTaskValue( taskId, $radio.val(), $item, true );
     } );
