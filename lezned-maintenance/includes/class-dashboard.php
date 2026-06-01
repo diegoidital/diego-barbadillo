@@ -70,7 +70,7 @@ class LZND_Dashboard {
 						'value' => $stats['pendientes'],
 						'icon'  => 'dashicons-clock',
 						'color' => '#996800',
-						'url'   => admin_url( 'edit.php?post_type=lznd_actuacion&wmpro_estado=pendiente' ),
+						'url'   => admin_url( 'edit.php?post_type=lznd_actuacion&lznd_filter_estado=pendiente' ),
 					),
 					array(
 						'label' => 'En proceso',

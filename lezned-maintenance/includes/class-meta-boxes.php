@@ -223,9 +223,12 @@ class LZND_Meta_Boxes {
 		}
 
 		$options = array(
-			'ninguna'   => __( 'Sin recurrencia',  'lezned-maintenance' ),
-			'semestral' => __( 'Cada 6 meses',     'lezned-maintenance' ),
-			'anual'     => __( 'Anual',             'lezned-maintenance' ),
+			'ninguna'    => __( 'Sin recurrencia', 'lezned-maintenance' ),
+			'mensual'    => __( 'Mensual',          'lezned-maintenance' ),
+			'bimestral'  => __( 'Bimestral',        'lezned-maintenance' ),
+			'trimestral' => __( 'Trimestral',       'lezned-maintenance' ),
+			'semestral'  => __( 'Cada 6 meses',     'lezned-maintenance' ),
+			'anual'      => __( 'Anual',             'lezned-maintenance' ),
 		);
 
 		$show_rec_opts = ( 'ninguna' !== $recurrencia ) ? '' : 'display:none;';
@@ -637,7 +640,7 @@ class LZND_Meta_Boxes {
 		update_post_meta( $post_id, '_lznd_auto_crear', $auto_crear );
 
 		// Validate recurrencia
-		$valid_recurrencias = array( 'ninguna', 'semestral', 'anual' );
+		$valid_recurrencias = array( 'ninguna', 'mensual', 'bimestral', 'trimestral', 'semestral', 'anual' );
 		if ( isset( $_POST['_lznd_recurrencia'] ) && in_array( $_POST['_lznd_recurrencia'], $valid_recurrencias, true ) ) {
 			update_post_meta( $post_id, '_lznd_recurrencia', $_POST['_lznd_recurrencia'] );
 		}
