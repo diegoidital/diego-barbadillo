@@ -1274,7 +1274,7 @@
 }
 
 /* ========================================================================
-   Task field types (texto, radio, checkboxes)
+   Task field types (casilla, radio, checkboxes, texto)
    ======================================================================== */
 
 .lznd-task-field {
@@ -1288,26 +1288,68 @@
     align-items: center;
 }
 
-/* Text input */
+/* ── Texto libre ─────────────────────────────────────────────────────── */
 .lznd-task-input--text {
     width: 100%;
     max-width: 360px;
     padding: 6px 10px;
-    border: 1px solid #d1d5db;
+    border: 1.5px solid #1876B8;
     border-radius: 6px;
     font-size: 14px;
-    color: #374151;
+    color: #000;
     background: #fff;
-    transition: border-color 0.15s;
+    transition: box-shadow 0.15s;
 }
 
 .lznd-task-input--text:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+    box-shadow: 0 0 0 3px rgba(24,118,184,.2);
 }
 
-/* Radio pills */
+/* ── Casilla de verificación (Correcto / Incidencia) ─────────────────── */
+.lznd-casilla-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.lznd-casilla-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 18px;
+    border: 1.5px solid #1876B8;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1876B8;
+    background: #fff;
+    transition: all 0.15s;
+    user-select: none;
+}
+
+.lznd-casilla-btn input[type="radio"] {
+    display: none;
+}
+
+.lznd-casilla-btn:hover {
+    background: #eaf3fb;
+}
+
+.lznd-casilla-btn--correcto {
+    border-color: #16a34a;
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.lznd-casilla-btn--incidencia {
+    border-color: #dc2626;
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* ── Radio pills (multiple options, single choice) ────────────────────── */
 .lznd-radio-group {
     display: flex;
     flex-wrap: wrap;
@@ -1319,13 +1361,13 @@
     align-items: center;
     gap: 6px;
     padding: 5px 14px;
-    border: 1.5px solid #d1d5db;
+    border: 1.5px solid #1876B8;
     border-radius: 20px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
-    color: #6b7280;
-    background: #f9fafb;
+    color: #1876B8;
+    background: #fff;
     transition: all 0.15s;
     user-select: none;
 }
@@ -1335,45 +1377,28 @@
 }
 
 .lznd-radio-pill:hover {
-    border-color: #9ca3af;
-    background: #f3f4f6;
+    background: #eaf3fb;
 }
 
-/* Correcto = green */
+.lznd-radio-pill--selected {
+    background: #1876B8;
+    color: #fff;
+    border-color: #1876B8;
+}
+
 .lznd-radio-pill--correcto {
     border-color: #16a34a;
     background: #dcfce7;
     color: #15803d;
 }
 
-/* Incidencia = red */
 .lznd-radio-pill--incidencia {
     border-color: #dc2626;
     background: #fee2e2;
     color: #b91c1c;
 }
 
-/* Any other selection = blue */
-.lznd-radio-pill--selected {
-    border-color: #2563eb;
-    background: #eff6ff;
-    color: #1d4ed8;
-}
-
-/* Specific overrides take precedence */
-.lznd-radio-pill--correcto.lznd-radio-pill--selected {
-    border-color: #16a34a;
-    background: #dcfce7;
-    color: #15803d;
-}
-
-.lznd-radio-pill--incidencia.lznd-radio-pill--selected {
-    border-color: #dc2626;
-    background: #fee2e2;
-    color: #b91c1c;
-}
-
-/* Checkboxes multi-select */
+/* ── Checkboxes (multi-select) ────────────────────────────────────────── */
 .lznd-checkbox-group {
     display: flex;
     flex-direction: column;
@@ -1391,19 +1416,19 @@
     align-items: center;
     gap: 8px;
     font-size: 14px;
-    color: #374151;
+    color: #000;
     cursor: pointer;
 }
 
 .lznd-cbx-label input[type="checkbox"] {
     width: 16px;
     height: 16px;
-    accent-color: #2563eb;
+    accent-color: #1876B8;
     cursor: pointer;
     flex-shrink: 0;
 }
 
-/* "Otro" conditional text */
+/* ── "Otro" conditional text ──────────────────────────────────────────── */
 .lznd-otro-wrap {
     padding-left: 24px;
 }
@@ -1412,14 +1437,15 @@
     width: 100%;
     max-width: 320px;
     padding: 5px 10px;
-    border: 1px solid #fbbf24;
+    border: 1.5px solid #1876B8;
     border-radius: 6px;
     font-size: 13px;
-    background: #fffbeb;
+    color: #000;
+    background: #fff;
 }
 
 .lznd-otro-input:focus {
     outline: none;
-    border-color: #f59e0b;
-    box-shadow: 0 0 0 2px rgba(245,158,11,.15);
+    box-shadow: 0 0 0 3px rgba(24,118,184,.2);
 }
+
