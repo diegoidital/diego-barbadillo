@@ -509,12 +509,9 @@
 
 .lznd-task-item {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 48px;
-    padding: 10px 8px;
+    flex-direction: column;
+    padding: 8px 8px;
     border-bottom: 1px solid var(--lznd-light);
-    cursor: pointer;
     border-radius: 6px;
     transition: background var(--lznd-transition);
     -webkit-tap-highlight-color: transparent;
@@ -528,6 +525,14 @@
     background: var(--lznd-light);
 }
 
+/* First-line row: delete + toggle + text + time */
+.lznd-task-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+}
+
 .lznd-task-item--done .lznd-task-text {
     text-decoration: line-through;
     color: var(--lznd-muted);
@@ -537,7 +542,7 @@
     flex-shrink: 0;
     width: 28px;
     height: 28px;
-    border-radius: 6px;
+    border-radius: 50%;
     border: 2px solid var(--lznd-border);
     background: var(--lznd-white);
     cursor: pointer;
@@ -578,16 +583,18 @@
     flex-shrink: 0;
     background: none;
     border: none;
-    color: #dc3545;
+    color: #bbb;
     cursor: pointer;
-    padding: 6px 8px;
-    border-radius: 6px;
-    font-size: 13px;
+    padding: 4px;
+    font-size: 12px;
     line-height: 1;
-    opacity: 0;
-    transition: opacity var(--lznd-transition), background var(--lznd-transition);
-    min-height: 32px;
-    min-width: 32px;
+    opacity: 0.5;
+    transition: opacity var(--lznd-transition), color var(--lznd-transition);
+    min-height: 28px;
+    min-width: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .lznd-task-item:hover .lznd-task-delete,
@@ -596,10 +603,11 @@
 }
 
 .lznd-task-delete:hover {
-    background: #fee2e2;
+    background: none;
+    color: #888;
 }
 
-/* Touch devices: always show delete */
+/* Touch devices: always show delete at mid-opacity */
 @media (hover: none) {
     .lznd-task-delete {
         opacity: 0.5;
@@ -1278,14 +1286,8 @@
    ======================================================================== */
 
 .lznd-task-field {
-    grid-column: 1 / -1;
-    padding: 8px 0 4px 44px;
-}
-
-.lznd-task-item {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    /* indent to align with task text: delete(28px) + gap(10px) + toggle(28px) + gap(10px) = 76px */
+    padding: 6px 0 4px 76px;
 }
 
 /* ── Texto libre ─────────────────────────────────────────────────────── */
