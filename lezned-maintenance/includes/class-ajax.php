@@ -110,6 +110,95 @@ class LZND_Ajax {
         }
         $tareas = $tareas_fixed;
 
+        // ── Enrich tasks from templates ──────────────────────────────────────
+        // Back-fills tipo_campo/opciones into old tasks that lack them, and
+        // appends any template tasks that were added after the actuacion was created.
+        $template_posts = get_posts( [
+            'post_type'      => 'lznd_tarea',
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+            'orderby'        => 'menu_order',
+            'order'          => 'ASC',
+            'tax_query'      => [
+                [
+                    'taxonomy' => 'lznd_tipo',
+                    'field'    => 'term_id',
+                    'terms'    => $tipo_term_id,
+                ],
+            ],
+        ] );
+
+        // If no typed tasks found, fall back to all templates (same logic as create_actuacion)
+        if ( empty( $template_posts ) ) {
+            $template_posts = get_posts( [
+                'post_type'      => 'lznd_tarea',
+                'post_status'    => 'publish',
+                'posts_per_page' => -1,
+                'orderby'        => 'menu_order',
+                'order'          => 'ASC',
+            ] );
+        }
+
+        $tmpl_map = [];
+        foreach ( $template_posts as $tp ) {
+            $tc      = get_post_meta( $tp->ID, '_lznd_tipo_campo', true ) ?: 'texto';
+            $op_raw  = get_post_meta( $tp->ID, '_lznd_opciones',   true );
+            $op      = ( $op_raw && $op_raw !== '[]' ) ? json_decode( $op_raw, true ) : [];
+            if ( ! is_array( $op ) ) {
+                $op = [];
+            }
+            $tmpl_map[ $tp->post_title ] = [ 'tipo_campo' => $tc, 'opciones' => $op ];
+        }
+
+        $enriched     = false;
+        $existing_txt = array_column( $tareas, 'texto' );
+
+        // Back-fill missing tipo_campo / opciones / valor into existing tasks
+        foreach ( $tareas as &$t ) {
+            if ( isset( $tmpl_map[ $t['texto'] ] ) ) {
+                $def = $tmpl_map[ $t['texto'] ];
+                if ( empty( $t['tipo_campo'] ) ) {
+                    $t['tipo_campo'] = $def['tipo_campo'];
+                    $enriched = true;
+                }
+                if ( empty( $t['opciones'] ) && ! empty( $def['opciones'] ) ) {
+                    $t['opciones'] = $def['opciones'];
+                    $enriched = true;
+                }
+            }
+            if ( ! isset( $t['valor'] ) ) {
+                $t['valor']   = '';
+                $enriched = true;
+            }
+            if ( ! isset( $t['opciones'] ) ) {
+                $t['opciones'] = [];
+                $enriched = true;
+            }
+        }
+        unset( $t );
+
+        // Append template tasks that are missing from this actuacion
+        foreach ( $template_posts as $tp ) {
+            if ( ! in_array( $tp->post_title, $existing_txt, true ) ) {
+                $def      = $tmpl_map[ $tp->post_title ];
+                $tareas[] = [
+                    'id'            => uniqid( 'task_', true ),
+                    'texto'         => $tp->post_title,
+                    'tipo_campo'    => $def['tipo_campo'],
+                    'opciones'      => $def['opciones'],
+                    'completada'    => false,
+                    'completada_en' => '',
+                    'valor'         => '',
+                ];
+                $enriched = true;
+            }
+        }
+
+        if ( $enriched ) {
+            update_post_meta( $actuacion_id, '_lznd_tareas', wp_json_encode( $tareas, JSON_UNESCAPED_UNICODE ) );
+        }
+        // ── end enrichment ──────────────────────────────────────────────────
+
         $fotos_raw = get_post_meta( $actuacion_id, '_lznd_fotos', true );
         $fotos     = is_array( $fotos_raw ) ? $fotos_raw : [];
 
