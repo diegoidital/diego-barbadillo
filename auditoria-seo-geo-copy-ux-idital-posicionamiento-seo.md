@@ -31,6 +31,46 @@ El trabajo pendiente es de **coherencia y remate**, no de reconstrucción. Y apa
 
 ---
 
+## Revisión de seguimiento (16 jul 2026)
+
+Segunda pasada sobre la página en vivo (HTML crudo, `<head>` incluido) para verificar qué recomendaciones se han implementado y medir la mejora.
+
+**Puntuación global: 68 → 73/100.** Se han aplicado los cambios de **cuerpo/contenido**, pero **no los de metadatos** (title, description, og:title), que eran los quick wins de mayor visibilidad en la SERP. El patrón sugiere que se editó el contenido (Elementor) sin tocar los campos SEO del plugin (RankMath/Yoast).
+
+| Elemento | Antes | Ahora | Estado |
+|---|---|---|:--:|
+| **H1** | "Posicionamiento SEO ¡Consigue ser el 1 en Google!" | "Agencia de posicionamiento SEO para pymes y ecommerce" | ✅ Implementado (exacto) |
+| **FAQ P8 (precio)** | Evasivo, sin salida | Reencuadrado hacia auditoría gratuita | ✅ Implementado |
+| **Alt text imágenes** | 0 con alt | ~13 de 17 `<img>` con alt | ✅ Casi completo |
+| **Enlace "SEO para IA y ChatGPT"** | Inexistente en el cuerpo | Añadido | ✅ Implementado |
+| **`<title>`** | "…¡Consigue ser el 1 en Google!" | *Sin cambios* | ❌ Pendiente |
+| **Meta description** | Genérica | *Sin cambios* | ❌ Pendiente |
+| **og:title / schema WebPage** | "…el 1 en Google" | *Sin cambios* | ❌ Pendiente |
+| **CTAs unificados** | 6 variantes | *Sin cambios* (siguen "¡EMPECEMOS!", "Pide tu presupuesto", "¿HABLAMOS?") | ❌ Pendiente |
+| **"Para qué sirve" → bullets** | Párrafo largo | *Sin cambios* | ❌ Pendiente |
+| **Historia 200→8.000** | 3 apariciones | 3 apariciones | ❌ Pendiente |
+| **JSON-LD FAQPage + Service** | Ausente | Ausente (hay Organization/WebSite/Breadcrumb, pero no FAQPage ni Service) | ❌ Pendiente |
+| **LCP 4,9 s** | Rojo | No verificable por HTML — medir en PageSpeed | ⏳ Sin datos |
+
+### Matiz importante sobre la contradicción
+
+La contradicción "ser el 1 en Google" **ya no está en el cuerpo visible**: el hero (H1 + subcopy) es ahora coherente y honesto. Las 4 apariciones que quedan de esa frase están **solo en metadatos** (`<title>`, `og:title`, `name` del schema WebPage y un campo oculto). El problema, por tanto, se ha desplazado: el usuario ya no ve la contradicción dentro de la página, **pero el snippet de Google seguirá mostrando "¡Consigue ser el 1 en Google!"** y contradirá a la propia landing en cuanto el usuario entre. Sigue siendo el quick win nº1 pendiente.
+
+### Hallazgos nuevos de esta pasada
+
+- **Typo en un CTA:** el botón enlaza correctamente a SEO para IA, pero el texto dice *"SEO par IA →"* (falta la "a" de "para").
+- **Alt text mejorable:** ~4 imágenes siguen sin alt (una con `alt=""`) y algunos alt son débiles o duplicados ("logo que", "Posicionamiento seo", "ACE Posicionamiento SEO"). Conviene completarlos y hacerlos descriptivos.
+
+### Prioridad inmediata restante
+
+1. **Actualizar `<title>`, meta description y `og:title`** en el plugin SEO (es el cambio pendiente de mayor impacto y menor esfuerzo — ver textos en el anexo).
+2. **Corregir el typo** "SEO par IA → SEO para IA".
+3. **Unificar CTAs** y **convertir "Para qué sirve" en bullets** (textos en el anexo).
+4. **Implementar JSON-LD `FAQPage` + `Service`.**
+5. **Medir LCP** en PageSpeed Insights y optimizar imágenes si sigue > 2,5 s.
+
+---
+
 ## 01 · Resumen ejecutivo
 
 **Puntuación global: 68/100** — una landing que ya ha subido de nivel en contenido y segmentación, pero con tres frenos que le impiden convertir esa base en resultados: una **incoherencia de mensaje** entre el titular y el propio cuerpo, un **problema técnico de rendimiento** (LCP 4,9 s), y una **respuesta de precio que suena evasiva**.
