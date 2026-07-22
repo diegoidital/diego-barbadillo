@@ -1,0 +1,354 @@
+<title>Auditoría web y arquitectura SEO — ZOROM</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --ground:#FBFAF7; --surface:#FFFFFF; --surface-2:#F4F1EA00;
+    --ink:#15242E; --muted:#5A6771; --faint:#8A949C;
+    --line:#E7E0D3; --line-strong:#D8CFBD;
+    --accent:#0E6E7A; --accent-soft:#0e6e7a1a;
+    --good:#2E7D5B; --good-bg:#e4f0e9;
+    --warn:#B4841B; --warn-bg:#f6ecd4;
+    --bad:#C0453B; --bad-bg:#f6dedb;
+    --shadow:0 1px 2px rgba(21,36,46,.04),0 6px 20px rgba(21,36,46,.06);
+    --radius:14px;
+    --serif:Georgia,"Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0D171E; --surface:#15232C; --surface-2:#1a2a33;
+      --ink:#EDEFEA; --muted:#9EAAB2; --faint:#71808A;
+      --line:#26363F; --line-strong:#31434d;
+      --accent:#46AEB9; --accent-soft:#46aeb91f;
+      --good:#5FBE90; --good-bg:#173026;
+      --warn:#E0AE4A; --warn-bg:#33291259;
+      --bad:#E7796E; --bad-bg:#3a1f1c;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 26px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#FBFAF7; --surface:#FFFFFF; --ink:#15242E; --muted:#5A6771; --faint:#8A949C;
+    --line:#E7E0D3; --line-strong:#D8CFBD; --accent:#0E6E7A; --accent-soft:#0e6e7a1a;
+    --good:#2E7D5B; --good-bg:#e4f0e9; --warn:#B4841B; --warn-bg:#f6ecd4; --bad:#C0453B; --bad-bg:#f6dedb;
+    --surface-2:#F4F1EA00;
+    --shadow:0 1px 2px rgba(21,36,46,.04),0 6px 20px rgba(21,36,46,.06);
+  }
+  :root[data-theme="dark"]{
+    --ground:#0D171E; --surface:#15232C; --surface-2:#1a2a33; --ink:#EDEFEA; --muted:#9EAAB2; --faint:#71808A;
+    --line:#26363F; --line-strong:#31434d; --accent:#46AEB9; --accent-soft:#46aeb91f;
+    --good:#5FBE90; --good-bg:#173026; --warn:#E0AE4A; --warn-bg:#33291259; --bad:#E7796E; --bad-bg:#3a1f1c;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 26px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+    line-height:1.6;-webkit-font-smoothing:antialiased;font-size:16px}
+  .wrap{max-width:940px;margin:0 auto;padding:0 24px}
+  a{color:var(--accent)}
+
+  /* header */
+  header.top{border-bottom:1px solid var(--line);background:var(--surface);position:relative;overflow:hidden}
+  header.top::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(120% 140% at 88% -10%,var(--accent-soft),transparent 55%);pointer-events:none}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 14px}
+  header.top h1{font-family:var(--serif);font-weight:600;font-size:clamp(30px,5vw,46px);
+    line-height:1.1;margin:0 0 14px;text-wrap:balance;letter-spacing:-.01em}
+  header.top .lede{font-size:18px;color:var(--muted);max-width:60ch;margin:0}
+  .head-inner{padding:56px 0 44px;position:relative;z-index:1}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:26px;font-size:13.5px;color:var(--faint);
+    font-family:var(--mono)}
+  .meta-row b{color:var(--muted);font-weight:400}
+
+  /* nav */
+  nav.toc{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--surface) 88%,transparent);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  nav.toc ul{display:flex;gap:6px;list-style:none;margin:0 auto;padding:10px 24px;max-width:940px;
+    overflow-x:auto;scrollbar-width:none}
+  nav.toc ul::-webkit-scrollbar{display:none}
+  nav.toc a{color:var(--muted);text-decoration:none;font-size:13.5px;white-space:nowrap;
+    padding:6px 12px;border-radius:99px;transition:background .15s,color .15s}
+  nav.toc a:hover{color:var(--ink);background:var(--accent-soft)}
+
+  section{padding:52px 0;border-bottom:1px solid var(--line)}
+  section:last-of-type{border-bottom:0}
+  .sec-num{font-family:var(--mono);font-size:12.5px;color:var(--accent);letter-spacing:.12em}
+  h2{font-family:var(--serif);font-weight:600;font-size:clamp(23px,3.4vw,30px);margin:.35em 0 .5em;
+    letter-spacing:-.01em;text-wrap:balance}
+  h3{font-family:var(--sans);font-weight:650;font-size:18px;margin:32px 0 12px}
+  p{margin:0 0 16px;max-width:68ch}
+  strong{font-weight:650}
+
+  /* stat cards */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:8px 0 30px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px;box-shadow:var(--shadow)}
+  .stat .n{font-family:var(--serif);font-size:38px;line-height:1;font-variant-numeric:tabular-nums}
+  .stat .l{font-size:13px;color:var(--muted);margin-top:8px}
+  .stat.good .n{color:var(--good)} .stat.warn .n{color:var(--warn)} .stat.bad .n{color:var(--bad)}
+
+  /* bar */
+  .bar{display:flex;height:26px;border-radius:8px;overflow:hidden;border:1px solid var(--line);margin:6px 0 8px}
+  .bar span{display:block}
+  .bar .b-good{background:var(--good)} .bar .b-warn{background:var(--warn)} .bar .b-bad{background:var(--bad)}
+  .legend{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:8px}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:7px;vertical-align:middle}
+
+  /* callout */
+  .callout{border-radius:var(--radius);padding:18px 20px;margin:22px 0;border:1px solid var(--line);
+    background:var(--surface);box-shadow:var(--shadow);display:flex;gap:14px}
+  .callout .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    padding:3px 9px;border-radius:99px;height:fit-content;white-space:nowrap}
+  .callout.bad{border-left:4px solid var(--bad)} .callout.bad .tag{background:var(--bad-bg);color:var(--bad)}
+  .callout.warn{border-left:4px solid var(--warn)} .callout.warn .tag{background:var(--warn-bg);color:var(--warn)}
+  .callout p{margin:0}
+
+  /* tables */
+  .tw{overflow-x:auto;margin:18px 0;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;font-size:14.5px;background:var(--surface)}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{background:var(--surface-2,transparent);font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--faint);font-weight:650;border-bottom:1.5px solid var(--line-strong)}
+  tbody tr:last-child td{border-bottom:0}
+  td code,p code,li code{font-family:var(--mono);font-size:.88em;background:var(--accent-soft);
+    padding:1.5px 6px;border-radius:5px;color:var(--accent)}
+  .pill{font-family:var(--mono);font-size:11.5px;padding:2px 9px;border-radius:99px;white-space:nowrap;font-weight:600}
+  .pill.g{background:var(--good-bg);color:var(--good)} .pill.w{background:var(--warn-bg);color:var(--warn)}
+  .pill.b{background:var(--bad-bg);color:var(--bad)}
+
+  /* tree */
+  .tree{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;overflow-x:auto;box-shadow:var(--shadow);margin:18px 0}
+  .tree pre{margin:0;font-family:var(--mono);font-size:13px;line-height:1.75;color:var(--ink);white-space:pre}
+  .tree .es{color:var(--accent)} .tree .en{color:var(--muted)}
+  .tree .x{color:var(--bad)} .tree .r{color:var(--warn)} .tree .c{color:var(--faint)}
+
+  /* arch columns */
+  .arch{display:grid;grid-template-columns:1fr;gap:2px;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:20px 0}
+  .arch .node{padding:14px 18px;background:var(--surface);border-bottom:1px solid var(--line)}
+  .arch .node:last-child{border-bottom:0}
+  .arch .node.sub{padding-left:40px;background:linear-gradient(90deg,var(--accent-soft),transparent 40%)}
+  .arch .node .name{font-weight:650;font-size:15.5px}
+  .arch .node .urls{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:3px;
+    display:flex;gap:8px 18px;flex-wrap:wrap}
+  .arch .node .urls .en{color:var(--faint)}
+  .arch .node .why{font-size:13px;color:var(--muted);margin-top:5px}
+
+  ul.clean{margin:0 0 16px;padding-left:22px} ul.clean li{margin:7px 0;max-width:66ch}
+
+  footer{padding:40px 0 60px;color:var(--faint);font-size:13.5px}
+  footer code{font-family:var(--mono);color:var(--muted)}
+  .files{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+  .files b{color:var(--ink);font-weight:600;font-family:var(--mono);font-size:13px}
+
+  @media(max-width:640px){.stats{grid-template-columns:1fr}.head-inner{padding:40px 0 32px}}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="wrap head-inner">
+    <p class="eyebrow">Auditoría técnica · SEO · Arquitectura de información</p>
+    <h1>ZOROM — diagnóstico web y propuesta de arquitectura bilingüe</h1>
+    <p class="lede">Análisis del estado de los enlaces, la arquitectura actual y su enlazado interno, con una propuesta de estructura reorganizada y optimizada para SEO en español e inglés.</p>
+    <div class="meta-row">
+      <span><b>Sitio:</b> www.zorom.es</span>
+      <span><b>URLs analizadas:</b> 89 (sitemap)</span>
+      <span><b>Fecha:</b> 22/07/2026</span>
+      <span><b>Idiomas:</b> ES · EN</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Índice">
+  <ul>
+    <li><a href="#enlaces">1 · Enlaces</a></li>
+    <li><a href="#arquitectura">2 · Arquitectura actual</a></li>
+    <li><a href="#arbol">3 · Árbol de enlaces</a></li>
+    <li><a href="#propuesta">4 · Nueva arquitectura</a></li>
+    <li><a href="#plan">Plan de migración</a></li>
+  </ul>
+</nav>
+
+<main class="wrap">
+
+  <!-- 1 -->
+  <section id="enlaces">
+    <span class="sec-num">01 — INFORME DE ENLACES</span>
+    <h2>Más de la mitad del sitemap devuelve 404</h2>
+    <p>Se comprobó cada una de las 89 URLs declaradas en <code>sitemap_index.xml</code> siguiendo redirecciones. El reparto por estado HTTP:</p>
+
+    <div class="stats">
+      <div class="stat good"><div class="n">39</div><div class="l">URLs correctas (200)</div></div>
+      <div class="stat warn"><div class="n">2</div><div class="l">Redirecciones (302)</div></div>
+      <div class="stat bad"><div class="n">48</div><div class="l">No encontradas (404)</div></div>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:var(--good)"></i>OK · 44 %</span>
+      <span><i style="background:var(--warn)"></i>Redirección · 2 %</span>
+      <span><i style="background:var(--bad)"></i>404 · 54 %</span>
+    </div>
+    <div class="bar" role="img" aria-label="44% OK, 2% redirecciones, 54% 404">
+      <span class="b-good" style="width:44%"></span>
+      <span class="b-warn" style="width:2%"></span>
+      <span class="b-bad" style="width:54%"></span>
+    </div>
+
+    <div class="callout bad">
+      <span class="tag">Crítico</span>
+      <p>Las <strong>48 URLs rotas</strong> son taxonomías del tema inmobiliario que el sitemap declara pero que no existen, todas con el patrón <code>/properties/{tipo}/for_sale/</code> y <code>/for_rent/</code> (house, apartment, land, office, hotel…). Google gasta <em>crawl budget</em> en páginas muertas y el sitemap pierde credibilidad. <strong>Es lo primero a corregir.</strong></p>
+    </div>
+
+    <h3>Redirecciones existentes: slugs de proyecto incoherentes ES/EN</h3>
+    <div class="tw"><table>
+      <thead><tr><th>URL en el sitemap</th><th>Estado</th><th>Redirige a</th></tr></thead>
+      <tbody>
+        <tr><td><code>/en/project/gran-sol-villas/114/</code></td><td><span class="pill w">302</span></td><td><code>/en/project/gran-sol/114/</code></td></tr>
+        <tr><td><code>/en/project/la-merced-calpe/115/</code></td><td><span class="pill w">302</span></td><td><code>/en/project/la-merced/115/</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>El slug en inglés se acortó pero el sitemap sigue apuntando al antiguo, y la versión española conserva el slug largo. Conviene <strong>unificar el slug entre idiomas</strong> y convertir estos <code>302</code> en <code>301</code> si el cambio es definitivo.</p>
+    <p style="color:var(--faint);font-size:14px">Detalle completo y coloreado en <code>informe_enlaces_zorom.xlsx</code> (Resumen · 404 y errores · Redirecciones · Todas las URLs).</p>
+  </section>
+
+  <!-- 2 -->
+  <section id="arquitectura">
+    <span class="sec-num">02 — ARQUITECTURA ACTUAL</span>
+    <h2>Web bilingüe sólida en lo institucional, débil en SEO técnico</h2>
+    <p>El sitio publica el <strong>español en la raíz</strong> (<code>/…</code>) y el <strong>inglés bajo <code>/en/</code></strong>, con traducción de las páginas principales. El contenido se organiza en tres tipos: páginas institucionales, proyectos (4 promociones) y propiedades (6 unidades individuales).</p>
+
+    <h3>Problemas detectados, por prioridad</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Problema</th><th>Nivel</th><th>Detalle</th></tr></thead>
+      <tbody>
+        <tr><td>Sitemap con 48 URLs 404</td><td><span class="pill b">Alto</span></td><td>Taxonomías inmobiliarias vacías.</td></tr>
+        <tr><td>Cero etiquetas <code>hreflang</code></td><td><span class="pill b">Alto</span></td><td>Ninguna de las 39 páginas asocia su versión ES con la EN. En una web bilingüe provoca canibalización y mala segmentación por idioma/país.</td></tr>
+        <tr><td>Home sin <code>H1</code></td><td><span class="pill w">Medio</span></td><td>Ni <code>/</code> ni <code>/en/</code> tienen encabezado principal.</td></tr>
+        <tr><td>Meta descriptions ausentes</td><td><span class="pill w">Medio</span></td><td>Faltan en desarrollos próximos (ES/EN) y wishlist.</td></tr>
+        <tr><td>URLs con ID numérico</td><td><span class="pill w">Medio</span></td><td><code>/project/amiral/116/</code>, <code>/property/…/1072/</code>: el <code>/{id}/</code> ensucia la URL.</td></tr>
+        <tr><td>Sin sección de blog / contenidos</td><td><span class="pill w">Medio</span></td><td>No hay noticias ni contenido editorial → se pierde tráfico orgánico long-tail.</td></tr>
+        <tr><td>Slug de contacto inconsistente</td><td><span class="pill w">Bajo</span></td><td>ES <code>/contactenos/</code> vs EN <code>/en/contact-us/</code>.</td></tr>
+        <tr><td><code>/wishlist/</code> indexable</td><td><span class="pill w">Bajo</span></td><td>Página funcional sin valor SEO; debería ser <code>noindex</code>.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- 3 -->
+  <section id="arbol">
+    <span class="sec-num">03 — ÁRBOL DE ENLACES</span>
+    <h2>Estructura y enlazado interno actuales</h2>
+    <p>Reconstruido a partir del menú y los enlaces reales de cada página. En <span style="color:var(--accent);font-weight:600">azul</span> el español (raíz), en <span style="color:var(--muted);font-weight:600">gris</span> el inglés (<code>/en/</code>).</p>
+    <div class="tree"><pre><span class="es">zorom.es/</span>  (Inicio ES)   ──✗ sin hreflang ──   <span class="en">/en/</span>  (Home EN)
+│
+├── <span class="es">/sobre-nosotros/</span>                 <span class="en">/en/about-us/</span>
+├── <span class="es">/sobre-costa-blanca/</span>              <span class="en">/en/about-costa-blanca/</span>
+├── <span class="es">/colaboracion/</span>                    <span class="en">/en/collaboration/</span>
+├── <span class="es">/contactenos/</span>                     <span class="en">/en/contact-us/</span>
+├── <span class="es">/desarrollos-proximos/</span>            <span class="en">/en/upcoming-developments/</span>
+│
+├── <span class="es">/projects/</span>  (listado)             <span class="en">/en/projects/</span>
+│   ├── /project/amiral/116/            /en/project/amiral/116/
+│   ├── /project/el-paraiso/113/        /en/project/el-paraiso/113/
+│   ├── /project/gran-sol-villas/114/   <span class="r">/en/project/gran-sol/114/  (302)</span>
+│   └── /project/la-merced-calpe/115/   <span class="r">/en/project/la-merced/115/ (302)</span>
+│
+│   └── Propiedades (unidades):
+│       ├── /property/la-merced-villa-12b/1072/
+│       ├── /property/gran-sol-villa-1l/1068/  · 2l · 3l
+│       └── /property/el-paraiso-unit-17/1067/   (+ /en/property/…)
+│
+├── /wishlist/   <span class="c">(favoritos — debería ser noindex)</span>
+├── Legales: /aviso-legal/ · /politica-de-privacidad/ · /politica-de-cookies/  (+ EN)
+│
+└── <span class="x">🔴 48 URLs 404 colgando del sitemap</span>
+    <span class="x">   /properties/{tipo}/for_sale | for_rent/   ← eliminar</span></pre></div>
+    <p style="font-size:14px;color:var(--muted)">Las fichas de proyecto enlazan entre sí y a «desarrollos próximos» formando un buen <em>silo</em> comercial. Falta el enlazado recíproco ES↔EN (solo hay un selector de idioma) y no existe ningún nodo de contenidos.</p>
+  </section>
+
+  <!-- 4 -->
+  <section id="propuesta">
+    <span class="sec-num">04 — NUEVA ARQUITECTURA SEO</span>
+    <h2>Siete secciones, bilingüe y con silos de contenido</h2>
+    <p>Reorganización sobre las secciones solicitadas, con <strong>español en la raíz</strong> e <strong>inglés en <code>/en/</code></strong>, URLs limpias (sin ID numérico), <code>hreflang</code> recíproco en todo el sitio y tres silos de contenido diferenciados por intención de búsqueda.</p>
+
+    <div class="arch">
+      <div class="node"><div class="name">Inicio</div>
+        <div class="urls"><span>/</span><span class="en">/en/</span></div>
+        <div class="why">Marca y captación; enlaza a todos los silos.</div></div>
+      <div class="node"><div class="name">Quiénes somos</div>
+        <div class="urls"><span>/quienes-somos/</span><span class="en">/en/about-us/</span></div>
+        <div class="why">Confianza y E-E-A-T: «ZOROM promotora Costa Blanca».</div></div>
+      <div class="node"><div class="name">Proyectos</div>
+        <div class="urls"><span>/proyectos/</span><span class="en">/en/projects/</span></div>
+        <div class="why">Hub comercial; long-tail «villas obra nueva Calpe / Costa Blanca».</div></div>
+      <div class="node sub"><div class="name">↳ Landing de cada proyecto</div>
+        <div class="urls"><span>/proyectos/{slug}/</span><span class="en">/en/projects/{slug}/</span></div>
+        <div class="why">Página de conversión por promoción; unidades como bloques dentro.</div></div>
+      <div class="node"><div class="name">Actualidad <span style="font-weight:400;color:var(--faint);font-size:13px">— noticias curadas</span></div>
+        <div class="urls"><span>/actualidad/</span><span class="en">/en/news/</span></div>
+        <div class="why">Frescura y enlaces salientes de autoridad (links de noticias del sector).</div></div>
+      <div class="node"><div class="name">Blog <span style="font-weight:400;color:var(--faint);font-size:13px">— contenido propio</span></div>
+        <div class="urls"><span>/blog/</span><span class="en">/en/blog/</span></div>
+        <div class="why">Posicionamiento informacional long-tail → embudo hacia proyectos.</div></div>
+      <div class="node"><div class="name">Destino: Costa Blanca <span style="font-weight:400;color:var(--faint);font-size:13px">— texto + imagen</span></div>
+        <div class="urls"><span>/destino-costa-blanca/</span><span class="en">/en/costa-blanca/</span></div>
+        <div class="why">Captación turística/inversora; muy enlazable con los proyectos.</div></div>
+      <div class="node"><div class="name">Responsabilidad corporativa</div>
+        <div class="urls"><span>/responsabilidad-corporativa/</span><span class="en">/en/corporate-responsibility/</span></div>
+        <div class="why">ESG y diferenciación de marca.</div></div>
+      <div class="node"><div class="name">Contacto</div>
+        <div class="urls"><span>/contacto/</span><span class="en">/en/contact/</span></div>
+        <div class="why">Conversión (lead). Legales en el footer.</div></div>
+    </div>
+
+    <h3>Principios SEO aplicados</h3>
+    <ul class="clean">
+      <li><strong>hreflang recíproco</strong> en todas las páginas (<code>es</code>, <code>en</code>, <code>x-default</code>) — resuelve el problema más grave del sitio bilingüe.</li>
+      <li><strong>URLs limpias sin ID</strong>: <code>/proyectos/gran-sol/</code> en lugar de <code>/project/gran-sol-villas/114/</code>, con <code>301</code> desde las antiguas.</li>
+      <li><strong>Tres silos separados por intención</strong>: Actualidad (curación), Blog (propio) y Destino (estilo de vida), enlazados de forma cruzada con los proyectos.</li>
+      <li><strong>H1 único y meta-description</strong> en cada página; <em>breadcrumbs</em> con datos estructurados.</li>
+      <li><strong>Sitemap limpio</strong> (solo 200 reales) y datos estructurados: <code>Organization</code>/<code>RealEstateAgent</code>, <code>Article</code>, <code>BreadcrumbList</code>.</li>
+      <li><strong><code>noindex</code></strong> en wishlist, búsquedas y páginas funcionales.</li>
+    </ul>
+  </section>
+
+  <!-- plan -->
+  <section id="plan">
+    <span class="sec-num">— PLAN DE MIGRACIÓN</span>
+    <h2>Orden de ejecución recomendado</h2>
+    <p>De mayor impacto y menor riesgo hacia lo estructural:</p>
+    <div class="tw"><table>
+      <thead><tr><th style="width:34px">#</th><th>Acción</th><th>Impacto</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Limpiar el sitemap (eliminar las 48 URLs 404)</td><td><span class="pill g">Alto · riesgo 0</span></td></tr>
+        <tr><td>2</td><td>Implementar <code>hreflang</code> en todo el sitio</td><td><span class="pill g">Alto</span></td></tr>
+        <tr><td>3</td><td>Añadir H1 y meta-descriptions que faltan</td><td><span class="pill g">Medio</span></td></tr>
+        <tr><td>4</td><td>Crear Actualidad, Blog, Destino y Responsabilidad Corporativa</td><td><span class="pill g">Medio-Alto</span></td></tr>
+        <tr><td>5</td><td>Migrar a slugs limpios con redirecciones <code>301</code></td><td><span class="pill w">Medio · requiere cuidado</span></td></tr>
+        <tr><td>6</td><td>Unificar slugs ES/EN de proyectos y pasar 302 → 301</td><td><span class="pill w">Medio</span></td></tr>
+        <tr><td>7</td><td><code>noindex</code> en páginas funcionales + datos estructurados</td><td><span class="pill g">Bajo-Medio</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <p>Auditoría generada a partir del rastreo lento del sitemap (89 URLs). El sitio está tras Cloudflare con un WAF sensible a las ráfagas: futuras reauditorías deben hacerse a ritmo lento.</p>
+  <div class="files">
+    <span>Entregables:</span>
+    <b>informe_enlaces_zorom.xlsx</b>
+    <b>informe_zorom.md</b>
+    <b>zorom_data.json</b>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('nav.toc a').forEach(a=>{
+    a.addEventListener('click',e=>{
+      const t=document.querySelector(a.getAttribute('href'));
+      if(t){e.preventDefault();t.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});}
+    });
+  });
+</script>
