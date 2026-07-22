@@ -33,7 +33,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
 NS = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-USER_AGENT = "Mozilla/5.0 (compatible; SitemapChecker/1.0; +https://idital.com)"
+USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 MAX_REDIRECT_HOPS = 10
 
 
