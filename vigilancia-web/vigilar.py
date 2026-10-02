@@ -22,6 +22,7 @@ import smtplib
 import sys
 from email.message import EmailMessage
 from pathlib import Path
+from urllib.parse import urljoin
 
 import requests
 import yaml
@@ -37,7 +38,7 @@ USER_AGENT = (
 MAX_LINEAS_DIFF = 200
 
 
-def extraer_texto(html, selector, ignorar):
+def extraer_texto(html, selector, ignorar, enlaces=False, url=""):
     soup = BeautifulSoup(html, "html.parser")
     for etiqueta in soup(["script", "style", "noscript", "template"]):
         etiqueta.decompose()
@@ -45,6 +46,15 @@ def extraer_texto(html, selector, ignorar):
     nodos = soup.select(selector) if selector else [soup.body or soup]
     if not nodos:
         raise ValueError(f"el selector '{selector}' no encuentra ningún elemento")
+
+    if enlaces:
+        # Añade la dirección de cada enlace a su texto, para detectar también
+        # que se cambie el fichero enlazado aunque el texto siga igual.
+        for nodo in nodos:
+            anclas = [nodo] if nodo.name == "a" else nodo.select("a[href]")
+            for a in anclas:
+                if a.get("href"):
+                    a.append(f" [{urljoin(url, a['href'])}]")
 
     patrones = [re.compile(p) for p in ignorar]
     lineas = []
@@ -64,7 +74,11 @@ def comprobar(pagina):
     )
     resp.raise_for_status()
     texto = extraer_texto(
-        resp.text, pagina.get("selector"), pagina.get("ignorar") or []
+        resp.text,
+        pagina.get("selector"),
+        pagina.get("ignorar") or [],
+        enlaces=pagina.get("enlaces", False),
+        url=resp.url,
     )
 
     fichero = SNAPSHOTS / f"{nombre}.txt"
