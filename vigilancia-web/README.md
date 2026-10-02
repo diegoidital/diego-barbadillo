@@ -17,7 +17,7 @@ Comprueba cada hora las páginas de `paginas.yml` y envía un email con los camb
    | `MAIL_TO`   | `soporte@idital.com` (varios separados por comas) |
 
 3. **Rama por defecto:** GitHub solo ejecuta las tareas programadas desde la rama por defecto, así que hay que fusionar esto en ella.
-4. **Prueba:** *Actions → Vigilancia web → Run workflow*. La primera ejecución solo guarda la instantánea; a partir de ahí se avisa por email de cada cambio.
+4. **Prueba:** *Actions → Vigilancia web → Run workflow*, marcando **Enviar email de prueba** para comprobar que el correo llega. La primera ejecución de una página nueva solo guarda la instantánea; a partir de ahí se avisa por email de cada cambio.
 
 ## Notas
 

@@ -111,7 +111,7 @@ def _hash(texto):
     return hashlib.sha256(texto.encode("utf-8")).hexdigest()
 
 
-def enviar_email(cambios):
+def enviar_email(asunto, cuerpo):
     host = os.environ.get("SMTP_HOST")
     destinatarios = os.environ.get("MAIL_TO")
     if not host or not destinatarios:
@@ -122,14 +122,10 @@ def enviar_email(cambios):
     puerto = int(os.environ.get("SMTP_PORT") or 465)
 
     msg = EmailMessage()
-    nombres = ", ".join(p["nombre"] for p, _ in cambios)
-    msg["Subject"] = f"[Vigilancia web] Cambios en: {nombres}"
+    msg["Subject"] = asunto
     msg["From"] = os.environ.get("MAIL_FROM") or usuario
     msg["To"] = destinatarios
-    cuerpo = []
-    for pagina, diff in cambios:
-        cuerpo.append(f"=== {pagina['nombre']} ===\n{pagina['url']}\n\n{diff}\n")
-    msg.set_content("\n".join(cuerpo))
+    msg.set_content(cuerpo)
 
     if puerto == 465:
         servidor = smtplib.SMTP_SSL(host, puerto, timeout=30)
@@ -142,6 +138,22 @@ def enviar_email(cambios):
         servidor.send_message(msg)
     print(f"Email enviado a {destinatarios}")
     return True
+
+
+def cuerpo_prueba(paginas):
+    """Email de prueba: confirma que el envío funciona y muestra lo vigilado."""
+    partes = [
+        "Este es un email de prueba de la vigilancia web.",
+        "Si lo recibes, el envío de avisos funciona correctamente.",
+        "",
+        "Contenido vigilado actualmente:",
+        "",
+    ]
+    for pagina in paginas:
+        fichero = SNAPSHOTS / f"{pagina['nombre']}.txt"
+        texto = fichero.read_text(encoding="utf-8") if fichero.exists() else "(sin instantánea)\n"
+        partes.append(f"=== {pagina['nombre']} ===\n{pagina['url']}\n\n{texto}")
+    return "\n".join(partes)
 
 
 def main():
@@ -158,8 +170,17 @@ def main():
             print(f"[{pagina.get('nombre')}] ERROR: {e}", file=sys.stderr)
             errores.append(pagina.get("nombre"))
 
-    if cambios and not enviar_email(cambios):
-        return 1
+    if cambios:
+        nombres = ", ".join(p["nombre"] for p, _ in cambios)
+        cuerpo = "\n".join(
+            f"=== {p['nombre']} ===\n{p['url']}\n\n{diff}\n" for p, diff in cambios
+        )
+        if not enviar_email(f"[Vigilancia web] Cambios en: {nombres}", cuerpo):
+            return 1
+
+    if os.environ.get("EMAIL_PRUEBA") == "true":
+        if not enviar_email("[Vigilancia web] Email de prueba", cuerpo_prueba(paginas)):
+            return 1
     # Los errores de descarga se registran en el log pero no hacen fallar la
     # ejecución, para no recibir avisos de GitHub por caídas puntuales.
     return 0
