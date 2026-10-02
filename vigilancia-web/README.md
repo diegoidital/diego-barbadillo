@@ -1,6 +1,6 @@
 # Vigilancia web
 
-Comprueba cada 30 minutos las páginas de `paginas.yml` y envía un email con los cambios.
+Comprueba cada 20 minutos las páginas de `paginas.yml` y envía un email con los cambios.
 
 ## Puesta en marcha
 
@@ -28,7 +28,7 @@ Comprueba cada 30 minutos las páginas de `paginas.yml` y envía un email con lo
 
 ## Si no arranca solo
 
-- GitHub no garantiza la hora de las tareas programadas: pueden llegar con retraso o saltarse alguna, sobre todo las primeras horas después de crearlas. Por eso se lanza cada 30 minutos.
+- GitHub no garantiza la hora de las tareas programadas: pueden llegar con retraso o saltarse alguna, sobre todo las primeras horas después de crearlas. Por eso se lanza cada 20 minutos.
 - La programación se registra al llegar el workflow a la rama por defecto. Si no hay ninguna ejecución con evento `schedule` tras un par de horas, edita la línea `cron` (aunque sea el minuto) y fusiona el cambio en la rama por defecto para que GitHub la vuelva a registrar.
 - Comprueba que el workflow no esté desactivado (*Actions → Vigilancia web → ⋯ → Enable workflow*). GitHub desactiva las programadas tras 60 días sin actividad en el repositorio.
 - Si necesitas puntualidad estricta, lanza el workflow desde fuera con la API (`POST /repos/diegoidital/pruebas/actions/workflows/vigilancia-web.yml/dispatches` con `{"ref":"claude/adapt-html-elementor-Cai0E"}`), por ejemplo desde cron-job.org con un token de GitHub con permiso *Actions: write*.
