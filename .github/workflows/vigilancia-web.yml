@@ -2,7 +2,7 @@ name: Vigilancia web
 
 on:
   schedule:
-    - cron: "7,27,47 * * * *" # cada 20 min (minutos 7, 27 y 47, UTC); GitHub retrasa o salta a veces las programadas
+    - cron: "4,24,44 * * * *" # cada 20 min (minutos 4, 24 y 44, UTC); GitHub retrasa o salta a veces las programadas
   workflow_dispatch: # permite lanzarlo a mano desde la pestaña Actions
     inputs:
       email_prueba:
