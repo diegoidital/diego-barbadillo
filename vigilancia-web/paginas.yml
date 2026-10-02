@@ -1,0 +1,12 @@
+# Páginas a vigilar.
+# - nombre:   identificador corto (sin espacios); se usa para el fichero de la instantánea.
+# - url:      dirección pública de la página.
+# - selector: (opcional) selector CSS de la zona a vigilar. Si se omite, se vigila todo el <body>.
+#             Recomendado: así se evitan avisos falsos por banners, fechas, contadores, etc.
+# - ignorar:  (opcional) lista de expresiones regulares; las líneas que coincidan se descartan.
+
+paginas:
+  - nombre: ejemplo
+    url: https://example.com/
+    selector: body
+    ignorar: []
