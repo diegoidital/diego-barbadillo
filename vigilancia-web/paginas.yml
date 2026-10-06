@@ -4,6 +4,8 @@
 # - selector: (opcional) selector CSS de la zona a vigilar. Si se omite, se vigila todo el <body>.
 #             Recomendado: así se evitan avisos falsos por banners, fechas, contadores, etc.
 # - enlaces:  (opcional, true/false) vigilar también la dirección de los enlaces, no solo su texto.
+# - pdfs:     (opcional, true/false) descargar los PDF enlazados en la zona vigilada: avisa si
+#             cambian (aunque el enlace siga igual) y los adjunta al email.
 # - ignorar:  (opcional) lista de expresiones regulares; las líneas que coincidan se descartan.
 
 paginas:
@@ -14,3 +16,4 @@ paginas:
     url: https://sede.valencia.es/sede/registro/procedimiento/PA.BO.10?lang=1
     selector: "#descProc a"
     enlaces: true
+    pdfs: true

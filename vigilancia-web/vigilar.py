@@ -5,7 +5,10 @@ Para cada página de paginas.yml:
   2. Extrae el texto de la zona indicada (selector CSS) y lo normaliza.
   3. Compara su hash con el de la última instantánea guardada en snapshots/.
   4. Si ha cambiado, guarda la nueva instantánea y añade la página al aviso.
-Al final envía un único email con todos los cambios (con el diff de texto).
+  5. Con `pdfs: true`, descarga además los PDF enlazados y compara su hash, de
+     modo que detecta que sustituyan el PDF aunque el enlace no cambie.
+Al final envía un único email con todos los cambios (con el diff de texto y,
+adjuntos, los PDF nuevos o modificados).
 
 La primera vez que se vigila una página solo se guarda la instantánea, sin avisar.
 
@@ -16,6 +19,7 @@ Configuración por variables de entorno (secrets en GitHub):
 
 import difflib
 import hashlib
+import json
 import os
 import re
 import smtplib
@@ -36,6 +40,7 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36 vigilancia-web"
 )
 MAX_LINEAS_DIFF = 200
+MAX_ADJUNTOS = 15 * 1024 * 1024  # bytes; los PDF que no quepan se avisan con su enlace
 
 
 def extraer_texto(html, selector, ignorar, enlaces=False, url=""):
@@ -66,8 +71,73 @@ def extraer_texto(html, selector, ignorar, enlaces=False, url=""):
     return "\n".join(lineas) + "\n"
 
 
+def urls_enlaces(html, selector, url):
+    """Direcciones absolutas (sin repetir) de los enlaces de la zona vigilada."""
+    soup = BeautifulSoup(html, "html.parser")
+    nodos = soup.select(selector) if selector else [soup.body or soup]
+    urls = []
+    for nodo in nodos:
+        for a in [nodo] if nodo.name == "a" else nodo.select("a[href]"):
+            if a.get("href"):
+                absoluta = urljoin(url, a["href"])
+                if absoluta not in urls:
+                    urls.append(absoluta)
+    return urls
+
+
+def descargar_pdf(url):
+    """Devuelve (nombre de fichero, contenido) si la URL es un PDF, o None si no lo es."""
+    resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=60)
+    resp.raise_for_status()
+    if not resp.content.startswith(b"%PDF"):
+        return None
+    m = re.search(r'filename\*?=(?:UTF-8\'\')?"?([^";]+)"?', resp.headers.get("Content-Disposition", ""))
+    nombre = m.group(1).strip() if m else url.rstrip("/").rsplit("/", 1)[-1]
+    if not nombre.lower().endswith(".pdf"):
+        nombre += ".pdf"
+    return nombre, resp.content
+
+
+def comprobar_pdfs(nombre, urls):
+    """Compara los PDF enlazados con sus hashes guardados.
+
+    Devuelve la lista de PDF nuevos o modificados como (fichero, contenido, motivo).
+    La primera vez solo guarda los hashes, sin avisar.
+    """
+    fichero = SNAPSHOTS / f"{nombre}.pdfs.json"
+    anteriores = json.loads(fichero.read_text(encoding="utf-8")) if fichero.exists() else None
+    actuales, cambiados = {}, []
+    for url in urls:
+        try:
+            pdf = descargar_pdf(url)
+        except Exception as e:  # si falla, se conserva el hash anterior y se reintenta
+            print(f"[{nombre}] ERROR al descargar {url}: {e}", file=sys.stderr)
+            if anteriores and url in anteriores:
+                actuales[url] = anteriores[url]
+            continue
+        if pdf is None:
+            continue
+        fichero_pdf, contenido = pdf
+        actuales[url] = {"fichero": fichero_pdf, "sha256": hashlib.sha256(contenido).hexdigest()}
+        if anteriores is None:
+            continue
+        previo = anteriores.get(url)
+        if previo is None:
+            cambiados.append((fichero_pdf, contenido, "PDF nuevo"))
+        elif previo["sha256"] != actuales[url]["sha256"]:
+            cambiados.append((fichero_pdf, contenido, "PDF modificado"))
+
+    if actuales != anteriores:
+        fichero.write_text(json.dumps(actuales, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if anteriores is None:
+        print(f"[{nombre}] primeros hashes de PDF guardados (no se avisa)")
+    for fichero_pdf, _, motivo in cambiados:
+        print(f"[{nombre}] {motivo}: {fichero_pdf}")
+    return cambiados
+
+
 def comprobar(pagina):
-    """Devuelve el diff si la página ha cambiado, o None si no."""
+    """Devuelve (diff, PDF cambiados) si la página ha cambiado, o None si no."""
     nombre = pagina["nombre"]
     resp = requests.get(
         pagina["url"], headers={"User-Agent": USER_AGENT}, timeout=30
@@ -80,10 +150,15 @@ def comprobar(pagina):
         enlaces=pagina.get("enlaces", False),
         url=resp.url,
     )
+    pdfs = []
+    if pagina.get("pdfs"):
+        pdfs = comprobar_pdfs(nombre, urls_enlaces(resp.text, pagina.get("selector"), resp.url))
 
     fichero = SNAPSHOTS / f"{nombre}.txt"
     anterior = fichero.read_text(encoding="utf-8") if fichero.exists() else None
     if anterior is not None and _hash(anterior) == _hash(texto):
+        if pdfs:
+            return "(el texto y los enlaces de la página no han cambiado)", pdfs
         print(f"[{nombre}] sin cambios")
         return None
 
@@ -104,14 +179,14 @@ def comprobar(pagina):
     )
     if len(diff) > MAX_LINEAS_DIFF:
         diff = diff[:MAX_LINEAS_DIFF] + [f"... ({len(diff) - MAX_LINEAS_DIFF} líneas más)"]
-    return "\n".join(diff)
+    return "\n".join(diff), pdfs
 
 
 def _hash(texto):
     return hashlib.sha256(texto.encode("utf-8")).hexdigest()
 
 
-def enviar_email(asunto, cuerpo):
+def enviar_email(asunto, cuerpo, adjuntos=()):
     host = os.environ.get("SMTP_HOST")
     destinatarios = os.environ.get("MAIL_TO")
     if not host or not destinatarios:
@@ -126,6 +201,8 @@ def enviar_email(asunto, cuerpo):
     msg["From"] = os.environ.get("MAIL_FROM") or usuario
     msg["To"] = destinatarios
     msg.set_content(cuerpo)
+    for fichero_pdf, contenido in adjuntos:
+        msg.add_attachment(contenido, maintype="application", subtype="pdf", filename=fichero_pdf)
 
     if puerto == 465:
         servidor = smtplib.SMTP_SSL(host, puerto, timeout=30)
@@ -163,19 +240,27 @@ def main():
     cambios, errores = [], []
     for pagina in paginas:
         try:
-            diff = comprobar(pagina)
-            if diff is not None:
-                cambios.append((pagina, diff))
+            cambio = comprobar(pagina)
+            if cambio is not None:
+                cambios.append((pagina, *cambio))
         except Exception as e:  # una página caída no debe parar las demás
             print(f"[{pagina.get('nombre')}] ERROR: {e}", file=sys.stderr)
             errores.append(pagina.get("nombre"))
 
     if cambios:
-        nombres = ", ".join(p["nombre"] for p, _ in cambios)
-        cuerpo = "\n".join(
-            f"=== {p['nombre']} ===\n{p['url']}\n\n{diff}\n" for p, diff in cambios
-        )
-        if not enviar_email(f"[Vigilancia web] Cambios en: {nombres}", cuerpo):
+        nombres = ", ".join(p["nombre"] for p, _, _ in cambios)
+        partes, adjuntos, tamano = [], [], 0
+        for p, diff, pdfs in cambios:
+            partes.append(f"=== {p['nombre']} ===\n{p['url']}\n\n{diff}\n")
+            for fichero_pdf, contenido, motivo in pdfs:
+                if tamano + len(contenido) <= MAX_ADJUNTOS:
+                    adjuntos.append((fichero_pdf, contenido))
+                    tamano += len(contenido)
+                    partes.append(f"{motivo}: {fichero_pdf} (adjunto)")
+                else:
+                    partes.append(f"{motivo}: {fichero_pdf} (demasiado grande para adjuntar; descárgalo de la página)")
+            partes.append("")
+        if not enviar_email(f"[Vigilancia web] Cambios en: {nombres}", "\n".join(partes), adjuntos):
             return 1
 
     if os.environ.get("EMAIL_PRUEBA") == "true":
