@@ -15,11 +15,12 @@ permissions:
 
 concurrency:
   group: vigilancia-web
-  cancel-in-progress: false
+  cancel-in-progress: true # una ejecución nueva sustituye a la anterior si sigue en marcha o esperando
 
 jobs:
   vigilar:
     runs-on: ubuntu-latest
+    timeout-minutes: 5 # normalmente tarda ~15 s; si se atasca, se corta
     steps:
       - uses: actions/checkout@v4
 

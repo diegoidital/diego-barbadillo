@@ -1,6 +1,6 @@
 # Vigilancia web
 
-Comprueba cada 20 minutos las páginas de `paginas.yml` y envía un email con los cambios.
+Comprueba cada 10 minutos las páginas de `paginas.yml` y envía un email con los cambios.
 
 ## Puesta en marcha
 
@@ -35,7 +35,7 @@ Comprueba cada 20 minutos las páginas de `paginas.yml` y envía un email con lo
 
 ## Lanzarlo desde fuera (cron-job.org)
 
-La programación de GitHub es «lo mejor que puede». Para que se lance seguro cada 20 minutos:
+La programación de GitHub es «lo mejor que puede». Para que se lance seguro cada 10 minutos:
 
 1. **Token de GitHub:** *GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*.
    - *Repository access:* solo `diegoidital/pruebas`.
@@ -43,7 +43,7 @@ La programación de GitHub es «lo mejor que puede». Para que se lance seguro c
    - Copia el token (`github_pat_...`).
 2. **cron-job.org:** crea una cuenta gratuita y un *Cronjob* nuevo:
    - *URL:* `https://api.github.com/repos/diegoidital/pruebas/actions/workflows/vigilancia-web.yml/dispatches`
-   - *Schedule:* cada 20 minutos.
+   - *Schedule:* cada 10 minutos.
    - *Advanced → Request method:* `POST`
    - *Headers:*
      - `Authorization: Bearer github_pat_...`
