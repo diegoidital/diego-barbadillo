@@ -21,6 +21,7 @@ Comprueba cada 10 minutos las páginas de `paginas.yml` y envía un email con lo
 
 ## Notas
 
+- Con `pdfs: true` en una página se descargan también los PDF enlazados en la zona vigilada. Si aparece un PDF nuevo o sustituyen uno existente (aunque el enlace no cambie), se avisa y el PDF va adjunto al email (hasta 15 MB en total). Sus hashes se guardan en `snapshots/<nombre>.pdfs.json`; la primera vez solo se guardan, sin avisar.
 - Las instantáneas de texto se guardan en `snapshots/`, así que el historial de cambios queda en el repositorio.
 - Si aparecen avisos falsos (fechas, contadores…), afina el `selector` o añade expresiones en `ignorar`.
 - Si una página se genera con JavaScript, `requests` no verá el contenido; habría que usar Playwright.
