@@ -2,5 +2,9 @@
   "https://sede.valencia.es/sede/descarga/doc/DOCUMENT_1_20250009017026": {
     "fichero": "PA.BO.10_CALENDARIOMATRIMONIOSCIVILES_2026.pdf",
     "sha256": "e61a23253870c1bb36e80b9f85d1a6553a82e32330f6f351999cdbac3859d417"
+  },
+  "https://sede.valencia.es/sede/descarga/doc/DOCUMENT_1_20260010795050": {
+    "fichero": "PA.BO.100_CALENDARIOPAGINAWEBAÑO2027CS.pdf",
+    "sha256": "8b7418f36bf12f8c17cc2e1150d8737b8d5ca702bd1e549bc8ab9cb680bf4d0d"
   }
 }
