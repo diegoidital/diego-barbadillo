@@ -1,6 +1,6 @@
 # Vigilancia web
 
-Comprueba cada 20 minutos las páginas de `paginas.yml` y envía un email con los cambios.
+Comprueba cada 10 minutos las páginas de `paginas.yml` y envía un email con los cambios.
 
 ## Puesta en marcha
 
@@ -16,7 +16,7 @@ Comprueba cada 20 minutos las páginas de `paginas.yml` y envía un email con lo
    | `MAIL_FROM` | (opcional) remitente; por defecto `SMTP_USER` |
    | `MAIL_TO`   | `soporte@idital.com` (varios separados por comas) |
 
-3. **Rama por defecto:** GitHub solo ejecuta las tareas programadas desde la rama por defecto, que debe ser `main` (*Settings → General → Default branch*).
+3. **Rama:** cron-job.org lanza el workflow en `main` (`{"ref":"main"}`), así que los cambios deben estar fusionados en `main`.
 4. **Prueba:** *Actions → Vigilancia web → Run workflow*, marcando **Enviar email de prueba** para comprobar que el correo llega. La primera ejecución de una página nueva solo guarda la instantánea; a partir de ahí se avisa por email de cada cambio.
 
 ## Notas
@@ -24,18 +24,18 @@ Comprueba cada 20 minutos las páginas de `paginas.yml` y envía un email con lo
 - Las instantáneas de texto se guardan en `snapshots/`, así que el historial de cambios queda en el repositorio.
 - Si aparecen avisos falsos (fechas, contadores…), afina el `selector` o añade expresiones en `ignorar`.
 - Si una página se genera con JavaScript, `requests` no verá el contenido; habría que usar Playwright.
-- Para cambiar la frecuencia, edita el `cron` en `.github/workflows/vigilancia-web.yml` (hora UTC).
+- Para cambiar la frecuencia, cambia el *Schedule* del cronjob en cron-job.org.
 
-## Si no arranca solo
+## Si deja de lanzarse
 
-- GitHub no garantiza la hora de las tareas programadas: pueden llegar con retraso o saltarse alguna, sobre todo las primeras horas después de crearlas. Por eso se lanza cada 20 minutos.
-- La programación se registra al llegar el workflow a la rama por defecto. Si no hay ninguna ejecución con evento `schedule` tras un par de horas, edita la línea `cron` (aunque sea el minuto) y fusiona el cambio en la rama por defecto para que GitHub la vuelva a registrar.
-- Comprueba que el workflow no esté desactivado (*Actions → Vigilancia web → ⋯ → Enable workflow*). GitHub desactiva las programadas tras 60 días sin actividad en el repositorio.
-- La rama por defecto debe llamarse `main`: con nombres raros (p. ej. `claude/...`) la programación puede no registrarse nunca.
+- El workflow no tiene programación propia en GitHub (la de GitHub se retrasaba o se saltaba ejecuciones): solo lo lanza cron-job.org.
+- **El token caduca el 4/11/2026.** Si la vigilancia sigue haciendo falta, genera uno nuevo antes y cámbialo en la cabecera `Authorization` del cronjob. Con el token caducado GitHub responde `401` y no se ejecuta nada, sin ningún aviso por email.
+- En cron-job.org, el historial del cronjob debe mostrar `204 No Content`. Cualquier otra respuesta (`401`, `404`…) significa que no se está lanzando.
+- Si una ejecución se queda esperando máquina en GitHub, la siguiente la sustituye (`cancel-in-progress`), y ninguna puede durar más de 5 minutos. Esas cancelaciones sueltas son normales.
 
 ## Lanzarlo desde fuera (cron-job.org)
 
-La programación de GitHub es «lo mejor que puede». Para que se lance seguro cada 20 minutos:
+La programación propia de GitHub no es fiable, así que el workflow lo lanza cron-job.org cada 10 minutos:
 
 1. **Token de GitHub:** *GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*.
    - *Repository access:* solo `diegoidital/pruebas`.
@@ -43,7 +43,7 @@ La programación de GitHub es «lo mejor que puede». Para que se lance seguro c
    - Copia el token (`github_pat_...`).
 2. **cron-job.org:** crea una cuenta gratuita y un *Cronjob* nuevo:
    - *URL:* `https://api.github.com/repos/diegoidital/pruebas/actions/workflows/vigilancia-web.yml/dispatches`
-   - *Schedule:* cada 20 minutos.
+   - *Schedule:* cada 10 minutos.
    - *Advanced → Request method:* `POST`
    - *Headers:*
      - `Authorization: Bearer github_pat_...`
@@ -61,5 +61,3 @@ curl -X POST \
   https://api.github.com/repos/diegoidital/pruebas/actions/workflows/vigilancia-web.yml/dispatches \
   -d '{"ref":"main"}'
 ```
-
-Con el lanzador externo activo puedes dejar el `schedule` del workflow como respaldo: el bloque `concurrency` evita que dos ejecuciones se pisen.
