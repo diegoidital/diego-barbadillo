@@ -45,6 +45,10 @@
 	align-items: start;
 }
 
+.zq-panel--plantilla {
+	display: block;
+}
+
 .zq-panel[hidden] {
 	display: none;
 }
@@ -95,7 +99,38 @@
 	border-radius: var(--zq-radius);
 }
 
+/* Listado [qobrix_listado] */
+.zq-listado {
+	display: grid;
+	grid-template-columns: repeat(var(--zq-cols, 3), minmax(0, 1fr));
+	gap: 30px;
+}
+
+.zq-card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	color: inherit;
+	text-decoration: none;
+}
+
+.zq-card img {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+	border-radius: 12px;
+}
+
+.zq-card__title {
+	font-size: 22px;
+}
+
 @media (max-width: 900px) {
+	.zq-listado {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
 	.zq-panel {
 		grid-template-columns: 1fr;
 		gap: 30px;
@@ -122,5 +157,246 @@
 
 	.zq-datos {
 		grid-template-columns: 1fr 1fr;
+	}
+}
+
+@media (max-width: 600px) {
+	.zq-listado {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ---------------------------------------------------------------------
+ * Página de promoción
+ * ------------------------------------------------------------------ */
+
+/* Portada [qobrix_hero] */
+.zq-hero {
+	position: relative;
+	display: flex;
+	align-items: center;
+	background: #222 center / cover no-repeat;
+	color: #fff;
+}
+
+.zq-hero::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(90deg, rgba(0, 0, 0, .55), rgba(0, 0, 0, .1));
+}
+
+.zq-hero__inner {
+	position: relative;
+	width: 100%;
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 60px 20px;
+}
+
+.zq-hero__title {
+	margin: 0 0 8px;
+	color: inherit;
+	font-size: clamp(32px, 5vw, 56px);
+	font-weight: 500;
+}
+
+.zq-hero__ubicacion {
+	margin: 0 0 48px;
+	font-size: 16px;
+}
+
+.zq-hero__subtitulo {
+	margin: 0 0 12px;
+	font-size: 13px;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+}
+
+.zq-hero__boton {
+	display: inline-block;
+	padding: 10px 20px;
+	border-radius: 6px;
+	background: #fff;
+	color: #111;
+	font-size: 13px;
+	text-decoration: none;
+	text-transform: uppercase;
+}
+
+/* Fichas [qobrix_datos] */
+.zq-datos-grid {
+	display: grid;
+	grid-template-columns: repeat(var(--zq-cols, 4), minmax(0, 1fr));
+	gap: 14px;
+}
+
+.zq-datos-grid--tarjetas .zq-dato-card {
+	padding: 14px 10px;
+	border: 1px solid #111;
+	border-radius: 8px;
+	text-align: center;
+}
+
+.zq-dato-card__label {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	text-transform: uppercase;
+}
+
+.zq-datos-grid--lista .zq-dato-card__label {
+	justify-content: flex-start;
+	text-transform: none;
+}
+
+.zq-dato-card__value {
+	margin-top: 6px;
+	font-weight: 600;
+	text-transform: uppercase;
+}
+
+.zq-datos-grid--lista .zq-dato-card__value {
+	padding-left: 28px;
+	text-transform: none;
+}
+
+/* Tabla [qobrix_propiedades] */
+.zq-propiedades-wrap {
+	overflow-x: auto;
+}
+
+.zq-propiedades {
+	width: 100%;
+	border-collapse: collapse;
+	text-align: center;
+}
+
+.zq-propiedades th {
+	padding: 10px 12px;
+	background: #000;
+	color: #fff;
+	font-weight: 400;
+}
+
+.zq-propiedades td {
+	padding: 12px;
+	border: 0;
+	font-weight: 600;
+}
+
+.zq-propiedades .zq-estado-sold td,
+.zq-propiedades .zq-estado-reserved td {
+	color: #bbb;
+	font-weight: 400;
+}
+
+.zq-propiedades .zq-estado-sold td:last-child span {
+	color: #e88;
+	text-decoration: line-through;
+}
+
+/* Galería y mapa */
+.zq-galeria {
+	display: grid;
+	grid-template-columns: repeat(var(--zq-cols, 2), minmax(0, 1fr));
+	gap: 30px;
+}
+
+.zq-galeria img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+	border-radius: 12px;
+}
+
+.zq-mapa {
+	overflow: hidden;
+	border-radius: 12px;
+}
+
+.zq-mapa iframe {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: 0;
+}
+
+@media (max-width: 767px) {
+	.zq-datos-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.zq-galeria {
+		grid-template-columns: 1fr;
+	}
+
+	/* Tabla en tarjetas en móvil */
+	.zq-propiedades thead {
+		display: none;
+	}
+
+	.zq-propiedades tr {
+		display: block;
+		margin-bottom: 12px;
+		border: 1px solid #ddd;
+		border-radius: 8px;
+	}
+
+	.zq-propiedades td {
+		display: flex;
+		justify-content: space-between;
+		padding: 6px 12px;
+		text-align: right;
+	}
+
+	.zq-propiedades td::before {
+		content: attr(data-label);
+		font-weight: 400;
+		text-align: left;
+	}
+}
+
+/* Plantilla de promoción */
+.zq-subtitulo {
+	margin: -10px 0 0;
+	font-size: 14px;
+}
+
+.zq-sombra-dcha img,
+.zq-sombra-izda img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: 14px;
+}
+
+.zq-sombra-dcha img {
+	box-shadow: 24px 24px 0 #000;
+}
+
+.zq-sombra-izda img {
+	box-shadow: -24px 24px 0 #000;
+}
+
+/* Títulos de campos manuales vacíos: no ocupan espacio. */
+.elementor-widget-heading .elementor-heading-title:empty {
+	display: none;
+}
+
+.zq-datos-grid--lista {
+	row-gap: 28px;
+}
+
+@media (max-width: 767px) {
+	.zq-sombra-dcha img {
+		box-shadow: 12px 12px 0 #000;
+	}
+
+	.zq-sombra-izda img {
+		box-shadow: -12px 12px 0 #000;
 	}
 }
