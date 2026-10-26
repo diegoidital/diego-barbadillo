@@ -1,0 +1,126 @@
+/* Promociones Qobrix – estilos base. El tema puede sobrescribirlos. */
+.zq-promos {
+	--zq-tab-bg: #f1f1f1;
+	--zq-tab-active: #d9d9d9;
+	--zq-text: #111;
+	--zq-radius: 12px;
+	color: var(--zq-text);
+}
+
+.zq-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 20px;
+}
+
+.zq-tab {
+	padding: 16px 34px;
+	border: 0;
+	border-radius: var(--zq-radius);
+	background: var(--zq-tab-bg);
+	color: inherit;
+	font: inherit;
+	font-size: 13px;
+	letter-spacing: .02em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: background-color .2s;
+}
+
+.zq-tab:hover,
+.zq-tab.is-active {
+	background: var(--zq-tab-active);
+}
+
+.zq-tab:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+.zq-panel {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
+	gap: 60px;
+	align-items: start;
+}
+
+.zq-panel[hidden] {
+	display: none;
+}
+
+.zq-title {
+	margin: 0 0 16px;
+	font-size: 32px;
+	font-weight: 400;
+}
+
+.zq-desc p {
+	margin: 0 0 1em;
+	line-height: 1.6;
+}
+
+.zq-datos {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 20px;
+	margin: 36px 0;
+}
+
+.zq-dato dt {
+	font-weight: 600;
+}
+
+.zq-dato dd {
+	margin: 4px 0 0;
+	font-size: 18px;
+}
+
+.zq-link {
+	color: inherit;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.zq-link:hover {
+	text-decoration: underline;
+}
+
+.zq-panel__img img {
+	display: block;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 880 / 1140;
+	object-fit: cover;
+	border-radius: var(--zq-radius);
+}
+
+@media (max-width: 900px) {
+	.zq-panel {
+		grid-template-columns: 1fr;
+		gap: 30px;
+	}
+
+	.zq-panel__img {
+		order: -1;
+	}
+
+	.zq-panel__img img {
+		aspect-ratio: 4 / 3;
+	}
+
+	.zq-tabs {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.zq-tab {
+		flex: 0 0 auto;
+		padding: 12px 20px;
+	}
+
+	.zq-datos {
+		grid-template-columns: 1fr 1fr;
+	}
+}
