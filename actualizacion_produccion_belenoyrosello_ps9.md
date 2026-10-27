@@ -272,3 +272,14 @@ Después, en Plesk, vuelve a poner la versión de PHP que tenía la web (**alt-p
 - Comprobar el primer pago real con Redsys (tarjeta o Bizum).
 - `robots.txt`: no rastrear las URLs de filtros (`?q=`, `?order=`).
 - Dentro de una semana, si todo va bien: borrar las copias de `/root`, las descargas y, si ya no se necesita, staging.
+
+## Limpieza final (27/10/2026)
+- Las copias de producción se descargaron en local y se comprobaron con md5 antes de borrarlas del servidor:
+  - `prod_pre9` y `beleno_shop_pre9`;
+  - `prod_pre1788` y `beleno_shop_pre1788`;
+  - `belenoyrosello_public_html_2026-10-22`;
+  - `modulos_prod_antes_ps9fix`.
+- Se borraron del servidor las copias de staging, las copias intermedias y los restos de trabajo de `/root` y `/tmp`, además de las descargas y copias del asistente de actualización (`admin…/autoupgrade/{download,backup,tmp}`).
+- Se eliminaron el subdominio `staging.belenoyrosello.com` y su base de datos `belenoy_staging`.
+- Disco libre: de 148 GB a 173 GB.
+- Siguen en el servidor: el vigilante (`/root/vigila_beleno.sh`, `/root/.vigila_beleno` y `/etc/cron.d/vigila_beleno`).
