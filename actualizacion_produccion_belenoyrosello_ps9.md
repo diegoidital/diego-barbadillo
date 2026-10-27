@@ -266,6 +266,7 @@ Después, en Plesk, vuelve a poner la versión de PHP que tenía la web (**alt-p
 - **"Pasar por caja" gris con productos del personalizador:** los productos base de megaproduct están inactivos y el JS del tema desactiva el botón. `custom.js` ahora lo reactiva también al cargar la página. Corregido en producción y staging.
 
 - **Buscador instantáneo (`jxsearch/ajaxsearch.php`):** en PS9 los productos de los listados ya traen `manufacturer_name` y no admiten sobrescribirlo, así que ahora solo se añade si no existe. Corregido en producción y staging.
+- **Búsqueda sin categoría (`jxsearch/classes/JXSearchSearch.php`):** si la URL no trae `search_categories`, ahora usa la categoría de Inicio en lugar de una categoría vacía, que daba error 500 en PS9 (lo destapó Bingbot). Corregido solo en producción, porque staging ya estaba eliminada.
 - **Vigilante:** actualizado para PS9; ahora lee también `var/logs/prod-AAAA-MM-DD.log` (errores críticos del back office).
 
 **Pendiente:**
