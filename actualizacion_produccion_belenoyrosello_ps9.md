@@ -265,8 +265,10 @@ Después, en Plesk, vuelve a poner la versión de PHP que tenía la web (**alt-p
 - **Buscador `jxsearch` y `ps_linklist`:** `Symfony\Component\Translation\TranslatorInterface` → `Symfony\Contracts\Translation\TranslatorInterface`. Corregido en producción y staging.
 - **"Pasar por caja" gris con productos del personalizador:** los productos base de megaproduct están inactivos y el JS del tema desactiva el botón. `custom.js` ahora lo reactiva también al cargar la página. Corregido en producción y staging.
 
+- **Buscador instantáneo (`jxsearch/ajaxsearch.php`):** en PS9 los productos de los listados ya traen `manufacturer_name` y no admiten sobrescribirlo, así que ahora solo se añade si no existe. Corregido en producción y staging.
+- **Vigilante:** actualizado para PS9; ahora lee también `var/logs/prod-AAAA-MM-DD.log` (errores críticos del back office).
+
 **Pendiente:**
 - Comprobar el primer pago real con Redsys (tarjeta o Bizum).
 - `robots.txt`: no rastrear las URLs de filtros (`?q=`, `?order=`).
-- Vigilante: leer también `var/logs/prod-AAAA-MM-DD.log` (errores del back office en PS9).
 - Dentro de una semana, si todo va bien: borrar las copias de `/root`, las descargas y, si ya no se necesita, staging.
