@@ -249,3 +249,24 @@ Después, en Plesk, vuelve a poner la versión de PHP que tenía la web (**alt-p
 | Núcleo | `themes/core.js` (refresco del carrito al borrar); `ExecKernelCacheClearer` usa el PHP de la web en vez del `php` 7.2 del sistema |
 | Tema | `custom.js`: el botón "Subiendo imagen…" ya no depende del dominio |
 | Base de datos | `PS_SSL_ENABLED_EVERYWHERE` = 1 (lo usan módulos antiguos); países sin DNI obligatorio (ya hecho en producción el 26/10); 10 widgets de smartblog desactivados; módulo `welcome` retirado |
+
+---
+
+## Resultado de la intervención en producción (27/10/2026)
+
+- **Mantenimiento:** de 7:54 a ~9:05. Copia previa: `/root/prod_pre9_2026-10-27_0754.tgz` y `/root/beleno_shop_pre9_2026-10-27_0754.sql.gz` (391 tablas).
+- **Versiones:** 1.7.8.11 → 8.2.8 → **9.1.5**; la web pasa a **PHP 8.3.36 (FastCGI de Plesk)**.
+
+**Incidencias del día y cómo se resolvieron:**
+- **Salto a 8.2.8:** se paró en `UpdateDatabase` por el índice de clases antiguo. Se borró `cache/class_index.php` y se reanudó desde `UpdateDatabase`, como en staging.
+- **`cp` del servidor:** tiene el alias `-i` y pregunta antes de sobrescribir. Hay que usar `\cp`.
+- **netreviews:** producción tenía la 10.4.8 y staging la 10.4.7, así que no se copió desde staging. Se le aplicaron las correcciones (json, ajaxDie, implode y `$definition`) directamente en producción.
+- **gamification:** staging tenía la 2.5.1 y producción la 2.3.2. Es un módulo sin uso y se retiró a `/root/modulos_retirados_prod/`, igual que `welcome`.
+- **Buscador `jxsearch` y `ps_linklist`:** `Symfony\Component\Translation\TranslatorInterface` → `Symfony\Contracts\Translation\TranslatorInterface`. Corregido en producción y staging.
+- **"Pasar por caja" gris con productos del personalizador:** los productos base de megaproduct están inactivos y el JS del tema desactiva el botón. `custom.js` ahora lo reactiva también al cargar la página. Corregido en producción y staging.
+
+**Pendiente:**
+- Comprobar el primer pago real con Redsys (tarjeta o Bizum).
+- `robots.txt`: no rastrear las URLs de filtros (`?q=`, `?order=`).
+- Vigilante: leer también `var/logs/prod-AAAA-MM-DD.log` (errores del back office en PS9).
+- Dentro de una semana, si todo va bien: borrar las copias de `/root`, las descargas y, si ya no se necesita, staging.
