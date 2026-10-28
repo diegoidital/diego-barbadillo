@@ -36,7 +36,8 @@ function zq_auth_headers() {
 		'X-Api-Key'  => $o['api_key'],
 	);
 	if ( ! empty( $o['locale'] ) ) {
-		$headers['X-Locale'] = $o['locale'];
+		$headers['X-Locale']        = $o['locale'];
+		$headers['Accept-Language'] = $o['locale'];
 	}
 	return $headers;
 }
@@ -98,7 +99,6 @@ function zq_sync( $force = false ) {
 
 	$seen         = array();
 	$updated      = 0;
-	$gallery_note = '';
 	$fields  = array();
 
 	foreach ( $raw as $row ) {
@@ -111,9 +111,8 @@ function zq_sync( $force = false ) {
 		$post_id  = zq_find_post_by_qobrix_id( $qid );
 
 		foreach ( $row as $k => $v ) {
-			if ( is_scalar( $v ) || null === $v ) {
-				$fields[ $k ] = isset( $fields[ $k ] ) && '' !== $fields[ $k ] ? $fields[ $k ] : mb_substr( wp_strip_all_tags( (string) $v ), 0, 80 );
-			}
+			$txt = ( is_scalar( $v ) || null === $v ) ? wp_strip_all_tags( (string) $v ) : wp_json_encode( $v, JSON_UNESCAPED_UNICODE );
+			$fields[ $k ] = isset( $fields[ $k ] ) && '' !== $fields[ $k ] && '[]' !== $fields[ $k ] ? $fields[ $k ] : mb_substr( $txt, 0, 160 );
 		}
 
 		if ( $post_id && get_post_meta( $post_id, '_zq_hidden', true ) ) {
@@ -157,9 +156,8 @@ function zq_sync( $force = false ) {
 		update_post_meta( $post_id, '_qobrix_id', $qid );
 		update_post_meta( $post_id, '_qobrix_modified', $modified );
 
-		zq_sync_image( $post_id, $qid, $name );
-		$note         = zq_sync_gallery( $post_id, $qid, $name );
-		$gallery_note = $note ? $note : $gallery_note;
+		// Las fotos se descargan después, por tandas (ver zq_sync_media).
+		update_post_meta( $post_id, '_zq_media_pending', $force ? 'force' : 1 );
 
 		$seen[] = $post_id;
 		$updated++;
@@ -180,6 +178,7 @@ function zq_sync( $force = false ) {
 	}
 
 	$units = zq_sync_units( $seen );
+	$media = zq_sync_media( 20 );
 
 	ksort( $fields );
 	update_option( ZQ_STATUS, array(
@@ -190,10 +189,70 @@ function zq_sync( $force = false ) {
 		'hidden'  => count( $orphans ),
 		'fields'  => $fields,
 		'units'   => $units,
-		'gallery' => $gallery_note,
+		'gallery' => $media['note'],
+		'pending' => $media['pending'],
 	), false );
 
 	return true;
+}
+
+/**
+ * Descarga las fotos pendientes (destacada + galería) durante como mucho $seconds segundos.
+ * Lo que no da tiempo queda pendiente y se programa una continuación en segundo plano,
+ * para no superar el tiempo máximo de una petición del servidor.
+ */
+function zq_sync_media( $seconds = 20 ) {
+	$GLOBALS['zq_deadline'] = time() + $seconds;
+	$note    = '';
+	$pending = 0;
+
+	$ids = get_posts( array(
+		'post_type'      => ZQ_CPT,
+		'post_status'    => 'any',
+		'meta_key'       => '_zq_media_pending',
+		'fields'         => 'ids',
+		'posts_per_page' => -1,
+	) );
+	foreach ( $ids as $post_id ) {
+		if ( zq_out_of_time() ) {
+			$pending++;
+			continue;
+		}
+		$qid  = get_post_meta( $post_id, '_qobrix_id', true );
+		$name = get_the_title( $post_id );
+		$flag = get_post_meta( $post_id, '_zq_media_pending', true );
+
+		if ( 'gallery' !== $flag ) { // La destacada solo una vez por cambio.
+			zq_sync_image( $post_id, $qid, $name );
+			update_post_meta( $post_id, '_zq_media_pending', 'gallery' );
+		}
+		$r = zq_sync_gallery( $post_id, $qid, $name );
+		if ( 'partial' === $r ) {
+			$pending++;
+			continue;
+		}
+		$note = $r ? $r : $note;
+		delete_post_meta( $post_id, '_zq_media_pending' );
+	}
+
+	if ( $pending && ! wp_next_scheduled( 'zq_media_event' ) ) {
+		wp_schedule_single_event( time() + 60, 'zq_media_event' );
+	}
+	return array( 'note' => $note, 'pending' => $pending );
+}
+
+add_action( 'zq_media_event', function () {
+	$r      = zq_sync_media( 25 );
+	$status = (array) get_option( ZQ_STATUS, array() );
+	$status['pending'] = $r['pending'];
+	if ( $r['note'] ) {
+		$status['gallery'] = $r['note'];
+	}
+	update_option( ZQ_STATUS, $status, false );
+} );
+
+function zq_out_of_time() {
+	return isset( $GLOBALS['zq_deadline'] ) && time() >= $GLOBALS['zq_deadline'];
 }
 
 /** Primer campo no vacío de una lista separada por comas. */
@@ -333,6 +392,11 @@ function zq_sync_gallery( $post_id, $qobrix_id, $name ) {
 	foreach ( $items as $i => $m ) {
 		$mid = (string) $m['id'];
 		$att = isset( $known[ $mid ] ) && get_post( $known[ $mid ] ) ? (int) $known[ $mid ] : 0;
+		if ( ! $att && zq_out_of_time() ) {
+			// Sin tiempo: guardar lo hecho y seguir en la próxima tanda.
+			update_post_meta( $post_id, '_zq_galeria_map', $map + $known );
+			return 'partial';
+		}
 		foreach ( $att ? array() : zq_media_candidates( $m ) as $url ) {
 			$att = zq_sideload( $url, $post_id, sprintf( '%s %d', $name, $i + 1 ), zq_is_api_url( $url ) );
 			if ( ! $att && 0 === $i ) {

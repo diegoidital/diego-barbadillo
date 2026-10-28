@@ -74,6 +74,9 @@ function zq_settings_page() {
 			<?php elseif ( isset( $status['units']['total'] ) ) : ?>
 				<p>Inmuebles vinculados a proyectos: <?php echo (int) $status['units']['total']; ?>.</p>
 			<?php endif; ?>
+			<?php if ( ! empty( $status['pending'] ) ) : ?>
+				<p><strong>Fotos:</strong> descargando en segundo plano (<?php echo (int) $status['pending']; ?> promociones pendientes). Se completan solas en unos minutos; recarga esta página para ver el avance.</p>
+			<?php endif; ?>
 			<?php if ( ! empty( $status['gallery'] ) ) : ?>
 				<p><strong>Galería:</strong> <?php echo esc_html( $status['gallery'] ); ?></p>
 			<?php endif; ?>

@@ -172,6 +172,7 @@ add_shortcode( 'zorom_promociones', function ( $atts ) {
 		'orden'         => 'menu',
 		'plantilla'     => '',
 		'campo_pestana' => 'titulo',
+		'fondo'         => 'si',
 		'texto_enlace'  => 'Ver promoción',
 		'etiq_precio'   => 'Precio desde',
 		'etiq_unidades' => 'Unidades',
@@ -191,7 +192,7 @@ add_shortcode( 'zorom_promociones', function ( $atts ) {
 	$uid = 'zq' . $instance;
 	ob_start();
 	?>
-	<div class="zq-promos" data-zq-tabs>
+	<div class="zq-promos<?php echo 'no' === $a['fondo'] ? ' zq-promos--sin-fondo' : ''; ?>" data-zq-tabs>
 		<div class="zq-tabs" role="tablist">
 			<?php foreach ( $projects as $i => $p ) : ?>
 				<button type="button" role="tab" class="zq-tab<?php echo 0 === $i ? ' is-active' : ''; ?>"
