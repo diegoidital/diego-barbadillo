@@ -247,9 +247,37 @@ function zq_image_id( $post_id, $campo = 'destacada' ) {
 	if ( preg_match( '/^galeria:?(\d+)?$/', $campo, $m ) ) {
 		$gal = array_values( (array) get_post_meta( $post_id, '_zq_galeria', true ) );
 		$i   = isset( $m[1] ) ? max( 1, (int) $m[1] ) - 1 : 0;
-		return isset( $gal[ $i ] ) ? (int) $gal[ $i ] : 0;
+		$id  = isset( $gal[ $i ] ) ? (int) $gal[ $i ] : 0;
+	} else {
+		$id = (int) zq_get_manual( $post_id, sanitize_key( $campo ) );
 	}
-	return (int) zq_get_manual( $post_id, sanitize_key( $campo ) );
+	// Sin imagen propia: la destacada de la promoción.
+	return $id && wp_attachment_is_image( $id ) ? $id : (int) get_post_thumbnail_id( $post_id );
+}
+
+/** URL de la imagen por defecto (cuando la promoción no tiene ninguna). */
+function zq_placeholder_url() {
+	return plugin_dir_url( ZQ_FILE ) . 'assets/placeholder.jpg';
+}
+
+/** <img> de un hueco de imagen: la indicada, la destacada o la imagen por defecto. */
+function zq_image_html( $post_id, $campo = 'destacada', $size = 'large', array $attr = array() ) {
+	$id   = zq_image_id( $post_id, $campo );
+	$attr = $attr + array( 'alt' => get_the_title( $post_id ), 'loading' => 'lazy' );
+	if ( $id ) {
+		return wp_get_attachment_image( $id, $size, false, $attr );
+	}
+	$html = '<img src="' . esc_url( zq_placeholder_url() ) . '"';
+	foreach ( $attr as $k => $v ) {
+		$html .= ' ' . esc_attr( $k ) . '="' . esc_attr( $v ) . '"';
+	}
+	return $html . '>';
+}
+
+/** URL a tamaño completo del hueco de imagen (para fondos). */
+function zq_image_url( $post_id, $campo = 'destacada' ) {
+	$id = zq_image_id( $post_id, $campo );
+	return $id ? (string) wp_get_attachment_image_url( $id, 'full' ) : zq_placeholder_url();
 }
 
 /** Orígenes de imagen para desplegables. */

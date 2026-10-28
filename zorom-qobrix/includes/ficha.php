@@ -43,17 +43,15 @@ function zq_icon( $name ) {
 
 /** Primera imagen disponible de una lista de orígenes (destacada, zona_imagen, galeria:N…). */
 function zq_ficha_img( $post_id, array $sources, $size = 'large', $class = '' ) {
+	$thumb = (int) get_post_thumbnail_id( $post_id );
 	foreach ( $sources as $src ) {
 		$id = zq_image_id( $post_id, $src );
-		if ( $id ) {
-			return wp_get_attachment_image( $id, $size, false, array(
-				'class'   => trim( 'zq-f-img ' . $class ),
-				'alt'     => get_the_title( $post_id ),
-				'loading' => 'lazy',
-			) );
+		if ( $id && ( $id !== $thumb || 'destacada' === $src ) ) {
+			return zq_image_html( $post_id, $src, $size, array( 'class' => trim( 'zq-f-img ' . $class ) ) );
 		}
 	}
-	return '';
+	// Ninguna propia: destacada o imagen por defecto.
+	return zq_image_html( $post_id, 'destacada', $size, array( 'class' => trim( 'zq-f-img ' . $class ) ) );
 }
 
 function zq_ficha_h( $text, $class = 'zq-f-h' ) {
@@ -87,10 +85,10 @@ add_shortcode( 'qobrix_ficha', function ( $atts ) {
 
 /* 01. Portada ------------------------------------------------------------- */
 function zq_ficha_hero( $post_id, $a ) {
-	$img = (string) wp_get_attachment_image_url( zq_image_id( $post_id ), 'full' );
+	$img = zq_image_url( $post_id );
 	$ubi = zq_render_field( $post_id, 'ubicacion' );
 	$sub = zq_render_field( $post_id, 'subtitulo' );
-	return '<section class="zq-f-hero"' . ( $img ? ' style="background-image:url(' . esc_url( $img ) . ')"' : '' ) . '>'
+	return '<section class="zq-f-hero zq-bajo-menu"' . ( $img ? ' style="background-image:url(' . esc_url( $img ) . ')"' : '' ) . '>'
 		. '<div class="zq-f-canvas"><div class="zq-f-hero__txt">'
 		. '<h1 class="zq-f-hero__title">' . esc_html( get_the_title( $post_id ) ) . '</h1>'
 		. ( $ubi ? '<p class="zq-f-hero__ubi">' . $ubi . '</p>' : '' )
@@ -230,8 +228,14 @@ function zq_ficha_zona2( $post_id, $a ) {
 
 /* 08. Contacto ------------------------------------------------------------- */
 function zq_ficha_contacto( $post_id, $a ) {
-	$form = $a['formulario'] ? $a['formulario'] : zq_options()['form_shortcode'];
-	$form = $form ? do_shortcode( $form ) : '';
+	$form = '';
+	if ( $a['formulario'] ) {
+		$form = do_shortcode( $a['formulario'] );
+	} elseif ( zq_form_template_id() && class_exists( '\Elementor\Plugin' ) ) {
+		$form = \Elementor\Plugin::instance()->frontend->get_builder_content_for_display( zq_form_template_id(), true );
+	} elseif ( zq_options()['form_shortcode'] ) {
+		$form = do_shortcode( zq_options()['form_shortcode'] );
+	}
 	if ( ! $form ) {
 		$form = current_user_can( 'manage_options' )
 			? '<p class="zq-f-aviso">Falta el formulario: indica su shortcode en Qobrix → Ajustes («Formulario de contacto»).</p>'
@@ -242,3 +246,34 @@ function zq_ficha_contacto( $post_id, $a ) {
 		. '<div class="zq-f-form">' . $form . '</div>'
 		. '</div></section>';
 }
+
+/**
+ * Formulario de contacto guardado en Elementor (global o plantilla): el elegido en Ajustes
+ * o, si no hay ninguno, el que se llame «Form_contacto».
+ */
+function zq_form_template_id() {
+	$id = (int) zq_options()['form_tpl'];
+	if ( $id && 'publish' === get_post_status( $id ) ) {
+		return $id;
+	}
+	$found = get_posts( array(
+		'post_type'      => 'elementor_library',
+		'post_status'    => 'publish',
+		'title'          => 'Form_contacto',
+		'fields'         => 'ids',
+		'posts_per_page' => 1,
+	) );
+	return $found ? (int) $found[0] : 0;
+}
+
+/* Portada bajo el menú: margen negativo y menú por encima, transparente, en las promociones. */
+add_action( 'wp_enqueue_scripts', function () {
+	$h   = (int) zq_options()['menu_height'];
+	$css = ':root{--zq-menu-h:' . $h . 'px}';
+	if ( zq_options()['menu_transparente'] ) {
+		$css .= 'body.single-' . ZQ_CPT . ' .elementor-location-header,body.single-' . ZQ_CPT . ' header.site-header,body.single-' . ZQ_CPT . ' #masthead{position:relative;z-index:50;background:transparent!important}'
+			. 'body.single-' . ZQ_CPT . ' .elementor-location-header>.e-con,body.single-' . ZQ_CPT . ' .elementor-location-header>.elementor-section,body.single-' . ZQ_CPT . ' .elementor-location-header>.elementor-element{background:transparent!important;background-color:transparent!important}';
+	}
+	wp_add_inline_style( 'zq-ficha', $css );
+	wp_add_inline_style( 'zorom-qobrix', $css );
+}, 30 );

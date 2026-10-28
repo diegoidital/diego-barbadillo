@@ -57,14 +57,10 @@ add_shortcode( 'qobrix_imagen', function ( $atts ) {
 	), $atts, 'qobrix_imagen' );
 
 	$post_id = zq_resolve_project( $a['proyecto'] );
-	$thumb   = $post_id ? zq_image_id( $post_id, $a['campo'] ) : 0;
-	if ( ! $thumb ) {
+	if ( ! $post_id ) {
 		return '';
 	}
-	return wp_get_attachment_image( $thumb, $a['tamano'], false, array(
-		'class' => trim( 'zq-imagen ' . $a['clase'] ),
-		'alt'   => get_the_title( $post_id ),
-	) );
+	return zq_image_html( $post_id, $a['campo'], $a['tamano'], array( 'class' => trim( 'zq-imagen ' . $a['clase'] ) ) );
 } );
 
 add_shortcode( 'qobrix_enlace', function ( $atts ) {
@@ -251,10 +247,7 @@ function zq_default_panel( WP_Post $p, array $a, $first ) {
 	</div>
 	<div class="zq-panel__img">
 		<?php
-		echo get_the_post_thumbnail( $p, ZQ_IMAGE_SIZE, array(
-			'alt'     => get_the_title( $p ),
-			'loading' => $first ? 'eager' : 'lazy',
-		) );
+		echo zq_image_html( $p->ID, 'destacada', ZQ_IMAGE_SIZE, array( 'loading' => $first ? 'eager' : 'lazy' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
 		?>
 	</div>
 	<?php
@@ -290,7 +283,7 @@ add_shortcode( 'qobrix_listado', function ( $atts ) {
 		} else {
 			$precio = zq_render_field( $p->ID, 'precio' );
 			$out   .= '<a class="zq-card" href="' . esc_url( get_permalink( $p ) ) . '">'
-				. get_the_post_thumbnail( $p, ZQ_IMAGE_SIZE, array( 'alt' => get_the_title( $p ), 'loading' => 'lazy' ) )
+				. zq_image_html( $p->ID, 'destacada', ZQ_IMAGE_SIZE )
 				. '<span class="zq-card__title">' . esc_html( get_the_title( $p ) ) . '</span>'
 				. ( $precio ? '<span class="zq-card__price">Desde ' . $precio . '</span>' : '' )
 				. '<span class="zq-link">' . esc_html( $a['texto_enlace'] ) . ' <span aria-hidden="true">&rarr;</span></span>'
@@ -335,11 +328,11 @@ add_shortcode( 'qobrix_hero', function ( $atts ) {
 		return '';
 	}
 	wp_enqueue_style( 'zorom-qobrix' );
-	$img = (string) wp_get_attachment_image_url( zq_image_id( $post_id ), 'full' );
+	$img = zq_image_url( $post_id );
 	$ubi = zq_render_field( $post_id, 'ubicacion' );
 	$sub = zq_render_field( $post_id, 'subtitulo' );
 
-	return '<section class="zq-hero" style="min-height:' . esc_attr( $a['altura'] ) . ';' . ( $img ? 'background-image:url(' . esc_url( $img ) . ')' : '' ) . '">'
+	return '<section class="zq-hero zq-bajo-menu" style="min-height:' . esc_attr( $a['altura'] ) . ';' . ( $img ? 'background-image:url(' . esc_url( $img ) . ')' : '' ) . '">'
 		. '<div class="zq-hero__inner">'
 		. '<h1 class="zq-hero__title">' . esc_html( get_the_title( $post_id ) ) . '</h1>'
 		. ( $ubi ? '<p class="zq-hero__ubicacion">' . $ubi . '</p>' : '' )

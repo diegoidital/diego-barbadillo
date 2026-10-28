@@ -477,3 +477,12 @@ body:has(.zq-promos) {
 		box-shadow: -12px 12px 0 #000;
 	}
 }
+
+/* Portada antigua [qobrix_hero] bajo el menú */
+.zq-bajo-menu {
+	margin-top: calc(-1 * var(--zq-menu-h, 0px));
+}
+
+.zq-hero.zq-bajo-menu .zq-hero__inner {
+	padding-top: calc(60px + var(--zq-menu-h, 0px));
+}
