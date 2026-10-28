@@ -40,8 +40,8 @@
 
 .zq-panel {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
-	gap: 60px;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+	gap: clamp(40px, 8vw, 120px);
 	align-items: start;
 }
 
@@ -80,7 +80,8 @@
 	font-size: 18px;
 }
 
-.zq-link {
+.zq-link,
+.zq-promos .zq-link {
 	color: inherit;
 	font-weight: 500;
 	text-decoration: none;
@@ -90,11 +91,43 @@
 	text-decoration: underline;
 }
 
+.zq-panel__img {
+	position: relative;
+	z-index: 0;
+	padding-bottom: 48px;
+}
+
+/* Bloque negro detrás de la foto, hasta el borde derecho de la pantalla (diseño Figma). */
+.zq-panel__img::before {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	top: -14px;
+	bottom: 0;
+	left: 85px;
+	width: 100vw;
+	border-radius: 40px 0 0 40px;
+	background: var(--zq-bloque, #000);
+}
+
+.zq-promos--sin-fondo .zq-panel__img {
+	padding-bottom: 0;
+}
+
+.zq-promos--sin-fondo .zq-panel__img::before {
+	display: none;
+}
+
+/* El bloque negro sale del contenedor: evita la barra de desplazamiento horizontal. */
+body:has(.zq-promos) {
+	overflow-x: clip;
+}
+
 .zq-panel__img img {
 	display: block;
 	width: 100%;
 	height: auto;
-	aspect-ratio: 880 / 1140;
+	aspect-ratio: 7 / 10;
 	object-fit: cover;
 	border-radius: var(--zq-radius);
 }
@@ -142,6 +175,16 @@
 
 	.zq-panel__img img {
 		aspect-ratio: 4 / 3;
+	}
+
+	.zq-panel__img {
+		padding-bottom: 24px;
+	}
+
+	.zq-panel__img::before {
+		top: -10px;
+		left: 40px;
+		border-radius: 24px 0 0 24px;
 	}
 
 	.zq-tabs {
