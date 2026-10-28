@@ -30,6 +30,9 @@ function zq_sanitize( $in ) {
 	$out['slug']    = $out['slug'] ? $out['slug'] : 'promociones';
 	$out['single_tpl']  = absint( isset( $in['single_tpl'] ) ? $in['single_tpl'] : 0 );
 	$out['form_shortcode'] = isset( $in['form_shortcode'] ) ? sanitize_text_field( wp_unslash( $in['form_shortcode'] ) ) : '';
+	$out['form_tpl']       = absint( isset( $in['form_tpl'] ) ? $in['form_tpl'] : 0 );
+	$out['menu_height']    = min( 300, absint( isset( $in['menu_height'] ) ? $in['menu_height'] : 80 ) );
+	$out['menu_transparente'] = empty( $in['menu_transparente'] ) ? 0 : 1;
 	$out['load_fonts']     = empty( $in['load_fonts'] ) ? 0 : 1;
 	$out['gallery_max'] = min( 50, absint( isset( $in['gallery_max'] ) ? $in['gallery_max'] : 12 ) );
 	foreach ( array( 'field_desc', 'field_price', 'field_units', 'field_date', 'field_energy' ) as $k ) {
@@ -113,7 +116,18 @@ function zq_settings_page() {
 				<tr><th><label for="zq-slug">Base de la URL</label></th>
 					<td><code><?php echo esc_html( home_url( '/' ) ); ?></code><input id="zq-slug" class="regular-text code" type="text" name="<?php echo esc_attr( $name ); ?>[slug]" value="<?php echo esc_attr( $o['slug'] ); ?>"><code>/amiral/</code>
 						<p class="description">El final de cada URL se puede cambiar en la propia promoción y la sincronización no lo toca.</p></td></tr>
-				<tr><th><label for="zq-form">Formulario de contacto</label></th>
+				<tr><th><label for="zq-ftpl">Formulario (Elementor)</label></th>
+					<td><select id="zq-ftpl" name="<?php echo esc_attr( $name ); ?>[form_tpl]">
+						<option value="0">— Automático: el global «Form_contacto» —</option>
+						<?php foreach ( get_posts( array( 'post_type' => 'elementor_library', 'post_status' => 'publish', 'posts_per_page' => 200, 'orderby' => 'title', 'order' => 'ASC' ) ) as $t ) : ?>
+							<option value="<?php echo (int) $t->ID; ?>" <?php selected( (int) $o['form_tpl'], $t->ID ); ?>><?php echo esc_html( $t->post_title . ' (#' . $t->ID . ')' ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<p class="description">Global o plantilla de Elementor con el formulario de la sección «Contacta». Actual: <?php echo zq_form_template_id() ? esc_html( get_the_title( zq_form_template_id() ) ) : 'ninguno encontrado'; ?>.</p></td></tr>
+				<tr><th><label for="zq-menu">Menú sobre la portada</label></th>
+					<td><input id="zq-menu" class="small-text" type="number" min="0" max="300" name="<?php echo esc_attr( $name ); ?>[menu_height]" value="<?php echo (int) $o['menu_height']; ?>"> px de alto del menú (la portada sube esa medida para quedar debajo)<br>
+					<label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[menu_transparente]" value="1" <?php checked( $o['menu_transparente'] ); ?>> Fondo del menú transparente en las páginas de promoción</label></td></tr>
+				<tr><th><label for="zq-form">Formulario de contacto (shortcode)</label></th>
 					<td><input id="zq-form" class="regular-text code" type="text" name="<?php echo esc_attr( $name ); ?>[form_shortcode]" value="<?php echo esc_attr( $o['form_shortcode'] ); ?>" placeholder='[contact-form-7 id="123"]'>
 						<p class="description">Shortcode del formulario que se muestra en la sección «Contacta» de cada promoción (Contact Form 7, Elementor Pro…). Se le aplica el estilo del diseño.</p>
 						<details><summary>Formulario de Contact Form 7 con la maqueta del diseño (copiar en el formulario)</summary>

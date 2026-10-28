@@ -64,6 +64,7 @@ function zq_get_manual( $post_id, $key ) {
  */
 function zq_manual_examples() {
 	return apply_filters( 'zq_manual_examples', array(
+		'subtitulo'           => 'Viviendas de lujo en {ciudad}',
 		'zona_titulo'         => '{ciudad}, un paraíso natural',
 		'zona_subtitulo'      => 'Un entorno diseñado para elevar tu experiencia de vida al siguiente nivel.',
 		'zona_texto'          => "<p>{ciudad} se ha consolidado como uno de los enclaves más deseados de la Costa Blanca para quienes buscan una vivienda de calidad junto al Mediterráneo, con un paisaje que combina mar, montaña y una luz excepcional durante todo el año.</p>\n<p>Vivir en {ciudad} significa disfrutar de una ubicación estratégica: buenas conexiones con el aeropuerto de Alicante y con las principales ciudades de la provincia, y más de 300 días de sol al año para aprovechar la vivienda, sus exteriores y la piscina prácticamente todo el año.</p>\n<p>La zona cuenta con servicios de primer nivel: colegios internacionales, centros de salud, comercios, restaurantes y actividades deportivas a pocos minutos, pensados para quienes buscan un estilo de vida exclusivo sin renunciar a la comodidad.</p>",

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Zorom – Promociones Qobrix
  * Description: Crea una página por cada proyecto del CRM Qobrix (con plantilla de Elementor), sincroniza datos, inmuebles y fotos, y permite colocar cada campo en Elementor con shortcodes y etiquetas dinámicas.
- * Version:     2.5.0
+ * Version:     2.5.1
  * Author:      Idital
  * Text Domain: zorom-qobrix
  * Requires PHP: 7.4
@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ZQ_VERSION', '2.5.0' );
+define( 'ZQ_VERSION', '2.5.1' );
 define( 'ZQ_FILE', __FILE__ );
 define( 'ZQ_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ZQ_OPTION', 'zq_settings' );
@@ -52,6 +52,9 @@ function zq_defaults() {
 		'gallery_max'   => 12,
 		'single_tpl'    => 0,
 		'form_shortcode' => '',
+		'form_tpl'      => 0,
+		'menu_height'   => 80,
+		'menu_transparente' => 1,
 		'load_fonts'    => 1,
 	);
 }
@@ -95,6 +98,7 @@ add_action( 'init', function () {
 	if ( get_option( 'zq_version' ) !== ZQ_VERSION || get_option( 'zq_flush' ) ) {
 		flush_rewrite_rules( false );
 		update_option( 'zq_version', ZQ_VERSION );
+		zq_migrate_template();
 		delete_option( 'zq_flush' );
 		delete_option( 'zq_projects' ); // Datos de la versión 1.
 		if ( ! wp_next_scheduled( ZQ_CRON ) ) {
@@ -122,3 +126,18 @@ register_deactivation_hook( ZQ_FILE, function () {
 } );
 
 add_action( ZQ_CRON, 'zq_sync' );
+
+/**
+ * Si la plantilla asignada es la de ejemplo antigua (antes de la 2.5), crea la nueva calcada
+ * del Figma y la asigna. La antigua se conserva en Plantillas guardadas.
+ */
+function zq_migrate_template() {
+	if ( ! class_exists( '\Elementor\Plugin' ) || ! function_exists( 'zq_create_starter_template' ) ) {
+		return;
+	}
+	$tpl  = (int) zq_options()['single_tpl'];
+	$data = $tpl ? (string) get_post_meta( $tpl, '_elementor_data', true ) : '';
+	if ( $data && false !== strpos( $data, '[qobrix_hero' ) && false === strpos( $data, '[qobrix_ficha' ) ) {
+		zq_create_starter_template();
+	}
+}

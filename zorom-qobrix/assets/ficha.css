@@ -633,3 +633,74 @@ body:has(.zq-f) {
 	.zq-f .zq-propiedades .zq-estado-sold td { opacity: .45; }
 	.zq-f-card { width: 100%; }
 }
+
+/* Portada bajo el menú (margen negativo = alto del menú, ajustable en Qobrix → Ajustes) */
+.zq-bajo-menu {
+	margin-top: calc(-1 * var(--zq-menu-h, 0px));
+}
+
+/* Formulario de Elementor Pro (global «Form_contacto») con el estilo del diseño */
+.zq-f-form .elementor-form-fields-wrapper {
+	column-gap: 0;
+	row-gap: 63px;
+}
+
+.zq-f-form .elementor-field-group {
+	margin-bottom: 0 !important;
+}
+
+.zq-f-form .elementor-field-group:not(.elementor-field-type-submit) {
+	padding: 0 27px !important;
+}
+
+.zq-f-form .elementor-field-group .elementor-field,
+.zq-f-form .elementor-field-textual {
+	height: 73px;
+	min-height: 0;
+	padding: 0 10px !important;
+	border: 0 !important;
+	border-bottom: .5px solid #000 !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	color: #000;
+	font-family: var(--zq-geist);
+	font-size: 16px !important;
+	line-height: 1.4;
+}
+
+.zq-f-form textarea.elementor-field {
+	height: 111px;
+	padding-top: 79px !important;
+}
+
+.zq-f-form .elementor-field::placeholder {
+	color: var(--zq-gris);
+	opacity: 1;
+}
+
+.zq-f-form .elementor-field-type-submit {
+	justify-content: center;
+	margin-top: 0;
+}
+
+.zq-f-form .elementor-button[type="submit"] {
+	width: 295px !important;
+	height: 56px;
+	flex: 0 0 auto !important;
+	border: 1px solid #000 !important;
+	border-radius: 10px !important;
+	background: #000 !important;
+	color: #fff !important;
+	font-family: var(--zq-geist);
+	font-size: 14px !important;
+	font-weight: 500 !important;
+	letter-spacing: .42px;
+	text-transform: uppercase;
+}
+
+@media (max-width: 1099px) {
+	.zq-f-form .elementor-field-group:not(.elementor-field-type-submit) { padding: 0 !important; }
+	.zq-f-form .elementor-form-fields-wrapper { row-gap: 24px; }
+	.zq-f-form .elementor-button[type="submit"] { width: 100% !important; }
+}
