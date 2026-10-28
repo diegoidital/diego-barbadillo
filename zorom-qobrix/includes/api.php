@@ -321,14 +321,20 @@ function zq_sync_gallery( $post_id, $qobrix_id, $name ) {
 	} );
 	$items = array_slice( $items, 0, $max );
 
-	$map = array();
-	$ids = array();
+	$map  = array();
+	$ids  = array();
+	$tried = array();
 	foreach ( $items as $i => $m ) {
 		$mid = (string) $m['id'];
 		$att = isset( $known[ $mid ] ) && get_post( $known[ $mid ] ) ? (int) $known[ $mid ] : 0;
-		if ( ! $att ) {
-			$url = rtrim( $o['api_url'], '/' ) . '/api/v2/media/' . rawurlencode( $mid ) . '/large';
-			$att = zq_sideload( $url, $post_id, sprintf( '%s %d', $name, $i + 1 ), true );
+		foreach ( $att ? array() : zq_media_candidates( $m ) as $url ) {
+			$att = zq_sideload( $url, $post_id, sprintf( '%s %d', $name, $i + 1 ), zq_is_api_url( $url ) );
+			if ( ! $att && 0 === $i ) {
+				$tried[] = preg_replace( '#^https?://[^/]+#', '', $url ) . ' → ' . ( isset( $GLOBALS['zq_last_dl'] ) ? $GLOBALS['zq_last_dl'] : '?' );
+			}
+			if ( $att ) {
+				break;
+			}
 		}
 		if ( $att ) {
 			update_post_meta( $att, '_zq_project_id', $qobrix_id );
@@ -347,7 +353,40 @@ function zq_sync_gallery( $post_id, $qobrix_id, $name ) {
 	update_post_meta( $post_id, '_zq_galeria_map', $map );
 	update_post_meta( $post_id, '_zq_galeria', $ids );
 
-	return count( $items ) && ! $ids ? 'No se pudo descargar ninguna foto de la galería.' : '';
+	if ( count( $items ) && ! $ids ) {
+		// Diagnóstico para el panel: qué devuelve Qobrix para la primera foto y qué se intentó.
+		$sample = array();
+		foreach ( $items[0] as $k => $v ) {
+			$sample[] = $k . '=' . ( is_scalar( $v ) ? mb_substr( (string) $v, 0, 90 ) : wp_json_encode( $v ) );
+		}
+		return 'No se pudo descargar ninguna foto de la galería. Primera foto de Qobrix: ' . implode( ' · ', $sample ) . ' | Intentos: ' . implode( ' ; ', $tried );
+	}
+	return '';
+}
+
+/** URLs posibles de una foto, en orden: las que vengan en la respuesta y las rutas conocidas de la API. */
+function zq_media_candidates( array $m ) {
+	$base = rtrim( zq_options()['api_url'], '/' );
+	$out  = array();
+	foreach ( $m as $k => $v ) {
+		if ( ! is_string( $v ) ) {
+			continue;
+		}
+		if ( preg_match( '#^https?://#', $v ) ) {
+			$out[] = $v;
+		} elseif ( preg_match( '#^/[^\s]+\.(jpe?g|png|webp|gif)#i', $v ) || 0 === strpos( $v, '/api/' ) ) {
+			$out[] = $base . $v;
+		}
+	}
+	$id = rawurlencode( (string) $m['id'] );
+	foreach ( array( 'large', 'huge', 'medium', '' ) as $size ) {
+		$out[] = $base . '/api/v2/media/' . $id . ( $size ? '/' . $size : '' );
+	}
+	return array_values( array_unique( $out ) );
+}
+
+function zq_is_api_url( $url ) {
+	return wp_parse_url( $url, PHP_URL_HOST ) === wp_parse_url( zq_options()['api_url'], PHP_URL_HOST );
 }
 
 /**
@@ -363,9 +402,11 @@ function zq_sideload( $url, $post_id, $title, $auth = false ) {
 	if ( $auth ) {
 		$head = wp_remote_get( $url, array( 'headers' => zq_auth_headers(), 'redirection' => 0, 'timeout' => 30 ) );
 		if ( is_wp_error( $head ) ) {
+			$GLOBALS['zq_last_dl'] = $head->get_error_message();
 			return 0;
 		}
 		$location = wp_remote_retrieve_header( $head, 'location' );
+		$GLOBALS['zq_last_dl'] = 'HTTP ' . wp_remote_retrieve_response_code( $head ) . ' ' . wp_remote_retrieve_header( $head, 'content-type' );
 		if ( $location ) {
 			$url = $location;
 		} elseif ( 200 !== wp_remote_retrieve_response_code( $head ) ) {
@@ -380,6 +421,7 @@ function zq_sideload( $url, $post_id, $title, $auth = false ) {
 	if ( empty( $tmp ) ) {
 		$tmp = download_url( $url, 60 );
 		if ( is_wp_error( $tmp ) ) {
+			$GLOBALS['zq_last_dl'] = $tmp->get_error_message();
 			return 0;
 		}
 	}
@@ -387,6 +429,7 @@ function zq_sideload( $url, $post_id, $title, $auth = false ) {
 	$mime = wp_get_image_mime( $tmp );
 	$ext  = array( 'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif' );
 	if ( ! isset( $ext[ $mime ] ) ) {
+		$GLOBALS['zq_last_dl'] = ( isset( $GLOBALS['zq_last_dl'] ) ? $GLOBALS['zq_last_dl'] : '' ) . ' (no es imagen)';
 		wp_delete_file( $tmp );
 		return 0;
 	}
