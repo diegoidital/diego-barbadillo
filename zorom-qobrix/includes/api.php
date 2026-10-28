@@ -313,8 +313,14 @@ function zq_sync_gallery( $post_id, $qobrix_id, $name ) {
 
 	// Solo fotos: fuera documentos, folletos, planos y vídeos.
 	$items = array_values( array_filter( $items, function ( $m ) {
-		$kind = strtolower( ( isset( $m['media_type'] ) ? $m['media_type'] : '' ) . ' ' . ( isset( $m['category'] ) ? $m['category'] : '' ) );
-		return ! empty( $m['id'] ) && ! preg_match( '/document|brochure|pdf|floor|plan|video/', $kind );
+		$cat  = isset( $m['category'] ) ? $m['category'] : '';
+		$cat  = is_array( $cat ) ? ( isset( $cat['name'] ) ? $cat['name'] : '' ) : (string) $cat;
+		$mime = isset( $m['file']['mime_type'] ) ? (string) $m['file']['mime_type'] : '';
+		if ( empty( $m['id'] ) || ( $mime && 0 !== strpos( $mime, 'image/' ) ) ) {
+			return false;
+		}
+		$type = isset( $m['media_type'] ) && is_string( $m['media_type'] ) ? $m['media_type'] : '';
+		return ! preg_match( '/document|brochure|pdf|floor|plan|video/', strtolower( $type . ' ' . $cat ) );
 	} ) );
 	usort( $items, function ( $a, $b ) {
 		return (int) ( isset( $a['display_order'] ) ? $a['display_order'] : 0 ) - (int) ( isset( $b['display_order'] ) ? $b['display_order'] : 0 );
@@ -368,6 +374,19 @@ function zq_sync_gallery( $post_id, $qobrix_id, $name ) {
 function zq_media_candidates( array $m ) {
 	$base = rtrim( zq_options()['api_url'], '/' );
 	$out  = array();
+
+	// Formato de Qobrix: file.thumbnails.{xlarge,large,huge…} y file.href (original, puede pesar varios MB).
+	$file = isset( $m['file'] ) && is_array( $m['file'] ) ? $m['file'] : array();
+	$thumbs = isset( $file['thumbnails'] ) && is_array( $file['thumbnails'] ) ? $file['thumbnails'] : array();
+	foreach ( array( 'xlarge', 'large', 'huge', 'medium' ) as $size ) {
+		if ( ! empty( $thumbs[ $size ] ) && is_string( $thumbs[ $size ] ) ) {
+			$out[] = preg_match( '#^https?://#', $thumbs[ $size ] ) ? $thumbs[ $size ] : $base . '/' . ltrim( $thumbs[ $size ], '/' );
+		}
+	}
+	if ( ! empty( $file['href'] ) && is_string( $file['href'] ) ) {
+		$out[] = preg_match( '#^https?://#', $file['href'] ) ? $file['href'] : $base . '/' . ltrim( $file['href'], '/' );
+	}
+
 	foreach ( $m as $k => $v ) {
 		if ( ! is_string( $v ) ) {
 			continue;
