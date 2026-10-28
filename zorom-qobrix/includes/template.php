@@ -1,7 +1,7 @@
 <?php
 /**
  * Plantilla de Elementor de partida para la página de promoción (diseño de Figma).
- * Se crea desde Ajustes → Qobrix → «Crear plantilla de ejemplo».
+ * Se crea desde Qobrix → Ajustes → «Crear plantilla de ejemplo».
  * Usa widgets normales de Elementor con shortcodes [qobrix …], así funciona sin Elementor Pro.
  */
 
@@ -114,6 +114,7 @@ function zq_starter_template_data() {
 			array(
 				zq_tpl_heading( '[qobrix campo="descripcion_titulo"]', 'h2' ),
 				zq_tpl_sc( '[qobrix campo="descripcion"]' ),
+				zq_tpl_sc( '[qobrix campo="comodidades" antes="" vacio=""]', 'zq-comodidades' ),
 			),
 			45
 		),

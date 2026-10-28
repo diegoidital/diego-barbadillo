@@ -22,11 +22,12 @@ function zq_manual_fields() {
 			'zona_imagen'    => array( 'Imagen', 'image', '' ),
 		),
 		'Descripción de la promoción'   => array(
-			'descripcion_titulo' => array( 'Título', 'text', 'Ej.: Urbanización de lujo en Calpe. El texto viene de Qobrix.' ),
+			'descripcion_titulo' => array( 'Título', 'text', 'Ej.: Urbanización de lujo en Calpe' ),
+			'descripcion_es'     => array( 'Descripción en español', 'html', 'Qobrix solo tiene la descripción en inglés. Si se rellena, se usa esta en toda la web (pestañas y página).' ),
 		),
 		'Localización'                  => array(
 			'localizacion_titulo' => array( 'Título', 'text', 'Ej.: Localización exclusiva' ),
-			'localizacion_texto'  => array( 'Texto', 'html', '' ),
+			'localizacion_texto'  => array( 'Texto', 'html', 'Vacío = el texto en español de Qobrix (custom_location_description_es).' ),
 		),
 		'Zona (segundo bloque)'         => array(
 			'zona2_titulo' => array( 'Título', 'text', 'Ej.: Calpe, mucho más que playa y montaña' ),

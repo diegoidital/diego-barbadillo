@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Zorom – Promociones Qobrix
  * Description: Crea una página por cada proyecto del CRM Qobrix (con plantilla de Elementor), sincroniza datos, inmuebles y fotos, y permite colocar cada campo en Elementor con shortcodes y etiquetas dinámicas.
- * Version:     2.2.0
+ * Version:     2.3.0
  * Author:      Idital
  * Text Domain: zorom-qobrix
  * Requires PHP: 7.4
@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ZQ_VERSION', '2.2.0' );
+define( 'ZQ_VERSION', '2.3.0' );
 define( 'ZQ_FILE', __FILE__ );
 define( 'ZQ_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ZQ_OPTION', 'zq_settings' );
@@ -73,11 +73,11 @@ function zq_register_cpt() {
 			'edit_item'     => 'Editar promoción',
 			'view_item'     => 'Ver promoción',
 			'search_items'  => 'Buscar promociones',
-			'not_found'     => 'No hay promociones. Sincroniza desde Ajustes → Qobrix.',
+			'not_found'     => 'No hay promociones. Sincroniza desde Qobrix → Ajustes.',
 		),
 		'public'       => true,
 		'has_archive'  => false, // La página «Ver todas» se monta en Elementor.
-		'menu_icon'    => 'dashicons-building',
+		'show_in_menu' => 'zorom-qobrix', // Dentro del menú «Qobrix».
 		'show_in_rest' => true,
 		'supports'     => array( 'title', 'editor', 'excerpt', 'thumbnail', 'page-attributes', 'custom-fields', 'elementor' ),
 		'rewrite'      => array( 'slug' => $o['slug'] ? $o['slug'] : 'promociones', 'with_front' => false ),

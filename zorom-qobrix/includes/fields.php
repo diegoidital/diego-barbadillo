@@ -26,6 +26,7 @@ function zq_field_aliases() {
 		'unidades'          => array( 'label' => 'Unidades', 'format' => 'numero' ),
 		'fecha'             => array( 'label' => 'Fecha', 'format' => 'fecha' ),
 		'eficiencia'        => array( 'label' => 'Eficiencia energética', 'format' => 'texto' ),
+		'comodidades'       => array( 'label' => 'Comodidades (español de Qobrix)', 'format' => 'html' ),
 		'ubicacion'         => array( 'label' => 'Ubicación (manual o ciudad de Qobrix)', 'format' => 'texto' ),
 		'coordenadas'       => array( 'label' => 'Coordenadas (lat,lng)', 'format' => 'texto' ),
 		'enlace'            => array( 'label' => 'Enlace a la promoción', 'format' => 'url' ),
@@ -115,22 +116,36 @@ function zq_get_raw( $post_id, $campo ) {
 
 	$manual = zq_manual_keys();
 	if ( isset( $manual[ $campo ] ) && 'ubicacion' !== $campo ) {
-		return zq_get_manual( $post_id, $campo );
+		$v = zq_get_manual( $post_id, $campo );
+		if ( '' === $v && 'localizacion_texto' === $campo ) {
+			$v = zq_meta_pick( $post_id, 'custom_location_description_es,location_description' );
+		}
+		return $v;
 	}
 
 	switch ( $campo ) {
 		case 'ubicacion':
 			$v = zq_get_manual( $post_id, 'ubicacion' );
-			return '' !== $v ? $v : get_post_meta( $post_id, ZQ_META_PREFIX . 'city', true );
+			if ( '' !== $v ) {
+				return $v;
+			}
+			$parts = array_filter( array(
+				get_post_meta( $post_id, ZQ_META_PREFIX . 'city', true ),
+				get_post_meta( $post_id, ZQ_META_PREFIX . 'district', true ),
+			) );
+			return implode( ', ', array_unique( $parts ) ); // «La Nucia, Alicante».
 		case 'eficiencia':
-			return zq_meta_pick( $post_id, $o['field_energy'] );
+			return strtoupper( (string) zq_meta_pick( $post_id, $o['field_energy'] ) );
+		case 'comodidades':
+			return zq_meta_pick( $post_id, 'custom_amenities_description_es,amenities_description' );
 		case 'coordenadas':
 			$c = zq_coordinates( $post_id );
 			return $c ? $c[0] . ',' . $c[1] : '';
 		case 'titulo':
 			return get_the_title( $post_id );
 		case 'descripcion':
-			return get_post_field( 'post_content', $post_id );
+			$v = zq_get_manual( $post_id, 'descripcion_es' );
+			return '' !== $v ? $v : get_post_field( 'post_content', $post_id );
 		case 'descripcion_corta':
 			return get_post_field( 'post_excerpt', $post_id );
 		case 'enlace':

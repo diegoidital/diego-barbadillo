@@ -5,7 +5,7 @@ Plugin de WordPress que conecta la web de Zorom con su CRM Qobrix
 
 - Crea **una página por proyecto** (tipo de contenido «Promoción», URL `/promociones/<nombre>/`)
   y la mantiene al día: título, descripción, foto destacada, galería, datos e inmuebles.
-- Todas las páginas se pintan con **una plantilla de Elementor**, elegida en Ajustes → Qobrix.
+- Todas las páginas se pintan con **una plantilla de Elementor**, elegida en Qobrix → Ajustes.
 - Cada promoción tiene **campos manuales** (texto de la zona, localización, imágenes…) que la
   sincronización nunca toca.
 - Cualquier dato se coloca donde quieras en Elementor con **shortcodes** `[qobrix …]` o con
@@ -15,7 +15,7 @@ Plugin de WordPress que conecta la web de Zorom con su CRM Qobrix
 
 1. Subir `zorom-qobrix.zip` en *Plugins → Añadir nuevo → Subir plugin* y activarlo.
 2. En Qobrix, crear un usuario de API y su clave.
-3. En *Ajustes → Qobrix*: usuario y clave → Guardar → **Sincronizar ahora**.
+3. En *Qobrix → Ajustes*: usuario y clave → Guardar → **Sincronizar ahora**.
 4. Pulsar **Crear plantilla de ejemplo (diseño Figma)**. Crea la plantilla «Página de promoción (Qobrix)»,
    la deja asignada a todas las promociones y la abre en Elementor para ajustar el estilo.
 5. Rellenar en cada promoción la caja **Contenido de la página (manual)**.

@@ -1,6 +1,6 @@
 <?php
 /**
- * Página de cada promoción: si en Ajustes → Qobrix se elige una plantilla de Elementor,
+ * Página de cada promoción: si en Qobrix → Ajustes se elige una plantilla de Elementor,
  * todas las promociones se pintan con ella (cabecera y pie del tema incluidos).
  *
  * No se aplica si:
