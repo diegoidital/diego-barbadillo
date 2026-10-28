@@ -32,6 +32,7 @@ function zq_sanitize( $in ) {
 	$out['form_shortcode'] = isset( $in['form_shortcode'] ) ? sanitize_text_field( wp_unslash( $in['form_shortcode'] ) ) : '';
 	$out['form_tpl']       = absint( isset( $in['form_tpl'] ) ? $in['form_tpl'] : 0 );
 	$out['menu_height']    = min( 300, absint( isset( $in['menu_height'] ) ? $in['menu_height'] : 80 ) );
+	$out['escala']         = max( 50, min( 150, absint( isset( $in['escala'] ) ? $in['escala'] : 100 ) ) );
 	$out['menu_transparente'] = empty( $in['menu_transparente'] ) ? 0 : 1;
 	$out['load_fonts']     = empty( $in['load_fonts'] ) ? 0 : 1;
 	$out['gallery_max'] = min( 50, absint( isset( $in['gallery_max'] ) ? $in['gallery_max'] : 12 ) );
@@ -124,6 +125,9 @@ function zq_settings_page() {
 						<?php endforeach; ?>
 					</select>
 					<p class="description">Global o plantilla de Elementor con el formulario de la sección «Contacta». Actual: <?php echo zq_form_template_id() ? esc_html( get_the_title( zq_form_template_id() ) ) : 'ninguno encontrado'; ?>.</p></td></tr>
+				<tr><th><label for="zq-escala">Escala del diseño</label></th>
+					<td><input id="zq-escala" class="small-text" type="number" min="50" max="150" name="<?php echo esc_attr( $name ); ?>[escala]" value="<?php echo (int) $o['escala']; ?>"> %
+						<p class="description">100 % = medidas exactas del Figma (lienzo de 1440 px). Bájalo para reducir toda la página de promoción en proporción.</p></td></tr>
 				<tr><th><label for="zq-menu">Menú sobre la portada</label></th>
 					<td><input id="zq-menu" class="small-text" type="number" min="0" max="300" name="<?php echo esc_attr( $name ); ?>[menu_height]" value="<?php echo (int) $o['menu_height']; ?>"> px de alto del menú (la portada sube esa medida para quedar debajo)<br>
 					<label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[menu_transparente]" value="1" <?php checked( $o['menu_transparente'] ); ?>> Fondo del menú transparente en las páginas de promoción</label></td></tr>
