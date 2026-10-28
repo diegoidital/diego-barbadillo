@@ -120,6 +120,9 @@ function zq_get_raw( $post_id, $campo ) {
 		if ( '' === $v && 'localizacion_texto' === $campo ) {
 			$v = zq_meta_pick( $post_id, 'custom_location_description_es,location_description' );
 		}
+		if ( '' === $v ) {
+			$v = zq_manual_example( $post_id, $campo ); // Texto de ejemplo hasta que se escriba el propio.
+		}
 		return $v;
 	}
 
