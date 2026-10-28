@@ -29,6 +29,8 @@ function zq_sanitize( $in ) {
 	$out['slug']    = sanitize_title( isset( $in['slug'] ) ? $in['slug'] : '' );
 	$out['slug']    = $out['slug'] ? $out['slug'] : 'promociones';
 	$out['single_tpl']  = absint( isset( $in['single_tpl'] ) ? $in['single_tpl'] : 0 );
+	$out['form_shortcode'] = isset( $in['form_shortcode'] ) ? sanitize_text_field( wp_unslash( $in['form_shortcode'] ) ) : '';
+	$out['load_fonts']     = empty( $in['load_fonts'] ) ? 0 : 1;
 	$out['gallery_max'] = min( 50, absint( isset( $in['gallery_max'] ) ? $in['gallery_max'] : 12 ) );
 	foreach ( array( 'field_desc', 'field_price', 'field_units', 'field_date', 'field_energy' ) as $k ) {
 		$out[ $k ] = preg_replace( '/[^a-z0-9_,]/i', '', isset( $in[ $k ] ) ? $in[ $k ] : '' );
@@ -111,6 +113,22 @@ function zq_settings_page() {
 				<tr><th><label for="zq-slug">Base de la URL</label></th>
 					<td><code><?php echo esc_html( home_url( '/' ) ); ?></code><input id="zq-slug" class="regular-text code" type="text" name="<?php echo esc_attr( $name ); ?>[slug]" value="<?php echo esc_attr( $o['slug'] ); ?>"><code>/amiral/</code>
 						<p class="description">El final de cada URL se puede cambiar en la propia promoción y la sincronización no lo toca.</p></td></tr>
+				<tr><th><label for="zq-form">Formulario de contacto</label></th>
+					<td><input id="zq-form" class="regular-text code" type="text" name="<?php echo esc_attr( $name ); ?>[form_shortcode]" value="<?php echo esc_attr( $o['form_shortcode'] ); ?>" placeholder='[contact-form-7 id="123"]'>
+						<p class="description">Shortcode del formulario que se muestra en la sección «Contacta» de cada promoción (Contact Form 7, Elementor Pro…). Se le aplica el estilo del diseño.</p>
+						<details><summary>Formulario de Contact Form 7 con la maqueta del diseño (copiar en el formulario)</summary>
+<pre style="white-space:pre-wrap;background:#f6f7f7;padding:10px">&lt;div class="zq-campos"&gt;
+[text* nombre placeholder "Nombre *"]
+[text* apellidos placeholder "Apellidos *"]
+[email* email placeholder "Email *"]
+[tel telefono placeholder "Teléfono"]
+&lt;div class="zq-campo--ancho"&gt;[textarea mensaje placeholder "Mensaje"]&lt;/div&gt;
+&lt;/div&gt;
+[hidden promocion default:get]
+[submit "Enviar"]</pre></details></td></tr>
+				<tr><th>Tipografías</th>
+					<td><label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[load_fonts]" value="1" <?php checked( $o['load_fonts'] ); ?>> Cargar Geist e Inter (Google Fonts) en las páginas de promoción</label>
+						<p class="description">Desmárcalo si el tema ya las carga.</p></td></tr>
 				<tr><th><label for="zq-tpl">Plantilla de Elementor</label></th>
 					<td><select id="zq-tpl" name="<?php echo esc_attr( $name ); ?>[single_tpl]">
 						<option value="0">— Diseño del tema —</option>

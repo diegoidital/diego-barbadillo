@@ -81,3 +81,13 @@ Probado en un WordPress con Elementor y un Qobrix simulado. Con las credenciales
 - Ruta de las fotos de galería (`/api/v2/media/{id}/large`).
 
 Los nombres de los campos se pueden cambiar en Ajustes y en las opciones de los shortcodes sin tocar código.
+
+## Página de promoción calcada del Figma (2.5.0)
+
+- `[qobrix_ficha]` pinta la página completa; `[qobrix_ficha seccion="zona"]` una sola sección.
+  Secciones: hero, zona, caracteristicas, propiedades, urbanizacion, galeria, localizacion, zona2, contacto.
+- La plantilla de ejemplo («Crear plantilla de ejemplo») monta una sección por contenedor de Elementor.
+- Medidas, tipografías (Geist e Inter), iconos y bloques negros salen del Figma (lienzo de 1440 px).
+- Localización: los seis elementos son fijos (aeropuerto, playa, centro, hospital, escuela, tiendas);
+  el número sale de Qobrix (`distance_from_*_amount`) o del campo manual de la promoción.
+- Formulario: Qobrix → Ajustes → «Formulario de contacto» (incluye la plantilla de Contact Form 7).
