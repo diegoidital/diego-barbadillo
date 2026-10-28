@@ -40,6 +40,27 @@
 	align-items: center;
 }
 
+/*
+ * En pantallas de más de 1440 px, las secciones con foto se anclan al borde por el que sale
+ * su bloque negro (como en el Figma, donde la foto toca el borde): zona 1 a la derecha,
+ * urbanización y zona 2 a la izquierda.
+ */
+.zq-f-zona > .zq-f-canvas {
+	margin-right: 0;
+	margin-left: auto;
+}
+
+.zq-f-urb > .zq-f-canvas,
+.zq-f-zona2 > .zq-f-canvas {
+	margin-left: 0;
+	margin-right: auto;
+}
+
+/* Escala opcional de todo el diseño (Qobrix → Ajustes → Escala). */
+.zq-f {
+	zoom: var(--zq-escala, 1);
+}
+
 /* Los bloques negros salen hasta el borde de la pantalla sin crear barra horizontal. */
 body:has(.zq-f) {
 	overflow-x: clip;
@@ -299,14 +320,23 @@ body:has(.zq-f) {
 	width: 1311px;
 	max-width: 100%;
 	margin-top: 11px;
+	overflow: visible;
 }
 
 .zq-f .zq-propiedades {
 	width: 100%;
+	margin: 0;
 	border-collapse: separate;
 	border-spacing: 0 11px;
-	margin: -11px 0;
 	table-layout: fixed;
+}
+
+.zq-f .zq-propiedades thead tr:first-child th {
+	border-top: 0;
+}
+
+.zq-f-prop .zq-propiedades-wrap {
+	margin-top: 0;          /* el espaciado de 11 px lo da la propia tabla */
 }
 
 /* Columnas centradas sobre las posiciones del Figma. */
@@ -588,7 +618,7 @@ body:has(.zq-f) {
 	.zq-f-mapa { flex-basis: 42.5vw; height: 43.5vw; margin-left: 4vw; }
 	.zq-f-gal__grid { margin-left: auto; margin-right: auto; }
 	.zq-f-cards { flex-wrap: wrap; }
-	.zq-f .zq-propiedades-wrap { overflow-x: auto; }
+	.zq-f .zq-propiedades-wrap { overflow-x: auto; overflow-y: hidden; }
 }
 
 /* Tableta y móvil: una columna, fotos arriba, medidas proporcionales ------ */
@@ -639,22 +669,38 @@ body:has(.zq-f) {
 	margin-top: calc(-1 * var(--zq-menu-h, 0px));
 }
 
-/* Formulario de Elementor Pro (global «Form_contacto») con el estilo del diseño */
+/* Formulario de Elementor Pro (global «Form_contacto») con el estilo del diseño:
+   695 px, dos columnas de 320 px con 55 px de hueco, filas cada 136 px. */
+.zq-f-form .elementor-widget,
+.zq-f-form .elementor-element,
+.zq-f-form .elementor-widget-form {
+	width: 100% !important;
+	max-width: 100% !important;
+	--width: 100%;
+}
+
 .zq-f-form .elementor-form-fields-wrapper {
-	column-gap: 0;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	margin: 0 !important;
 	row-gap: 63px;
 }
 
 .zq-f-form .elementor-field-group {
-	margin-bottom: 0 !important;
+	width: 100%;
+	margin: 0 !important;
+	padding: 0 !important;
 }
 
-.zq-f-form .elementor-field-group:not(.elementor-field-type-submit) {
-	padding: 0 27px !important;
+.zq-f-form .elementor-field-group.elementor-col-50 {
+	width: calc(50% - 27.5px);
 }
 
-.zq-f-form .elementor-field-group .elementor-field,
-.zq-f-form .elementor-field-textual {
+.zq-f-form .elementor-field-group .elementor-field-textual,
+.zq-f-form .elementor-field-group input.elementor-field:not([type="checkbox"]):not([type="radio"]):not([type="submit"]),
+.zq-f-form .elementor-field-group select.elementor-field {
+	width: 100% !important;
 	height: 73px;
 	min-height: 0;
 	padding: 0 10px !important;
@@ -670,8 +716,9 @@ body:has(.zq-f) {
 }
 
 .zq-f-form textarea.elementor-field {
-	height: 111px;
-	padding-top: 79px !important;
+	height: 111px !important;
+	padding: 79px 10px 0 !important;
+	resize: none;
 }
 
 .zq-f-form .elementor-field::placeholder {
@@ -679,9 +726,36 @@ body:has(.zq-f) {
 	opacity: 1;
 }
 
+/* Aceptación de la política: casilla normal y texto al lado. */
+.zq-f-form .elementor-field-type-acceptance .elementor-field-subgroup {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.zq-f-form .elementor-field-type-acceptance input[type="checkbox"] {
+	width: 16px;
+	height: 16px;
+	margin: 0;
+}
+
+.zq-f-form .elementor-field-type-acceptance label {
+	color: #000;
+	font-family: var(--zq-geist);
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+/* Aviso de reCAPTCHA de Elementor: sin línea ni caja de campo. */
+.zq-f-form .elementor-field-type-recaptcha_v3,
+.zq-f-form .elementor-field-type-recaptcha {
+	color: var(--zq-gris);
+	font-size: 13px;
+}
+
 .zq-f-form .elementor-field-type-submit {
 	justify-content: center;
-	margin-top: 0;
+	margin-top: 0 !important;
 }
 
 .zq-f-form .elementor-button[type="submit"] {
@@ -700,7 +774,8 @@ body:has(.zq-f) {
 }
 
 @media (max-width: 1099px) {
-	.zq-f-form .elementor-field-group:not(.elementor-field-type-submit) { padding: 0 !important; }
+	.zq-f-form .elementor-field-group.elementor-col-50 { width: 100%; }
 	.zq-f-form .elementor-form-fields-wrapper { row-gap: 24px; }
 	.zq-f-form .elementor-button[type="submit"] { width: 100% !important; }
 }
+

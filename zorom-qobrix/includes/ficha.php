@@ -269,7 +269,7 @@ function zq_form_template_id() {
 /* Portada bajo el menú: margen negativo y menú por encima, transparente, en las promociones. */
 add_action( 'wp_enqueue_scripts', function () {
 	$h   = (int) zq_options()['menu_height'];
-	$css = ':root{--zq-menu-h:' . $h . 'px}';
+	$css = ':root{--zq-menu-h:' . $h . 'px;--zq-escala:' . ( (int) zq_options()['escala'] / 100 ) . '}';
 	if ( zq_options()['menu_transparente'] ) {
 		$css .= 'body.single-' . ZQ_CPT . ' .elementor-location-header,body.single-' . ZQ_CPT . ' header.site-header,body.single-' . ZQ_CPT . ' #masthead{position:relative;z-index:50;background:transparent!important}'
 			. 'body.single-' . ZQ_CPT . ' .elementor-location-header>.e-con,body.single-' . ZQ_CPT . ' .elementor-location-header>.elementor-section,body.single-' . ZQ_CPT . ' .elementor-location-header>.elementor-element{background:transparent!important;background-color:transparent!important}';
