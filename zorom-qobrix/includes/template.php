@@ -77,79 +77,22 @@ function zq_tpl_row( array $left, array $right, $left_width = 55, $reverse_mobil
 	return zq_tpl_section( array( $col( $left, $left_width ), $col( $right, 100 - $left_width ) ), $settings );
 }
 
-/** Contenido (_elementor_data) de la plantilla. */
+/**
+ * Contenido (_elementor_data) de la plantilla: una sección del Figma por contenedor,
+ * a ancho completo y sin márgenes. Cada una se puede mover o quitar en Elementor;
+ * el estilo exacto lo pone assets/ficha.css.
+ */
 function zq_starter_template_data() {
-	$distancias = 'distance_from_airport_amount:Aeropuerto:aeropuerto:km,distance_from_beach_amount:Playa:playa:km,'
-		. 'distance_from_centre_amount:Centro:centro:km,distance_from_hospital_amount:Hospital:hospital:km,'
-		. 'distance_from_school_amount:Escuela:escuela:km,distance_from_shops_amount:Tiendas:tiendas:km';
-
-	return array(
-		// 1. Portada.
-		zq_tpl_container( array( zq_tpl_sc( '[qobrix_hero boton="Solicitar información" enlace="#contacto"]' ) ), array(
+	$out = array();
+	foreach ( zq_ficha_secciones() as $s ) {
+		$out[] = zq_tpl_container( array( zq_tpl_sc( '[qobrix_ficha seccion="' . $s . '"]' ) ), array(
 			'content_width' => 'full',
 			'padding'       => array( 'unit' => 'px', 'top' => '0', 'right' => '0', 'bottom' => '0', 'left' => '0', 'isLinked' => true ),
-		) ),
-
-		// 2. Zona (manual).
-		zq_tpl_row(
-			array(
-				zq_tpl_heading( '[qobrix campo="zona_titulo"]', 'h2' ),
-				zq_tpl_sc( '<p class="zq-subtitulo">[qobrix campo="zona_subtitulo"]</p>' ),
-				zq_tpl_sc( '[qobrix campo="zona_texto"]' ),
-			),
-			array( zq_tpl_sc( '[qobrix_imagen campo="zona_imagen"]', 'zq-sombra-dcha' ) )
-		),
-
-		// 3. Datos clave.
-		zq_tpl_section( array(
-			zq_tpl_heading( '[qobrix campo="titulo"]', 'h2', 'center' ),
-			zq_tpl_sc( '[qobrix_datos campos="fecha:Fecha,precio:Precio,eficiencia:Eficiencia:eficiencia:texto,unidades:Unidades"]' ),
-			zq_tpl_heading( 'Lista de propiedades', 'h2', 'center' ),
-			zq_tpl_sc( '[qobrix_propiedades]' ),
-		), array( 'flex_gap' => array( 'unit' => 'px', 'column' => '30', 'row' => '30', 'isLinked' => true, 'size' => 30 ) ) ),
-
-		// 4. Descripción (Qobrix) con título manual.
-		zq_tpl_row(
-			array( zq_tpl_sc( '[qobrix_imagen campo="galeria:1" tamano="large"]', 'zq-sombra-izda' ) ),
-			array(
-				zq_tpl_heading( '[qobrix campo="descripcion_titulo"]', 'h2' ),
-				zq_tpl_sc( '[qobrix campo="descripcion"]' ),
-				zq_tpl_sc( '[qobrix campo="comodidades" antes="" vacio=""]', 'zq-comodidades' ),
-			),
-			45
-		),
-
-		// 5. Galería.
-		zq_tpl_section( array( zq_tpl_sc( '[qobrix_galeria desde="2" limite="2" columnas="2"]' ) ) ),
-
-		// 6. Localización.
-		zq_tpl_row(
-			array(
-				zq_tpl_heading( '[qobrix campo="localizacion_titulo"]', 'h2' ),
-				zq_tpl_sc( '[qobrix campo="localizacion_texto"]' ),
-				zq_tpl_sc( '[qobrix_datos estilo="lista" columnas="3" campos="' . $distancias . '"]' ),
-			),
-			array( zq_tpl_sc( '[qobrix_mapa altura="460px"]' ) )
-		),
-
-		// 7. Zona (segundo bloque, manual).
-		zq_tpl_row(
-			array( zq_tpl_sc( '[qobrix_imagen campo="zona2_imagen" tamano="large"]', 'zq-sombra-izda' ) ),
-			array(
-				zq_tpl_heading( '[qobrix campo="zona2_titulo"]', 'h2' ),
-				zq_tpl_sc( '[qobrix campo="zona2_texto"]' ),
-			),
-			45
-		),
-
-		// 8. Contacto.
-		zq_tpl_section( array(
-			zq_tpl_heading( 'Contacta', 'h2', 'center' ),
-			zq_tpl_widget( 'text-editor', array(
-				'editor' => '<p style="text-align:center">Sustituye este texto por el formulario de contacto (widget Formulario de Elementor Pro, Contact Form 7…). El enlace «Solicitar información» de la portada apunta aquí (#contacto).</p>',
-			) ),
-		), array( '_element_id' => 'contacto' ) ),
-	);
+			'flex_gap'      => array( 'unit' => 'px', 'column' => '0', 'row' => '0', 'isLinked' => true, 'size' => 0 ),
+			'_title'        => 'Qobrix · ' . $s,
+		) );
+	}
+	return $out;
 }
 
 /** Crea la plantilla en Plantillas → Plantillas guardadas y la deja seleccionada. */

@@ -305,26 +305,6 @@ add_shortcode( 'qobrix_listado', function ( $atts ) {
  * Bloques de la página de promoción
  * ---------------------------------------------------------------------- */
 
-/** Iconos sencillos de trazo (SVG en línea). */
-function zq_icon( $name ) {
-	$paths = array(
-		'fecha'      => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
-		'precio'     => '<circle cx="8" cy="15" r="5"/><path d="M11.5 11.5 21 2M17 6l3 3M15 8l2 2"/>',
-		'eficiencia' => '<path d="M5 19c0-9 6-14 15-14 0 9-5 15-14 15"/><path d="M5 19 13 11"/>',
-		'unidades'   => '<path d="M3 11 12 4l9 7v9H3z"/><path d="M10 20v-6h4v6"/>',
-		'aeropuerto' => '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V4h8v3M9 7v13M15 7v13"/>',
-		'playa'      => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="m5.6 5.6 3.6 3.6M14.8 14.8l3.6 3.6M18.4 5.6l-3.6 3.6M9.2 14.8l-3.6 3.6"/>',
-		'centro'     => '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
-		'hospital'   => '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
-		'escuela'    => '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
-		'tiendas'    => '<path d="M5 7h14l-1 13H6z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/>',
-	);
-	if ( ! isset( $paths[ $name ] ) ) {
-		return '';
-	}
-	return '<svg class="zq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $paths[ $name ] . '</svg>';
-}
-
 /**
  * Lista «campo:Etiqueta:icono:formato, …» → filas. Etiqueta, icono y formato son opcionales.
  */

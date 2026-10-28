@@ -1,0 +1,635 @@
+/*
+ * Página de promoción – calcada del Figma «Proyecto» (lienzo de 1440 px).
+ * Cada medida lleva al lado el dato del Figma del que sale.
+ */
+
+.zq-f {
+	--zq-ink: #101215;        /* var(--dark-10) */
+	--zq-gris: #909295;       /* var(--dark-6) */
+	--zq-negro: #000;
+	--zq-rojo: #e40000;
+	--zq-radio: 20px;         /* Foto_Promociones */
+	--zq-geist: "Geist", var(--e-global-typography-text-font-family, sans-serif), sans-serif;
+	--zq-inter: "Inter", var(--e-global-typography-text-font-family, sans-serif), sans-serif;
+	color: #000;
+	font-family: var(--zq-geist);
+}
+
+.zq-f *,
+.zq-f *::before,
+.zq-f *::after {
+	box-sizing: border-box;
+}
+
+/* Lienzo de 1440 px centrado: las posiciones x del Figma se aplican dentro. */
+.zq-f-canvas {
+	position: relative;
+	width: 100%;
+	max-width: 1440px;
+	margin: 0 auto;
+}
+
+.zq-f-row {
+	display: flex;
+	align-items: flex-start;
+}
+
+.zq-f-center {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+/* Los bloques negros salen hasta el borde de la pantalla sin crear barra horizontal. */
+body:has(.zq-f) {
+	overflow-x: clip;
+}
+
+/* Tipografía ------------------------------------------------------------- */
+.zq-f .zq-f-h {                       /* H4: Geist Regular 40 / 1.4 */
+	margin: 0;
+	color: var(--zq-ink);
+	font-family: var(--zq-geist);
+	font-size: 40px;
+	font-weight: 400;
+	line-height: 1.4;
+	letter-spacing: 0;
+}
+
+.zq-f .zq-f-hc {                      /* Inter Light 35 / 1.4, centrado */
+	margin: 0;
+	color: #000;
+	font-family: var(--zq-inter);
+	font-size: 35px;
+	font-weight: 300;
+	line-height: 1.4;
+	text-align: center;
+}
+
+.zq-f .zq-f-sub {                     /* Geist 17 / 1.5 */
+	margin: 8px 0 0;
+	color: var(--zq-ink);
+	font-size: 17px;
+	line-height: 1.5;
+}
+
+.zq-f .zq-f-txt {                     /* Geist 21 / 1.4, párrafos separados por una línea */
+	margin-top: 12px;
+	color: #000;
+	font-size: 21px;
+	line-height: 1.4;
+}
+
+.zq-f .zq-f-txt--22 {
+	font-size: 22px;
+}
+
+.zq-f .zq-f-txt p {
+	margin: 0 0 1.4em;
+}
+
+.zq-f .zq-f-txt p:last-child {
+	margin-bottom: 0;
+}
+
+.zq-f .zq-f-h3 {                      /* «Comodidades»: Geist Medium 24 / 1.4 */
+	margin: 1.4em 0 0;
+	color: #000;
+	font-family: var(--zq-geist);
+	font-size: 24px;
+	font-weight: 500;
+	line-height: 1.4;
+}
+
+.zq-f .zq-f-h3 + p {
+	margin-top: 0;
+}
+
+.zq-f-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid #000;
+	border-radius: 10px;
+	font-family: var(--zq-geist);
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1.4;
+	letter-spacing: .42px;
+	text-decoration: none;
+	text-transform: uppercase;
+}
+
+.zq-f .zq-f-btn--blanco {
+	width: 210px;
+	height: 40px;
+	background: #fff;
+	color: #000;
+}
+
+/* Fotos con bloque negro ------------------------------------------------- */
+.zq-f-foto {
+	position: relative;
+	z-index: 0;
+	flex: 0 0 auto;
+}
+
+.zq-f-foto .zq-f-img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: var(--zq-radio);
+}
+
+.zq-f-foto::before {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	width: 100vw;
+	border-radius: var(--zq-radio);
+	background: var(--zq-negro);
+}
+
+/* 01. Portada (1440 × 781, capa rgba(0,0,0,.3); texto en x=111, y≈274) ---- */
+.zq-f-hero {
+	position: relative;
+	height: 781px;
+	background: #222 center / cover no-repeat;
+}
+
+.zq-f-hero::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, .3);
+}
+
+.zq-f-hero .zq-f-canvas {
+	height: 100%;
+}
+
+.zq-f-hero__txt {
+	position: absolute;
+	top: 274px;
+	left: 111px;
+	width: 486px;
+	color: #fff;
+}
+
+.zq-f .zq-f-hero__title {             /* Geist SemiBold 40 / 1.2 */
+	margin: 0;
+	color: #fff;
+	font-family: var(--zq-geist);
+	font-size: 40px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.zq-f .zq-f-hero__ubi {               /* Geist 20 / 1.2, tras dos saltos de 12 px */
+	margin: 29px 0 0;
+	color: #fff;
+	font-size: 20px;
+	line-height: 1.2;
+}
+
+.zq-f .zq-f-hero__sub {               /* Geist Medium 16 / 1.2, caja de 35 px */
+	min-height: 35px;
+	margin: 98px 0 3px;
+	color: #fff;
+	font-size: 16px;
+	font-weight: 500;
+	line-height: 1.2;
+	text-transform: uppercase;
+}
+
+/* 02. Zona: texto x=40 (748) · foto x=803 (612 × 738) · negro x=849 (679 × 818) */
+.zq-f-zona {
+	padding-top: 210px;
+}
+
+.zq-f-zona__txt {
+	flex: 0 0 748px;
+	margin-left: 40px;
+}
+
+.zq-f-zona__txt .zq-f-txt {
+	max-width: 714px;
+}
+
+.zq-f-foto--zona {
+	width: 612px;
+	height: 738px;
+	margin: 40px 0 40px 15px;
+}
+
+.zq-f-foto--zona::before {
+	top: -40px;
+	bottom: -40px;
+	left: 46px;
+}
+
+/* 03. Características: 4 tarjetas 300 × 100, borde 0,5 px, radio 10 ------- */
+.zq-f-caract {
+	padding-top: 92px;
+}
+
+.zq-f-cards {
+	display: flex;
+	justify-content: center;
+	gap: 16px;
+	margin-top: 20px;
+}
+
+.zq-f-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: 300px;
+	height: 100px;
+	border: .5px solid #000;
+	border-radius: 10px;
+}
+
+.zq-f-card__label {                   /* Geist 22 / 1.4, icono a 25 px */
+	display: flex;
+	align-items: center;
+	gap: 25px;
+	color: var(--zq-ink);
+	font-size: 22px;
+	line-height: 1.4;
+	white-space: nowrap;
+}
+
+.zq-f-card .zq-f-card__label {
+	text-transform: uppercase;
+}
+
+.zq-f-card__value {                   /* Inter SemiBold 20 / 1.4 */
+	color: #000;
+	font-family: var(--zq-inter);
+	font-size: 20px;
+	font-weight: 600;
+	line-height: 1.4;
+	white-space: nowrap;
+}
+
+.zq-f-card .zq-f-card__value {
+	text-transform: uppercase;
+}
+
+.zq-f .zq-icon {
+	display: block;
+	flex: 0 0 auto;
+	color: var(--zq-ink);
+}
+
+/* 07. Lista de propiedades: 1311 px, cabecera negra 50 px, filas 45 px ---- */
+.zq-f-prop {
+	padding-top: 62px;
+}
+
+.zq-f-prop .zq-f-hc {
+	height: 60px;
+}
+
+.zq-f .zq-propiedades-wrap {
+	width: 1311px;
+	max-width: 100%;
+	margin-top: 11px;
+}
+
+.zq-f .zq-propiedades {
+	width: 100%;
+	border-collapse: separate;
+	border-spacing: 0 11px;
+	margin: -11px 0;
+	table-layout: fixed;
+}
+
+/* Columnas centradas sobre las posiciones del Figma. */
+.zq-f .zq-propiedades th:nth-child(1) { width: 158px; }
+.zq-f .zq-propiedades th:nth-child(2) { width: 134px; }
+.zq-f .zq-propiedades th:nth-child(3) { width: 140px; }
+.zq-f .zq-propiedades th:nth-child(4) { width: 156px; }
+.zq-f .zq-propiedades th:nth-child(5) { width: 188px; }
+.zq-f .zq-propiedades th:nth-child(6) { width: 194px; }
+.zq-f .zq-propiedades th:nth-child(7) { width: 170px; }
+
+.zq-f .zq-propiedades th {
+	height: 50px;
+	padding: 0 6px;
+	border: 0;
+	background: #000;
+	color: #fff;
+	font-family: var(--zq-geist);
+	font-size: 22px;
+	font-weight: 400;
+	line-height: 1.4;
+	text-align: center;
+	white-space: nowrap;
+}
+
+.zq-f .zq-propiedades td {
+	height: 45px;
+	padding: 0 6px;
+	border: 0;
+	background: transparent;
+	color: #4e4e4e;
+	font-family: var(--zq-inter);
+	font-size: 20px;
+	font-weight: 600;
+	line-height: 1.4;
+	text-align: center;
+	white-space: nowrap;
+}
+
+.zq-f .zq-propiedades tbody tr:nth-child(odd) td,
+.zq-f .zq-propiedades tbody tr:nth-child(even) td {
+	background: transparent;
+}
+
+.zq-f .zq-propiedades .zq-estado-sold td,
+.zq-f .zq-propiedades .zq-estado-reserved td {
+	color: #000;
+	font-weight: 600;
+	opacity: .3;
+}
+
+.zq-f .zq-propiedades .zq-estado-sold td:last-child span {
+	color: var(--zq-rojo);
+	text-decoration: line-through;
+}
+
+/* 03. Urbanización: foto x=28 (568 × 686) · negro x=-128 (630 × 760) · texto x=635 (763) */
+.zq-f-urb {
+	padding-top: 127px;
+}
+
+.zq-f-foto--urb {
+	width: 568px;
+	height: 686px;
+	margin: 37px 0 37px 28px;
+}
+
+.zq-f-foto--urb::before {
+	top: -37px;
+	bottom: -37px;
+	right: 94px;
+}
+
+.zq-f-urb__txt {
+	flex: 0 0 763px;
+	margin-left: 39px;
+}
+
+.zq-f-urb__txt .zq-f-txt p:first-child + p {
+	margin-top: 0;
+}
+
+/* 04. Galería: 1251 px en x=95, dos fotos 601 × 408, hueco 46, radio 16 --- */
+.zq-f-gal {
+	padding-top: 87px;
+}
+
+.zq-f-gal__grid {
+	display: flex;
+	gap: 46px;
+	width: 1251px;
+	max-width: calc(100% - 40px);
+	margin-left: 95px;
+}
+
+.zq-f-gal__item {
+	display: block;
+	flex: 0 1 601px;
+	height: 408px;
+}
+
+.zq-f-gal__item .zq-f-img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: 16px;
+}
+
+/* 05. Localización: texto x=41 (763) · mapa x=862 (612 × 627), radio 20 --- */
+.zq-f-loc {
+	padding-top: 170px;
+}
+
+.zq-f-loc__txt {
+	flex: 0 0 763px;
+	margin: 21px 0 0 41px;
+}
+
+.zq-f-loc__txt .zq-f-txt {
+	margin-top: 50px;
+}
+
+.zq-f-dists {
+	display: grid;
+	grid-template-columns: repeat(3, 250px);
+	row-gap: 12px;
+	margin-top: 50px;
+}
+
+.zq-f-dist {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	height: 100px;
+}
+
+.zq-f-mapa {
+	flex: 0 0 612px;
+	height: 627px;
+	margin: 40px 0 36px 58px;
+	overflow: hidden;
+	border-radius: var(--zq-radio);
+}
+
+.zq-f-mapa iframe {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: 0;
+}
+
+/* 06. Zona 2: foto x=0 (581 × 868) · negro x=-87 (634 × 947) · texto x=666 (732) */
+.zq-f-zona2 {
+	padding-top: 85px;
+}
+
+.zq-f-foto--zona2 {
+	width: 581px;
+	height: 868px;
+	margin: 40px 0 39px;
+}
+
+.zq-f-foto--zona2::before {
+	top: -40px;
+	bottom: -39px;
+	right: 34px;
+}
+
+.zq-f-zona2__txt {
+	flex: 0 0 732px;
+	margin: 71px 0 0 85px;
+}
+
+.zq-f-zona2__txt .zq-f-txt {
+	max-width: 714px;
+}
+
+/* 08. Contacta: formulario de 695 px, campos con línea inferior ---------- */
+.zq-f-contacto {
+	padding: 151px 0 120px;
+	scroll-margin-top: 100px;
+}
+
+.zq-f-form {
+	width: 695px;
+	max-width: 100%;
+	margin-top: 64px;
+	text-align: left;
+}
+
+.zq-f-form form p {
+	margin: 0;
+}
+
+.zq-f-form .zq-campos {               /* rejilla 2 × 320 px, hueco 55 px */
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	column-gap: 55px;
+	row-gap: 63px;
+}
+
+.zq-f-form .zq-campo--ancho {
+	grid-column: 1 / -1;
+}
+
+.zq-f-form input[type="text"],
+.zq-f-form input[type="email"],
+.zq-f-form input[type="tel"],
+.zq-f-form textarea {
+	display: block;
+	width: 100%;
+	height: 73px;
+	padding: 0 10px;
+	border: 0;
+	border-bottom: .5px solid #000;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: #000;
+	font-family: var(--zq-geist);
+	font-size: 16px;
+	line-height: 1.4;
+}
+
+.zq-f-form textarea {
+	height: 111px;
+	padding-top: 79px;
+	resize: vertical;
+}
+
+.zq-f-form ::placeholder {
+	color: var(--zq-gris);
+	opacity: 1;
+}
+
+.zq-f-form input:focus,
+.zq-f-form textarea:focus {
+	outline: none;
+	border-bottom-color: #000;
+	border-bottom-width: 1px;
+}
+
+.zq-f-form input[type="submit"],
+.zq-f-form button[type="submit"] {
+	display: block;
+	width: 295px;
+	height: 56px;
+	margin: 63px auto 0;
+	border: 1px solid #000;
+	border-radius: 10px;
+	background: #000;
+	color: #fff;
+	cursor: pointer;
+	font-family: var(--zq-geist);
+	font-size: 14px;
+	font-weight: 500;
+	letter-spacing: .42px;
+	text-transform: uppercase;
+}
+
+.zq-f-aviso {
+	padding: 16px;
+	border: 1px dashed #c00;
+	color: #c00;
+}
+
+/* Pantallas medianas: se escala el lienzo de 1440 manteniendo proporciones */
+@media (max-width: 1439px) and (min-width: 1100px) {
+	.zq-f-zona__txt { flex-basis: 52%; margin-left: 2.8vw; }
+	.zq-f-foto--zona { width: 42.5vw; height: 51.25vw; margin-left: 1vw; }
+	.zq-f-foto--urb { width: 39.4vw; height: 47.6vw; margin-left: 2vw; }
+	.zq-f-urb__txt { flex-basis: 53%; margin-left: 2.7vw; }
+	.zq-f-zona2__txt { flex-basis: 50.8%; margin-left: 5.9vw; }
+	.zq-f-foto--zona2 { width: 40.3vw; height: 60.3vw; }
+	.zq-f-loc__txt { flex-basis: 53%; margin-left: 2.8vw; }
+	.zq-f-mapa { flex-basis: 42.5vw; height: 43.5vw; margin-left: 4vw; }
+	.zq-f-gal__grid { margin-left: auto; margin-right: auto; }
+	.zq-f-cards { flex-wrap: wrap; }
+	.zq-f .zq-propiedades-wrap { overflow-x: auto; }
+}
+
+/* Tableta y móvil: una columna, fotos arriba, medidas proporcionales ------ */
+@media (max-width: 1099px) {
+	.zq-f-row { flex-direction: column; }
+	.zq-f-canvas { padding: 0 20px; }
+	.zq-f-hero { height: 75vh; min-height: 520px; }
+	.zq-f-hero__txt { top: auto; bottom: 60px; left: 20px; width: calc(100% - 40px); }
+	.zq-f .zq-f-hero__title { font-size: 32px; }
+	.zq-f .zq-f-hero__sub { margin-top: 40px; }
+	.zq-f .zq-f-h { font-size: 30px; }
+	.zq-f .zq-f-hc { font-size: 28px; }
+	.zq-f .zq-f-txt, .zq-f .zq-f-txt--22 { font-size: 17px; }
+	.zq-f .zq-f-h3 { font-size: 20px; }
+	.zq-f-zona, .zq-f-urb, .zq-f-loc, .zq-f-zona2, .zq-f-contacto { padding-top: 80px; }
+	.zq-f-caract, .zq-f-prop, .zq-f-gal { padding-top: 60px; }
+	.zq-f-zona__txt, .zq-f-urb__txt, .zq-f-loc__txt, .zq-f-zona2__txt { flex-basis: auto; width: 100%; margin: 0; }
+	.zq-f-foto--zona, .zq-f-foto--urb, .zq-f-foto--zona2 { width: calc(100% - 24px); height: auto; aspect-ratio: 4 / 5; margin: 0 0 48px; }
+	.zq-f-foto--zona { order: -1; margin-top: 24px; }
+	.zq-f-foto--zona::before { left: 24px; top: -24px; bottom: -24px; }
+	.zq-f-foto--urb, .zq-f-foto--zona2 { margin: 24px 0 48px 24px; }
+	.zq-f-foto--urb::before, .zq-f-foto--zona2::before { right: 24px; top: -24px; bottom: -24px; }
+	.zq-f-cards { flex-wrap: wrap; }
+	.zq-f-card { width: calc(50% - 8px); }
+	.zq-f-card__label { gap: 12px; font-size: 16px; }
+	.zq-f-card__value { font-size: 17px; }
+	.zq-f-dists { grid-template-columns: repeat(2, 1fr); }
+	.zq-f-mapa { flex-basis: auto; width: 100%; height: 360px; margin: 32px 0 0; }
+	.zq-f-gal__grid { flex-direction: column; gap: 20px; width: 100%; max-width: 100%; margin: 0; }
+	.zq-f-gal__item { flex: none; height: auto; aspect-ratio: 601 / 408; }
+	.zq-f .zq-propiedades-wrap { width: 100%; }
+	.zq-f .zq-propiedades th, .zq-f .zq-propiedades td { font-size: 15px; }
+	.zq-f .zq-propiedades th { height: 42px; }
+	.zq-f-form .zq-campos { grid-template-columns: 1fr; row-gap: 24px; }
+	.zq-f-form input[type="submit"], .zq-f-form button[type="submit"] { width: 100%; }
+}
+
+@media (max-width: 767px) {
+	.zq-f .zq-propiedades { table-layout: auto; border-spacing: 0; margin: 0; }
+	.zq-f .zq-propiedades th { width: auto !important; }
+	.zq-f .zq-propiedades td { height: auto; color: inherit; font-size: 15px; white-space: normal; }
+	.zq-f .zq-propiedades .zq-estado-sold td { opacity: .45; }
+	.zq-f-card { width: 100%; }
+}

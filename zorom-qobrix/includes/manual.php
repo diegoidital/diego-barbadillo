@@ -28,6 +28,12 @@ function zq_manual_fields() {
 		'Localización'                  => array(
 			'localizacion_titulo' => array( 'Título', 'text', 'Ej.: Localización exclusiva' ),
 			'localizacion_texto'  => array( 'Texto', 'html', 'Vacío = el texto en español de Qobrix (custom_location_description_es).' ),
+			'dist_aeropuerto'     => array( 'Aeropuerto más cercano (km)', 'text', 'Vacío = distancia de Qobrix (distance_from_airport_amount).' ),
+			'dist_playa'          => array( 'Playa más cercana (km)', 'text', 'Vacío = distancia de Qobrix (distance_from_beach_amount).' ),
+			'dist_centro'         => array( 'Centro de la localidad (km)', 'text', 'Vacío = distancia de Qobrix (distance_from_centre_amount).' ),
+			'dist_hospital'       => array( 'Hospital más cercano (km)', 'text', 'Vacío = distancia de Qobrix (distance_from_hospital_amount).' ),
+			'dist_escuela'        => array( 'Escuela más próxima (km)', 'text', 'Vacío = distancia de Qobrix (distance_from_school_amount).' ),
+			'dist_tiendas'        => array( 'Zona de compras más cercana (km)', 'text', 'Vacío = distancia de Qobrix (distance_from_shops_amount).' ),
 		),
 		'Zona (segundo bloque)'         => array(
 			'zona2_titulo' => array( 'Título', 'text', 'Ej.: Calpe, mucho más que playa y montaña' ),
