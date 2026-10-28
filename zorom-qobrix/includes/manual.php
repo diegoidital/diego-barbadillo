@@ -52,6 +52,36 @@ function zq_get_manual( $post_id, $key ) {
 	return get_post_meta( $post_id, 'zq_' . $key, true );
 }
 
+/**
+ * Textos de ejemplo para la zona y la localización. Se muestran mientras el campo de la
+ * promoción esté vacío; {ciudad}, {provincia} y {promocion} se sustituyen por sus datos.
+ */
+function zq_manual_examples() {
+	return apply_filters( 'zq_manual_examples', array(
+		'zona_titulo'         => '{ciudad}, un paraíso natural',
+		'zona_subtitulo'      => 'Un entorno diseñado para elevar tu experiencia de vida al siguiente nivel.',
+		'zona_texto'          => "<p>{ciudad} se ha consolidado como uno de los enclaves más deseados de la Costa Blanca para quienes buscan una vivienda de calidad junto al Mediterráneo, con un paisaje que combina mar, montaña y una luz excepcional durante todo el año.</p>\n<p>Vivir en {ciudad} significa disfrutar de una ubicación estratégica: buenas conexiones con el aeropuerto de Alicante y con las principales ciudades de la provincia, y más de 300 días de sol al año para aprovechar la vivienda, sus exteriores y la piscina prácticamente todo el año.</p>\n<p>La zona cuenta con servicios de primer nivel: colegios internacionales, centros de salud, comercios, restaurantes y actividades deportivas a pocos minutos, pensados para quienes buscan un estilo de vida exclusivo sin renunciar a la comodidad.</p>",
+		'descripcion_titulo'  => 'Urbanización de lujo en {ciudad}',
+		'localizacion_titulo' => 'Localización exclusiva',
+		'localizacion_texto'  => "<p>La ubicación combina todo lo esencial para un estilo de vida equilibrado. Con escuelas, tiendas y centros de salud cerca, las necesidades diarias están siempre al alcance. Cuando quieras relajarte, la playa y el centro de la ciudad están a un corto trayecto.</p>\n<p>En {promocion} despertarás con vistas al entorno y tendrás todo lo que necesitas cerca, en una mezcla perfecta de belleza natural y comodidad.</p>",
+		'zona2_titulo'        => '{ciudad}, mucho más que playa y montaña',
+		'zona2_texto'         => "<p>Vivir en {ciudad} significa integrarse en un municipio con carácter propio, donde la tradición y una comunidad internacional consolidada conviven con una vida cotidiana completa y bien resuelta.</p>\n<p>Su oferta cultural y gastronómica, sus fiestas y su agenda de actividades durante todo el año hacen de {ciudad} un lugar donde construir una vida plena y estable, combinando autenticidad mediterránea, comodidad urbana y una comunidad diversa y activa.</p>",
+	) );
+}
+
+function zq_manual_example( $post_id, $key ) {
+	$ex = zq_manual_examples();
+	if ( empty( $ex[ $key ] ) ) {
+		return '';
+	}
+	$ciudad = (string) get_post_meta( $post_id, ZQ_META_PREFIX . 'city', true );
+	return strtr( $ex[ $key ], array(
+		'{ciudad}'    => $ciudad ? $ciudad : 'la Costa Blanca',
+		'{provincia}' => (string) get_post_meta( $post_id, ZQ_META_PREFIX . 'district', true ),
+		'{promocion}' => get_the_title( $post_id ),
+	) );
+}
+
 add_action( 'add_meta_boxes', function () {
 	add_meta_box( 'zq_manual', 'Contenido de la página (manual)', 'zq_manual_metabox', ZQ_CPT, 'normal', 'high' );
 	add_meta_box( 'zq_qobrix', 'Datos de Qobrix (solo lectura)', 'zq_qobrix_metabox', ZQ_CPT, 'side', 'default' );
@@ -87,10 +117,14 @@ function zq_manual_metabox( $post ) {
 				echo '<input type="hidden" id="zq_' . esc_attr( $key ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '">';
 				echo '<button type="button" class="button zq-img-pick">Elegir imagen</button> <button type="button" class="button-link zq-img-remove"' . ( $value ? '' : ' style="display:none"' ) . '>Quitar</button></div>';
 			} else {
-				echo '<input type="text" class="large-text" id="zq_' . esc_attr( $key ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '">';
+				echo '<input type="text" class="large-text" id="zq_' . esc_attr( $key ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '" placeholder="' . esc_attr( wp_strip_all_tags( zq_manual_example( $post->ID, $key ) ) ) . '">';
 			}
 			if ( $help ) {
 				echo '<p class="description">' . esc_html( $help ) . '</p>';
+			}
+			$example = zq_manual_example( $post->ID, $key );
+			if ( '' === (string) $value && '' !== $example && 'html' === $type ) {
+				echo '<p class="description"><strong>Vacío: en la web se muestra este texto de ejemplo</strong> (escribe el tuyo para sustituirlo):</p><div style="padding:8px 12px;background:#f6f7f7;border-left:3px solid #c3c4c7;color:#50575e">' . wp_kses_post( $example ) . '</div>';
 			}
 			echo '</td></tr>';
 		}
