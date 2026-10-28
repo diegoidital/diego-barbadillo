@@ -1,6 +1,6 @@
 <?php
 /**
- * Página de una promoción pintada con la plantilla de Elementor elegida en Ajustes → Qobrix.
+ * Página de una promoción pintada con la plantilla de Elementor elegida en Qobrix → Ajustes.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

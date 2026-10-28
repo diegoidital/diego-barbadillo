@@ -1,6 +1,6 @@
 <?php
 /**
- * Panel Ajustes → Qobrix y columnas del listado de promociones.
+ * Panel Qobrix → Ajustes y columnas del listado de promociones.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -8,7 +8,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 add_action( 'admin_menu', function () {
-	add_options_page( 'Qobrix', 'Qobrix', 'manage_options', 'zorom-qobrix', 'zq_settings_page' );
+	add_menu_page( 'Qobrix', 'Qobrix', 'manage_options', 'zorom-qobrix', 'zq_settings_page', 'dashicons-building', 26 );
+	add_submenu_page( 'zorom-qobrix', 'Ajustes de Qobrix', 'Ajustes y sincronización', 'manage_options', 'zorom-qobrix', 'zq_settings_page' );
 } );
 
 add_action( 'admin_init', function () {
@@ -47,7 +48,7 @@ add_action( 'admin_post_zq_sync_now', function () {
 	}
 	check_admin_referer( 'zq_sync_now' );
 	zq_sync( ! empty( $_POST['zq_force'] ) );
-	wp_safe_redirect( admin_url( 'options-general.php?page=zorom-qobrix' ) );
+	wp_safe_redirect( admin_url( 'admin.php?page=zorom-qobrix' ) );
 	exit;
 } );
 

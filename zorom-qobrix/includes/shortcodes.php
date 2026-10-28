@@ -137,6 +137,10 @@ function zq_query_projects( $a ) {
 			$args['orderby']  = 'meta_value';
 			$args['order']    = 'ASC';
 			break;
+		case 'prioridad': // Prioridad de destacado en Qobrix (1 = primera).
+			$args['meta_key'] = ZQ_META_PREFIX . 'featured_priority';
+			$args['orderby']  = array( 'meta_value_num' => 'ASC', 'title' => 'ASC' );
+			break;
 		default: // «Orden» de la promoción en WordPress y luego título.
 			$args['orderby'] = array( 'menu_order' => 'ASC', 'title' => 'ASC' );
 	}
@@ -182,7 +186,7 @@ add_shortcode( 'zorom_promociones', function ( $atts ) {
 	$projects = zq_query_projects( $a );
 	if ( ! $projects ) {
 		return current_user_can( 'manage_options' )
-			? '<p><em>Promociones Qobrix: no hay promociones publicadas. Revisa Ajustes → Qobrix.</em></p>'
+			? '<p><em>Promociones Qobrix: no hay promociones publicadas. Revisa Qobrix → Ajustes.</em></p>'
 			: '';
 	}
 

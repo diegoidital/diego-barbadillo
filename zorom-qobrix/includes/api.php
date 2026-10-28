@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function zq_api_get( $path, $params = array() ) {
 	$o = zq_options();
 	if ( empty( $o['api_url'] ) || empty( $o['api_user'] ) || empty( $o['api_key'] ) ) {
-		return new WP_Error( 'zq_config', 'Faltan la URL, el usuario o la clave de la API en Ajustes → Qobrix.' );
+		return new WP_Error( 'zq_config', 'Faltan la URL, el usuario o la clave de la API en Qobrix → Ajustes.' );
 	}
 
 	$url = add_query_arg( array_map( 'rawurlencode', $params ), rtrim( $o['api_url'], '/' ) . '/api/v2/' . ltrim( $path, '/' ) );
