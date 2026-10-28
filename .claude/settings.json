@@ -7,7 +7,8 @@
       "mcp__Claude_Docs__export",
       "mcp__Claude_Docs__create",
       "mcp__Claude_Docs__batch",
-      "mcp__Claude_Docs__update"
+      "mcp__Claude_Docs__update",
+      "Bash(zip:*)"
     ]
   }
 }
