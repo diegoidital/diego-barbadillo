@@ -40,9 +40,15 @@
 
 .zq-panel {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
-	gap: clamp(40px, 8vw, 120px);
+	/* Medidas del diseño: texto 840 px · hueco 117 px · foto 442 px. */
+	grid-template-columns: minmax(0, 840px) minmax(0, 442px);
+	column-gap: clamp(40px, 6vw, 117px);
+	justify-content: start;
 	align-items: start;
+}
+
+.zq-panel__info {
+	padding-left: 10px;
 }
 
 .zq-panel--plantilla {
@@ -54,37 +60,57 @@
 }
 
 .zq-title {
-	margin: 0 0 16px;
+	margin: 0 0 14px;
 	font-size: 32px;
 	font-weight: 400;
+	line-height: 1.2;
+}
+
+.zq-desc {
+	font-size: 16px;
+	line-height: 1.6;
 }
 
 .zq-desc p {
-	margin: 0 0 1em;
-	line-height: 1.6;
+	margin: 0 0 1.6em;
+}
+
+.zq-desc p:last-child {
+	margin-bottom: 0;
 }
 
 .zq-datos {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 20px;
-	margin: 36px 0;
+	margin: 44px 0 0;
 }
 
 .zq-dato dt {
+	font-size: 14px;
 	font-weight: 600;
+	line-height: 1.4;
 }
 
 .zq-dato dd {
-	margin: 4px 0 0;
-	font-size: 18px;
+	margin: 2px 0 0;
+	font-size: 16px;
+	line-height: 1.4;
 }
 
 .zq-link,
 .zq-promos .zq-link {
+	display: inline-block;
+	margin-top: 46px;
 	color: inherit;
+	font-size: 15px;
 	font-weight: 500;
 	text-decoration: none;
+}
+
+.zq-promos .zq-link .zq-flecha {
+	margin-left: 4px;
+	font-size: 1.1em;
 }
 
 .zq-link:hover {
@@ -94,7 +120,9 @@
 .zq-panel__img {
 	position: relative;
 	z-index: 0;
+	margin-top: 7px;
 	padding-bottom: 48px;
+	max-width: 442px;
 }
 
 /* Bloque negro detrás de la foto, hasta el borde derecho de la pantalla (diseño Figma). */
@@ -104,7 +132,7 @@
 	z-index: -1;
 	top: -14px;
 	bottom: 0;
-	left: 85px;
+	left: 80px;
 	width: 100vw;
 	border-radius: 40px 0 0 40px;
 	background: var(--zq-bloque, #000);
@@ -178,7 +206,13 @@ body:has(.zq-promos) {
 	}
 
 	.zq-panel__img {
+		margin-top: 0;
 		padding-bottom: 24px;
+		max-width: none;
+	}
+
+	.zq-panel__info {
+		padding-left: 0;
 	}
 
 	.zq-panel__img::before {

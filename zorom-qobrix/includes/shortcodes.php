@@ -247,7 +247,7 @@ function zq_default_panel( WP_Post $p, array $a, $first ) {
 				<?php endif; ?>
 			<?php endforeach; ?>
 		</dl>
-		<a class="zq-link" href="<?php echo esc_url( get_permalink( $p ) ); ?>"><?php echo esc_html( $a['texto_enlace'] ); ?> <span aria-hidden="true">&rarr;</span></a>
+		<a class="zq-link" href="<?php echo esc_url( get_permalink( $p ) ); ?>"><?php echo esc_html( $a['texto_enlace'] ); ?><span class="zq-flecha" aria-hidden="true">&#10142;</span></a>
 	</div>
 	<div class="zq-panel__img">
 		<?php
