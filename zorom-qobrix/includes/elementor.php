@@ -46,3 +46,11 @@ add_action( 'elementor/dynamic_tags/register', function ( $dynamic_tags ) {
 	$dynamic_tags->register( new ZQ_Tag_Enlace() );
 	$dynamic_tags->register( new ZQ_Tag_Galeria() );
 } );
+
+/*
+ * Shortcodes [qobrix…] en cualquier widget de Elementor (Título, Caja de icono, Botón…):
+ * Elementor no siempre los procesa fuera del Editor de texto, así que se procesan aquí.
+ */
+add_filter( 'elementor/widget/render_content', function ( $content ) {
+	return ( is_string( $content ) && false !== strpos( $content, '[qobrix' ) ) ? do_shortcode( $content ) : $content;
+}, 20 );
