@@ -59,6 +59,11 @@ class ZQ_Tag_Campo extends Tag {
 			'options' => zq_formats(),
 			'default' => 'auto',
 		) );
+		$this->add_control( 'vacio', array(
+			'label'   => 'Si no hay dato, mostrar',
+			'type'    => Controls_Manager::TEXT,
+			'default' => '-',
+		) );
 		zq_tag_project_control( $this );
 	}
 
@@ -66,9 +71,11 @@ class ZQ_Tag_Campo extends Tag {
 		$s       = $this->get_settings();
 		$campo   = 'otro' === $s['campo'] ? $s['campo_otro'] : $s['campo'];
 		$post_id = zq_resolve_project( isset( $s['proyecto'] ) ? $s['proyecto'] : '' );
-		if ( $post_id && $campo ) {
-			echo zq_render_field( $post_id, $campo, $s['formato'] ); // phpcs:ignore WordPress.Security.EscapeOutput
+		$out     = ( $post_id && $campo ) ? (string) zq_render_field( $post_id, $campo, $s['formato'] ) : '';
+		if ( '' === trim( wp_strip_all_tags( $out ) ) ) {
+			$out = esc_html( isset( $s['vacio'] ) ? $s['vacio'] : '-' );
 		}
+		echo $out; // phpcs:ignore WordPress.Security.EscapeOutput
 	}
 }
 

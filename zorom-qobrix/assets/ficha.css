@@ -1501,3 +1501,16 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 .zq-vendidas > summary + table {
 	margin-top: 0;
 }
+
+/* Sin propiedades a la venta. */
+.zq-sin-propiedades {
+	margin: 0 0 8px;
+	padding: 24px 0;
+	font-size: 16px;
+	text-align: center;
+}
+
+/* Sin contorno azul al pulsar el desplegable (se mantiene con teclado). */
+.zq-vendidas > summary:focus:not(:focus-visible) {
+	outline: none;
+}
