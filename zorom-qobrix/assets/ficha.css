@@ -1126,7 +1126,11 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 	line-height: 1.2;
 }
 
-.zq-v-estado--available,
+.zq-v .zq-v-meta .zq-v-estado--available {
+	background: #fff;
+	color: #000;
+}
+
 .zq-v .zq-v-meta [class*="zq-v-estado--reserv"],
 .zq-v .zq-v-meta [class*="zq-v-estado--under"],
 .zq-v .zq-v-meta [class*="zq-v-estado--offer"] {
