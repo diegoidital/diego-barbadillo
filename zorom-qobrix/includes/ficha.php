@@ -146,12 +146,17 @@ function zq_ficha_propiedades( $post_id, $a ) {
 
 /* 03. Urbanización (foto con bloque negro a la izquierda + descripción) ---- */
 function zq_ficha_urbanizacion( $post_id, $a ) {
-	$com = zq_render_field( $post_id, 'comodidades' );
+	$desc = zq_render_field( $post_id, 'descripcion' );
+	$com  = zq_render_field( $post_id, 'comodidades' );
+	// Si la descripción ya incluye las comodidades (escritas a mano), no se repiten.
+	if ( $com && false !== stripos( wp_strip_all_tags( $desc ), 'comodidades' ) ) {
+		$com = '';
+	}
 	return '<section class="zq-f-sec zq-f-urb"><div class="zq-f-canvas zq-f-row">'
 		. '<div class="zq-f-foto zq-f-foto--urb">' . zq_ficha_img( $post_id, array( 'galeria:1', 'destacada' ) ) . '</div>'
 		. '<div class="zq-f-urb__txt">'
 		. zq_ficha_h( zq_render_field( $post_id, 'descripcion_titulo' ) )
-		. '<div class="zq-f-txt">' . zq_render_field( $post_id, 'descripcion' )
+		. '<div class="zq-f-txt">' . $desc
 		. ( $com ? '<h3 class="zq-f-h3">Comodidades</h3>' . $com : '' )
 		. '</div></div>'
 		. '</div></section>';
