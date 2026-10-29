@@ -401,16 +401,21 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 		$cols[] = array( explode( '|', $p[0] ), isset( $p[1] ) ? $p[1] : $p[0], isset( $p[2] ) ? $p[2] : 'texto' );
 	}
 
-	// Disponibles (y reservadas) arriba; vendidas en el desplegable.
+	// Orden: disponibles, luego reservadas; las vendidas van al desplegable.
 	$disponibles = array();
 	$vendidas    = array();
 	foreach ( $units as $u ) {
-		if ( 'sold' === strtolower( (string) ( isset( $u['status'] ) ? $u['status'] : '' ) ) ) {
+		$st = strtolower( (string) ( isset( $u['status'] ) ? $u['status'] : '' ) );
+		if ( preg_match( '/sold|vendid/', $st ) ) {
 			$vendidas[] = $u;
 		} else {
+			$u['_orden']   = preg_match( '/reserv|offer|hold|option|pending/', $st ) ? 1 : 0;
 			$disponibles[] = $u;
 		}
 	}
+	usort( $disponibles, function ( $x, $y ) {
+		return ( $x['_orden'] - $y['_orden'] ) ?: strnatcmp( (string) ( $x['ref'] ?? '' ), (string) ( $y['ref'] ?? '' ) );
+	} );
 
 	$thead = '<thead><tr>';
 	foreach ( $cols as $c ) {
