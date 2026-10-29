@@ -272,8 +272,11 @@ add_action( 'wp_enqueue_scripts', function () {
 	$h   = (int) zq_options()['menu_height'];
 	$css = ':root{--zq-menu-h:' . $h . 'px;--zq-escala:' . ( (int) zq_options()['escala'] / 100 ) . '}';
 	if ( zq_options()['menu_transparente'] ) {
-		$css .= 'body.single-' . ZQ_CPT . ' .elementor-location-header,body.single-' . ZQ_CPT . ' header.site-header,body.single-' . ZQ_CPT . ' #masthead{position:relative;z-index:50;background:transparent!important}'
-			. 'body.single-' . ZQ_CPT . ' .elementor-location-header>.e-con,body.single-' . ZQ_CPT . ' .elementor-location-header>.elementor-section,body.single-' . ZQ_CPT . ' .elementor-location-header>.elementor-element{background:transparent!important;background-color:transparent!important}';
+		foreach ( array( ZQ_CPT, ZQ_CPT_VIVIENDA ) as $t ) {
+			$b    = 'body.single-' . $t;
+			$css .= $b . ' .elementor-location-header,' . $b . ' header.site-header,' . $b . ' #masthead{position:relative;z-index:50;background:transparent!important}'
+				. $b . ' .elementor-location-header>.e-con,' . $b . ' .elementor-location-header>.elementor-section,' . $b . ' .elementor-location-header>.elementor-element{background:transparent!important;background-color:transparent!important}';
+		}
 	}
 	wp_add_inline_style( 'zq-ficha', $css );
 	wp_add_inline_style( 'zorom-qobrix', $css );
