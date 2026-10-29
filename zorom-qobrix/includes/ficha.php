@@ -20,11 +20,7 @@ function zq_ficha_secciones() {
 add_action( 'wp_enqueue_scripts', function () {
 	$url = plugin_dir_url( ZQ_FILE );
 	wp_register_style( 'zq-fuentes', 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Inter:wght@300;600&display=swap', array(), null );
-	$deps = zq_options()['load_fonts'] ? array( 'zq-fuentes' ) : array();
-	wp_register_style( 'zq-ficha', $url . 'assets/ficha.css', $deps, ZQ_VERSION );
-	if ( is_singular( ZQ_CPT ) ) {
-		wp_enqueue_style( 'zq-ficha' );
-	}
+	wp_register_style( 'zq-ficha', $url . 'assets/ficha.css', array(), ZQ_VERSION );
 } );
 
 /** Icono SVG del Figma (assets/icons), coloreado con el color del texto. */
@@ -282,3 +278,37 @@ add_action( 'wp_enqueue_scripts', function () {
 	wp_add_inline_style( 'zq-ficha', $css );
 	wp_add_inline_style( 'zorom-qobrix', $css );
 }, 30 );
+
+/*
+ * Los estilos del diseño (bloque negro, tabla, formulario…) también en el editor y la vista previa
+ * de Elementor y en cualquier página hecha con Elementor, no solo en las promociones.
+ */
+function zq_enqueue_ficha_style() {
+	if ( ! wp_style_is( 'zq-ficha', 'registered' ) ) {
+		wp_register_style( 'zq-ficha', plugin_dir_url( ZQ_FILE ) . 'assets/ficha.css', array(), ZQ_VERSION );
+	}
+	wp_enqueue_style( 'zq-ficha' );
+}
+
+function zq_enqueue_fuentes() {
+	if ( zq_options()['load_fonts'] ) {
+		wp_enqueue_style( 'zq-fuentes', 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Inter:wght@300;600&display=swap', array(), null );
+	}
+}
+
+// Web: en toda la web con Elementor activo; tipografías solo en promociones.
+add_action( 'wp_enqueue_scripts', function () {
+	if ( did_action( 'elementor/loaded' ) || is_singular( ZQ_CPT ) ) {
+		zq_enqueue_ficha_style();
+	}
+	if ( is_singular( ZQ_CPT ) ) {
+		zq_enqueue_fuentes();
+	}
+}, 999 );
+
+// Editor y vista previa de Elementor.
+add_action( 'elementor/preview/enqueue_styles', function () {
+	zq_enqueue_ficha_style();
+	zq_enqueue_fuentes();
+} );
+add_action( 'elementor/editor/after_enqueue_styles', 'zq_enqueue_ficha_style' );
