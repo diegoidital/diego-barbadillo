@@ -926,3 +926,41 @@ body:has(.zq-f) {
 body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 	overflow-x: clip;
 }
+
+/* Plantilla editable: la imagen con bloque negro ocupa todo el alto de su columna. */
+.elementor-widget-image.zq-bloque-dcha,
+.elementor-widget-image.zq-bloque-izda {
+	flex-grow: 1;
+}
+
+.elementor-widget-image.zq-bloque-dcha .elementor-widget-container,
+.elementor-widget-image.zq-bloque-izda .elementor-widget-container,
+.elementor-widget-image.zq-bloque-dcha .elementor-widget-container > a,
+.elementor-widget-image.zq-bloque-izda .elementor-widget-container > a {
+	display: block;
+	height: 100%;
+}
+
+.zq-mapa-redondo iframe {
+	border-radius: 20px;
+}
+
+/* La foto no impone altura: mide lo que mida el texto de al lado (mínimo 240 px). */
+.elementor-widget-image.zq-bloque-dcha,
+.elementor-widget-image.zq-bloque-izda {
+	min-height: 240px;
+}
+
+.elementor-widget-image.zq-bloque-dcha img,
+.elementor-widget-image.zq-bloque-izda img {
+	position: absolute;
+	inset: 0;
+}
+
+@media (max-width: 767px) {
+	.elementor-widget-image.zq-bloque-dcha,
+	.elementor-widget-image.zq-bloque-izda {
+		min-height: 0;
+		aspect-ratio: 4 / 3;
+	}
+}

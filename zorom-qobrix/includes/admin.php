@@ -159,7 +159,10 @@ function zq_settings_page() {
 					</select>
 						<p class="description">Todas las páginas de promoción se pintan con esta plantilla (Plantillas → Plantillas guardadas). Dentro, los shortcodes y etiquetas Qobrix muestran los datos de cada promoción.<br>
 						<?php if ( class_exists( '\Elementor\Plugin' ) ) : ?>
-							<a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=zq_create_template' ), 'zq_create_template' ) ); ?>">Crear plantilla de ejemplo (diseño Figma)</a><br>
+							<a class="button button-primary" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=zq_create_editable' ), 'zq_create_editable' ) ); ?>">Crear plantilla editable (widgets de Elementor)</a>
+							<a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=zq_export_editable' ), 'zq_export_editable' ) ); ?>">Descargar como JSON</a>
+							<a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=zq_create_template' ), 'zq_create_template' ) ); ?>">Crear plantilla cerrada (bloques fijos)</a><br>
+							<span class="description">La <strong>editable</strong> monta cada dato en su widget (título, texto, imagen, caja de icono…) para cambiar tamaños y estilos en Elementor. Con Elementor Pro se crea en Theme Builder ya asignada a todas las promociones.</span><br>
 						<?php endif; ?>
 						Con Elementor Pro también puedes usar Theme Builder → Entrada individual → condición «Promociones»; en ese caso este ajuste se ignora.</p></td></tr>
 			</table>
