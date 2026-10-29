@@ -267,100 +267,154 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 		$fotos = array_values( (array) get_post_meta( $promo, '_zq_galeria', true ) );
 	}
 
+	// Galería de la promoción (si no hay, las fotos del inmueble).
+	$galeria = $promo ? array_values( (array) get_post_meta( $promo, '_zq_galeria', true ) ) : array();
+	if ( ! $galeria ) {
+		$galeria = $fotos;
+	}
+	$portada = $fotos ? (int) $fotos[0] : (int) get_post_thumbnail_id( $post_id );
+	if ( ! $portada && $promo ) {
+		$portada = (int) get_post_thumbnail_id( $promo );
+	}
+	$coord = $promo ? zq_coordinates( $promo ) : array();
+	$lb    = 'zq-v-' . (int) $post_id;
+
 	ob_start();
 	?>
 	<div class="zq-f zq-v">
-		<div class="zq-v-canvas">
-			<?php if ( $promo ) : ?>
-				<a class="zq-v-volver" href="<?php echo esc_url( get_permalink( $promo ) ); ?>">&larr; <?php echo esc_html( get_the_title( $promo ) ); ?></a>
-			<?php endif; ?>
+		<header class="zq-v-hero">
+			<div class="zq-v-hero__txt">
+				<?php if ( $promo ) : ?>
+					<a class="zq-v-volver" href="<?php echo esc_url( get_permalink( $promo ) ); ?>">&larr; <?php echo esc_html( get_the_title( $promo ) ); ?></a>
+				<?php endif; ?>
+				<h1 class="zq-v-titulo"><?php echo esc_html( get_the_title( $post_id ) ); ?></h1>
+				<p class="zq-v-meta">
+					<?php if ( $ref ) : ?><span>#<?php echo esc_html( $ref ); ?></span><?php endif; ?>
+					<span><?php echo esc_html( $sale ? zq_humanize( $sale ) : 'Venta' ); ?></span>
+					<span class="zq-v-estado zq-v-estado--<?php echo esc_attr( sanitize_html_class( $status ) ); ?>"><?php echo esc_html( zq_humanize( $status ) ); ?></span>
+				</p>
+				<p class="zq-v-ubi"><?php echo $promo ? esc_html( get_the_title( $promo ) ) . ' · ' : ''; ?><?php echo $ubi; // phpcs:ignore WordPress.Security.EscapeOutput ?></p>
 
-			<header class="zq-v-cab">
-				<div class="zq-v-cab__txt">
-					<h1 class="zq-f-h"><?php echo esc_html( get_the_title( $post_id ) ); ?></h1>
-					<p class="zq-v-meta">
-						<?php if ( $ref ) : ?><span>#<?php echo esc_html( $ref ); ?></span><?php endif; ?>
-						<span><?php echo esc_html( $sale ? zq_humanize( $sale ) : 'Venta' ); ?></span>
-						<span class="zq-v-estado zq-v-estado--<?php echo esc_attr( sanitize_html_class( $status ) ); ?>"><?php echo esc_html( zq_humanize( $status ) ); ?></span>
-					</p>
-					<p class="zq-v-ubi"><?php echo $promo ? esc_html( get_the_title( $promo ) ) . ' · ' : ''; ?><?php echo $ubi; // phpcs:ignore WordPress.Security.EscapeOutput ?></p>
-				</div>
-				<div class="zq-v-cab__precio">
+				<div class="zq-v-hero__pie">
 					<?php if ( '' !== $precio ) : ?>
 						<div class="zq-v-precio"><?php echo esc_html( zq_viv_precio( $precio ) ); ?> <small>+ IVA</small></div>
 					<?php endif; ?>
 					<ul class="zq-v-claves">
-						<?php if ( '' !== $dorm ) : ?><li><span><?php echo esc_html( $dorm ); ?> dormitorios</span></li><?php endif; ?>
-						<?php if ( '' !== $banos ) : ?><li><span><?php echo esc_html( $banos ); ?> baños</span></li><?php endif; ?>
-						<?php if ( '' !== $util ) : ?><li><span><?php echo esc_html( zq_viv_m2( $util ) ); ?></span></li><?php endif; ?>
+						<?php if ( '' !== $dorm ) : ?><li><?php echo zq_viv_icono( 'cama' ); // phpcs:ignore ?><span><?php echo esc_html( $dorm ); ?></span></li><?php endif; ?>
+						<?php if ( '' !== $banos ) : ?><li><?php echo zq_viv_icono( 'bano' ); // phpcs:ignore ?><span><?php echo esc_html( $banos ); ?></span></li><?php endif; ?>
+						<?php if ( '' !== $util ) : ?><li><?php echo zq_viv_icono( 'plano' ); // phpcs:ignore ?><span><?php echo esc_html( str_replace( ' ', '', zq_viv_m2( $util ) ) ); ?></span></li><?php endif; ?>
 					</ul>
 					<div class="zq-v-botones">
-						<a class="zq-f-btn zq-v-btn--negro" href="#contacto">Solicitar información</a>
-						<?php if ( $folleto ) : ?><a class="zq-f-btn zq-v-btn--blanco" href="<?php echo esc_url( $folleto ); ?>" target="_blank" rel="noopener">Folleto</a><?php endif; ?>
+						<a class="zq-v-btn zq-v-btn--negro" href="#contacto">Solicitar información</a>
+						<?php if ( $folleto ) : ?><a class="zq-v-btn zq-v-btn--linea" href="<?php echo esc_url( $folleto ); ?>" target="_blank" rel="noopener">Folleto</a><?php endif; ?>
 					</div>
 				</div>
-			</header>
+			</div>
+			<div class="zq-v-hero__img">
+				<?php echo $portada ? wp_get_attachment_image( $portada, 'full', false, array( 'loading' => 'eager', 'fetchpriority' => 'high' ) ) : zq_image_html( $post_id, 'destacada', 'full' ); // phpcs:ignore ?>
+			</div>
+		</header>
 
-			<?php if ( $fotos ) : ?>
-				<section class="zq-v-fotos zq-v-fotos--<?php echo (int) min( 5, count( $fotos ) ); ?>">
-					<?php foreach ( array_slice( $fotos, 0, 5 ) as $i => $id ) : ?>
-						<a class="zq-v-foto zq-v-foto--<?php echo 0 === $i ? 'grande' : 'peq'; ?>" href="<?php echo esc_url( wp_get_attachment_image_url( $id, 'full' ) ); ?>" data-elementor-open-lightbox="yes" data-elementor-lightbox-slideshow="zq-v-<?php echo (int) $post_id; ?>">
-							<?php echo wp_get_attachment_image( $id, 0 === $i ? 'large' : 'medium_large', false, array( 'loading' => 0 === $i ? 'eager' : 'lazy' ) ); ?>
-						</a>
-					<?php endforeach; ?>
-					<?php foreach ( array_slice( $fotos, 5 ) as $id ) : ?>
-						<a hidden href="<?php echo esc_url( wp_get_attachment_image_url( $id, 'full' ) ); ?>" data-elementor-open-lightbox="yes" data-elementor-lightbox-slideshow="zq-v-<?php echo (int) $post_id; ?>"></a>
-					<?php endforeach; ?>
-				</section>
-			<?php endif; ?>
+		<div class="zq-v-canvas">
+			<section class="zq-v-desc">
+				<h2 class="zq-v-h2">Descripción</h2>
+				<div class="zq-f-txt"><?php echo wpautop( wp_kses_post( get_post_field( 'post_content', $post_id ) ) ); // phpcs:ignore ?></div>
+			</section>
 
-			<div class="zq-v-cuerpo">
-				<section class="zq-v-desc">
-					<h2 class="zq-f-h">Descripción</h2>
-					<div class="zq-f-txt"><?php echo wpautop( wp_kses_post( get_post_field( 'post_content', $post_id ) ) ); // phpcs:ignore ?></div>
-				</section>
-
-				<aside class="zq-v-datos">
-					<?php foreach ( array( 'Detalles' => $c['detalles'], 'Superficies' => $c['superficies'] ) as $titulo => $campos ) : ?>
-						<?php
-						$filas = '';
-						foreach ( $campos as $label => $fields ) {
-							$v = zq_viv_val( $post_id, $fields );
-							if ( '' === $v ) {
-								continue;
-							}
-							$v      = 'Superficies' === $titulo ? zq_viv_m2( $v ) : zq_humanize( $v );
-							$filas .= '<div><dt>' . esc_html( $label ) . '</dt><dd>' . esc_html( $v ) . '</dd></div>';
-						}
-						if ( ! $filas ) {
+			<div class="zq-v-datos">
+				<?php foreach ( array( 'Detalles' => $c['detalles'], 'Superficies' => $c['superficies'] ) as $titulo => $campos ) : ?>
+					<?php
+					$filas = '';
+					foreach ( $campos as $label => $fields ) {
+						$v = zq_viv_val( $post_id, $fields );
+						if ( '' === $v ) {
 							continue;
 						}
-						?>
-						<h3 class="zq-f-h3"><?php echo esc_html( $titulo ); ?></h3>
+						$v      = 'Superficies' === $titulo ? zq_viv_m2( $v ) : zq_humanize( $v );
+						$filas .= '<div><dt>' . esc_html( $label ) . '</dt><dd>' . esc_html( $v ) . '</dd></div>';
+					}
+					if ( ! $filas ) {
+						continue;
+					}
+					?>
+					<section class="zq-v-bloque">
+						<h3 class="zq-v-h3"><?php echo esc_html( $titulo ); ?></h3>
 						<dl class="zq-v-dl"><?php echo $filas; // phpcs:ignore ?></dl>
-					<?php endforeach; ?>
-				</aside>
+					</section>
+				<?php endforeach; ?>
 			</div>
+		</div>
 
-			<?php if ( $planos ) : ?>
+		<?php if ( $galeria ) : ?>
+			<section class="zq-v-galeria zq-v-galeria--<?php echo (int) min( 5, count( $galeria ) ); ?>">
+				<?php foreach ( $galeria as $i => $id ) : ?>
+					<a class="zq-v-galeria__foto"<?php echo $i >= 5 ? ' hidden' : ''; ?> href="<?php echo esc_url( wp_get_attachment_image_url( $id, 'full' ) ); ?>" data-zq-lb="<?php echo esc_attr( $lb ); ?>">
+						<?php echo $i < 5 ? wp_get_attachment_image( $id, 0 === $i ? 'large' : 'medium_large', false, array( 'loading' => 'lazy' ) ) : ''; // phpcs:ignore ?>
+					</a>
+				<?php endforeach; ?>
+			</section>
+		<?php endif; ?>
+
+		<?php if ( $planos ) : ?>
+			<div class="zq-v-canvas">
 				<section class="zq-v-planos">
-					<h2 class="zq-f-h">Planos</h2>
+					<h2 class="zq-v-h2">Planos</h2>
 					<div class="zq-v-planos__grid">
 						<?php foreach ( $planos as $id ) : ?>
-							<a href="<?php echo esc_url( wp_get_attachment_image_url( $id, 'full' ) ); ?>" data-elementor-open-lightbox="yes" data-elementor-lightbox-slideshow="zq-vp-<?php echo (int) $post_id; ?>"><?php echo wp_get_attachment_image( $id, 'large', false, array( 'loading' => 'lazy' ) ); ?></a>
+							<a href="<?php echo esc_url( wp_get_attachment_image_url( $id, 'full' ) ); ?>" data-zq-lb="<?php echo esc_attr( $lb ); ?>-planos"><?php echo wp_get_attachment_image( $id, 'large', false, array( 'loading' => 'lazy' ) ); ?></a>
 						<?php endforeach; ?>
 					</div>
 				</section>
-			<?php endif; ?>
-		</div>
+			</div>
+		<?php endif; ?>
+
+		<?php if ( $coord ) : ?>
+			<section class="zq-v-mapa">
+				<iframe src="<?php echo esc_url( 'https://maps.google.com/maps?q=' . rawurlencode( $coord[0] . ',' . $coord[1] ) . '&z=13&output=embed' ); ?>" title="<?php echo esc_attr( 'Mapa de ' . get_the_title( $post_id ) ); ?>" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+			</section>
+		<?php endif; ?>
 
 		<?php echo zq_ficha_contacto( $promo ? $promo : $post_id, array( 'formulario' => '' ) ); // phpcs:ignore ?>
 
 		<?php echo zq_viv_similares( $post_id, $promo ); // phpcs:ignore ?>
 	</div>
+	<?php echo zq_viv_lightbox(); // phpcs:ignore ?>
 	<?php
 	return ob_get_clean();
 } );
+
+/** Iconos de línea para dormitorios, baños y superficie. */
+function zq_viv_icono( $n ) {
+	$p = array(
+		'cama'  => '<path d="M3 18v-6.5A1.5 1.5 0 0 1 4.5 10h19a1.5 1.5 0 0 1 1.5 1.5V18M3 18h22M3 18v3m22-3v3M5 10V7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3M8 10V8.5h5V10m2 0V8.5h5V10M3 15h22"/>',
+		'bano'  => '<path d="M3 14h22v2a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5v-2zM6 21l-1 2m17-2 1 2M6 14V6a2.5 2.5 0 0 1 4.6-1.4M9 6.5l3-1.5M3 14h22"/>',
+		'plano' => '<path d="M3 4h22v20H3zM3 11h7v7H3M14 4v7h11M14 15v9M18 15h7"/>',
+	);
+	return '<svg class="zq-v-ico" viewBox="0 0 28 28" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $p[ $n ] . '</svg>';
+}
+
+/** Visor de fotos propio: no depende de que Elementor cargue su lightbox. */
+function zq_viv_lightbox() {
+	static $done = false;
+	if ( $done ) {
+		return '';
+	}
+	$done = true;
+	return <<<'HTML'
+<div class="zq-lb" hidden><button class="zq-lb__x" aria-label="Cerrar">&times;</button><button class="zq-lb__p" aria-label="Anterior">&#8249;</button><img alt=""><button class="zq-lb__n" aria-label="Siguiente">&#8250;</button></div>
+<script>
+(function(){var b=document.querySelector('.zq-lb');if(!b)return;var img=b.querySelector('img'),l=[],i=0;
+function show(){img.src=l[i].href;}
+function close(){b.hidden=true;document.documentElement.style.overflow='';}
+document.addEventListener('click',function(e){var a=e.target.closest('a[data-zq-lb]');if(!a)return;e.preventDefault();e.stopPropagation();
+l=[].slice.call(document.querySelectorAll('a[data-zq-lb="'+a.dataset.zqLb+'"]'));i=l.indexOf(a);show();b.hidden=false;document.documentElement.style.overflow='hidden';},true);
+b.querySelector('.zq-lb__x').onclick=close;b.onclick=function(e){if(e.target===b)close();};
+b.querySelector('.zq-lb__p').onclick=function(){i=(i-1+l.length)%l.length;show();};
+b.querySelector('.zq-lb__n').onclick=function(){i=(i+1)%l.length;show();};
+document.addEventListener('keydown',function(e){if(b.hidden)return;if(e.key==='Escape')close();if(e.key==='ArrowLeft')b.querySelector('.zq-lb__p').click();if(e.key==='ArrowRight')b.querySelector('.zq-lb__n').click();});})();
+</script>
+HTML;
+}
 
 /** Otros inmuebles disponibles de la misma promoción. */
 function zq_viv_similares( $post_id, $promo, $max = 3 ) {
@@ -395,5 +449,5 @@ function zq_viv_similares( $post_id, $promo, $max = 3 ) {
 			. '<span class="zq-v-card__claves">' . esc_html( trim( zq_viv_val( $id, 'bedrooms' ) . ' dorm. · ' . zq_viv_val( $id, 'bathrooms' ) . ' baños · ' . zq_viv_m2( zq_viv_val( $id, $c['util'] ) ), ' ·' ) ) . '</span>'
 			. '</a>';
 	}
-	return '<section class="zq-f-sec zq-v-similares"><div class="zq-v-canvas"><h2 class="zq-f-hc">Propiedades similares</h2><div class="zq-v-cards">' . $html . '</div></div></section>';
+	return '<section class="zq-v-similares"><div class="zq-v-canvas"><h2 class="zq-v-h2 zq-v-h2--centro">Propiedades similares</h2><div class="zq-v-cards">' . $html . '</div></div></section>';
 }
