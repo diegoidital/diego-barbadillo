@@ -381,6 +381,7 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 		'columnas' => 'ref:Referencia,floor_number|floor|floor_level|level:Piso,bedrooms:Dormitorios,bathrooms:Baños,plot_area_amount|land_area_amount:Área parcela:m2,internal_area_amount|living_area_amount|covered_area_amount|net_area_amount:Área interna:m2,list_selling_price_amount|selling_price_amount:Precio:precio,status:Estado:estado',
 		'ocultar'  => 'withdrawn',
 		'vacio'    => '',
+		'reservadas' => 'Ver propiedades reservadas',
 		'vendidas' => 'Ver propiedades vendidas',
 	), $atts, 'qobrix_propiedades' );
 
@@ -401,21 +402,26 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 		$cols[] = array( explode( '|', $p[0] ), isset( $p[1] ) ? $p[1] : $p[0], isset( $p[2] ) ? $p[2] : 'texto' );
 	}
 
-	// Orden: disponibles, luego reservadas; las vendidas van al desplegable.
+	// Disponibles arriba; reservadas y vendidas, cada una en su desplegable.
 	$disponibles = array();
+	$reservadas  = array();
 	$vendidas    = array();
 	foreach ( $units as $u ) {
 		$st = strtolower( (string) ( isset( $u['status'] ) ? $u['status'] : '' ) );
 		if ( preg_match( '/sold|vendid/', $st ) ) {
 			$vendidas[] = $u;
+		} elseif ( preg_match( '/reserv|offer|hold|option|pending/', $st ) ) {
+			$reservadas[] = $u;
 		} else {
-			$u['_orden']   = preg_match( '/reserv|offer|hold|option|pending/', $st ) ? 1 : 0;
 			$disponibles[] = $u;
 		}
 	}
-	usort( $disponibles, function ( $x, $y ) {
-		return ( $x['_orden'] - $y['_orden'] ) ?: strnatcmp( (string) ( $x['ref'] ?? '' ), (string) ( $y['ref'] ?? '' ) );
-	} );
+	foreach ( array( &$disponibles, &$reservadas, &$vendidas ) as &$grupo ) {
+		usort( $grupo, function ( $x, $y ) {
+			return strnatcmp( (string) ( $x['ref'] ?? '' ), (string) ( $y['ref'] ?? '' ) );
+		} );
+	}
+	unset( $grupo );
 
 	$thead = '<thead><tr>';
 	foreach ( $cols as $c ) {
@@ -462,6 +468,10 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 	$out = '<div class="zq-propiedades-wrap">';
 	if ( $disponibles ) {
 		$out .= '<table class="zq-propiedades">' . $thead . '<tbody>' . $filas( $disponibles ) . '</tbody></table>';
+	}
+	if ( $reservadas ) {
+		$out .= '<details class="zq-vendidas zq-reservadas"' . ( $disponibles ? '' : ' open' ) . '><summary>' . esc_html( $a['reservadas'] ) . ' (' . count( $reservadas ) . ')</summary>'
+			. '<table class="zq-propiedades zq-propiedades--vendidas zq-propiedades--reservadas">' . $thead . '<tbody>' . $filas( $reservadas ) . '</tbody></table></details>';
 	}
 	if ( $vendidas ) {
 		$out .= '<details class="zq-vendidas"' . ( $disponibles ? '' : ' open' ) . '><summary>' . esc_html( $a['vendidas'] ) . ' (' . count( $vendidas ) . ')</summary>'
