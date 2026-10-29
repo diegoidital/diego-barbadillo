@@ -242,6 +242,12 @@ function zq_ficha_contacto( $post_id, $a ) {
 			? '<p class="zq-f-aviso">Falta el formulario: indica su shortcode en Qobrix → Ajustes («Formulario de contacto»).</p>'
 			: '';
 	}
+	if ( ! empty( $a['nativo'] ) ) {
+		// Igual que en la plantilla de las promociones: el formulario global dentro de una
+		// caja de Elementor (ancho de la Caja), con su propio estilo y relleno.
+		return '<section class="zq-f-sec zq-f-contacto zq-f-contacto--nativo" id="contacto"><div class="zq-f-canvas zq-f-center"><h2 class="zq-f-hc">Contacta</h2></div>'
+			. '<div class="zq-v-form">' . $form . '</div></section>';
+	}
 	return '<section class="zq-f-sec zq-f-contacto" id="contacto"><div class="zq-f-canvas zq-f-center">'
 		. '<h2 class="zq-f-hc">Contacta</h2>'
 		. '<div class="zq-f-form">' . $form . '</div>'

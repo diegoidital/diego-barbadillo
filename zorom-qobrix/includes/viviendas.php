@@ -384,7 +384,7 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 			</section>
 		<?php endif; ?>
 
-		<?php echo zq_ficha_contacto( $promo ? $promo : $post_id, array( 'formulario' => '' ) ); // phpcs:ignore ?>
+		<?php echo zq_ficha_contacto( $promo ? $promo : $post_id, array( 'formulario' => '', 'nativo' => 1 ) ); // phpcs:ignore ?>
 
 		<?php echo zq_viv_similares( $post_id, $promo ); // phpcs:ignore ?>
 	</div>
