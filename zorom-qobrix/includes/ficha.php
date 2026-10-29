@@ -117,8 +117,8 @@ function zq_ficha_caracteristicas( $post_id, $a ) {
 	);
 	$cards = '';
 	foreach ( $items as $it ) {
-		if ( '' === $it[2] ) {
-			continue;
+		if ( '' === trim( wp_strip_all_tags( (string) $it[2] ) ) ) {
+			$it[2] = '-';
 		}
 		$cards .= '<div class="zq-f-card"><div class="zq-f-card__label">' . zq_icon( $it[0] ) . '<span>' . esc_html( $it[1] ) . '</span></div>'
 			. '<div class="zq-f-card__value">' . $it[2] . '</div></div>';

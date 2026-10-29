@@ -392,6 +392,7 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 		'ocultar'  => 'withdrawn',
 		'vacio'    => '',
 		'reservadas' => 'Ver propiedades reservadas',
+		'sin_disponibles' => 'En este momento no hay propiedades a la venta en esta promoción.',
 		'vendidas' => 'Ver propiedades vendidas',
 	), $atts, 'qobrix_propiedades' );
 
@@ -478,13 +479,15 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 	$out = '<div class="zq-propiedades-wrap">';
 	if ( $disponibles ) {
 		$out .= '<table class="zq-propiedades">' . $thead . '<tbody>' . $filas( $disponibles ) . '</tbody></table>';
+	} else {
+		$out .= '<p class="zq-sin-propiedades">' . esc_html( $a['sin_disponibles'] ) . '</p>';
 	}
 	if ( $reservadas ) {
-		$out .= '<details class="zq-vendidas zq-reservadas"' . ( $disponibles ? '' : ' open' ) . '><summary>' . esc_html( $a['reservadas'] ) . ' (' . count( $reservadas ) . ')</summary>'
+		$out .= '<details class="zq-vendidas zq-reservadas"><summary>' . esc_html( $a['reservadas'] ) . ' (' . count( $reservadas ) . ')</summary>'
 			. '<table class="zq-propiedades zq-propiedades--vendidas zq-propiedades--reservadas">' . $thead . '<tbody>' . $filas( $reservadas ) . '</tbody></table></details>';
 	}
 	if ( $vendidas ) {
-		$out .= '<details class="zq-vendidas"' . ( $disponibles ? '' : ' open' ) . '><summary>' . esc_html( $a['vendidas'] ) . ' (' . count( $vendidas ) . ')</summary>'
+		$out .= '<details class="zq-vendidas"><summary>' . esc_html( $a['vendidas'] ) . ' (' . count( $vendidas ) . ')</summary>'
 			. '<table class="zq-propiedades zq-propiedades--vendidas">' . $thead . '<tbody>' . $filas( $vendidas ) . '</tbody></table></details>';
 	}
 	$out .= '</div>';
