@@ -237,6 +237,16 @@ add_action( 'wp_enqueue_scripts', function () {
 	if ( is_singular( ZQ_CPT_VIVIENDA ) ) {
 		zq_enqueue_ficha_style();
 		zq_enqueue_fuentes();
+		// La página no es de Elementor: cargamos sus estilos, los del kit y los del formulario global.
+		if ( class_exists( '\\Elementor\\Plugin' ) ) {
+			$el = \Elementor\Plugin::instance();
+			$el->frontend->enqueue_styles();
+			foreach ( array( (int) get_option( 'elementor_active_kit' ), (int) zq_form_template_id() ) as $id ) {
+				if ( $id ) {
+					\Elementor\Core\Files\CSS\Post::create( $id )->enqueue();
+				}
+			}
+		}
 	}
 }, 1000 );
 

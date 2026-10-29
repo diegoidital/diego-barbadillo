@@ -267,10 +267,28 @@ function zq_form_template_id() {
 	return $found ? (int) $found[0] : 0;
 }
 
+/** Ancho de la Caja (contenido) del kit de Elementor, en px. */
+function zq_ancho_caja() {
+	$w = 1140;
+	if ( class_exists( '\Elementor\Plugin' ) && isset( \Elementor\Plugin::$instance->kits_manager ) ) {
+		$kit = \Elementor\Plugin::$instance->kits_manager->get_active_kit_for_frontend();
+		if ( $kit ) {
+			foreach ( array( 'container_width', 'content_width' ) as $k ) {
+				$v = $kit->get_settings( $k );
+				if ( is_array( $v ) && ! empty( $v['size'] ) && ( empty( $v['unit'] ) || 'px' === $v['unit'] ) ) {
+					$w = (int) $v['size'];
+					break;
+				}
+			}
+		}
+	}
+	return $w;
+}
+
 /* Portada bajo el menú: margen negativo y menú por encima, transparente, en las promociones. */
 add_action( 'wp_enqueue_scripts', function () {
 	$h   = (int) zq_options()['menu_height'];
-	$css = ':root{--zq-menu-h:' . $h . 'px;--zq-escala:' . ( (int) zq_options()['escala'] / 100 ) . '}';
+	$css = ':root{--zq-menu-h:' . $h . 'px;--zq-escala:' . ( (int) zq_options()['escala'] / 100 ) . ';--zq-caja:' . zq_ancho_caja() . 'px}';
 	if ( zq_options()['menu_transparente'] ) {
 		foreach ( array( ZQ_CPT, ZQ_CPT_VIVIENDA ) as $t ) {
 			$b    = 'body.single-' . $t;

@@ -862,7 +862,7 @@ body:has(.zq-f) {
  * Se fuerzan al 100 % todos sus envoltorios (contenedores, widget, formulario),
  * sin tocar las columnas de los campos (elementor-col-50 / 100).
  */
-.zq-f .zq-f-form :is(.e-con, .e-con-inner, .elementor-section, .elementor-container, .elementor-widget-wrap, .elementor-element, .elementor-widget, .elementor-widget-container, .elementor-form, .elementor-form-fields-wrapper):not(.elementor-field-group) {
+.zq-f .zq-f-form :is(.e-con, .e-con-inner, .elementor-section, .elementor-container, .elementor-column, .elementor-widget-wrap, .elementor-element, .elementor-widget, .elementor-widget-container, .elementor-form, .elementor-form-fields-wrapper):not(.elementor-field-group) {
 	width: 100% !important;
 	max-width: 100% !important;
 	margin-left: 0 !important;
@@ -874,7 +874,7 @@ body:has(.zq-f) {
 	flex: 1 1 100%;
 }
 
-.zq-f .zq-f-form :is(.e-con, .e-con-inner, .elementor-section, .elementor-container, .elementor-widget-wrap) {
+.zq-f .zq-f-form :is(.e-con, .e-con-inner, .elementor-section, .elementor-container, .elementor-column, .elementor-widget-wrap):not(.elementor-field-group) {
 	padding-left: 0 !important;
 	padding-right: 0 !important;
 }
@@ -1038,17 +1038,21 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
  * Página de cada inmueble (vivienda)
  * ==================================================================== */
 .zq-v {
-	--zq-v-lado: max(20px, calc((100vw - 1280px) / 2));
+	--zq-v-lado: max(20px, calc((100vw - var(--zq-caja, 1140px)) / 2));
 	background: #f4f4f4;
 	color: #000;
 	font-family: var(--zq-geist, sans-serif);
 }
 
 .zq-v-canvas {
-	max-width: 1280px;
+	max-width: var(--zq-caja, 1140px); /* ancho de la Caja de Elementor */
 	margin: 0 auto;
 	padding: 0 20px;
-	box-sizing: content-box;
+	box-sizing: border-box;
+}
+
+@media (min-width: 1181px) {
+	.zq-v-canvas { padding: 0; }
 }
 
 /* Cabecera: texto a la izquierda, foto a sangre a la derecha. */
@@ -1111,7 +1115,10 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 	line-height: 1.2;
 }
 
-.zq-v-estado--available {
+.zq-v-estado--available,
+.zq-v .zq-v-meta [class*="zq-v-estado--reserv"],
+.zq-v .zq-v-meta [class*="zq-v-estado--under"],
+.zq-v .zq-v-meta [class*="zq-v-estado--offer"] {
 	background: #000;
 	color: #fff;
 }
@@ -1168,41 +1175,28 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 	margin-top: 44px;
 }
 
+/* Botones con la tipografía y el tamaño de los botones de la web (globales de Elementor). */
 .zq-v .zq-v-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	height: 28px;
-	padding: 0 13px;
-	font-family: var(--zq-geist);
-	text-transform: uppercase;
-	text-decoration: none;
-	line-height: 1;
-}
-
-.zq-v .zq-v-btn--negro {
+	padding: 12px 24px;
 	border: 1px solid #000;
-	border-radius: 4px;
-	background: #000;
-	color: #fff;
-	font-size: 9px;
-	letter-spacing: .5px;
-}
-
-.zq-v .zq-v-btn--linea {
-	border: 1px solid #000;
-	border-radius: 0;
-	background: transparent;
+	border-radius: 8px;
+	background: #fff;
 	color: #000;
-	font-size: 12px;
-	letter-spacing: 1.5px;
+	font-family: var(--e-global-typography-accent-font-family, var(--zq-geist)), sans-serif;
+	font-size: var(--e-global-typography-accent-font-size, 15px);
+	font-weight: var(--e-global-typography-accent-font-weight, 500);
+	letter-spacing: normal;
+	text-transform: none;
+	text-decoration: none;
+	line-height: 1.2;
+	transition: background .2s, color .2s;
 }
 
-.zq-v .zq-v-btn--negro:hover {
-	background: #333;
-}
-
-.zq-v .zq-v-btn--linea:hover {
+.zq-v .zq-v-btn:hover,
+.zq-v .zq-v-btn:focus {
 	background: #000;
 	color: #fff;
 }
@@ -1233,7 +1227,7 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 }
 
 .zq-v-desc .zq-f-txt {
-	max-width: 900px;
+	max-width: none;
 	font-size: 16px;
 	line-height: 1.45;
 }
@@ -1445,7 +1439,7 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 
 @media (max-width: 1024px) {
 	.zq-v-hero { grid-template-columns: 1fr; }
-	.zq-v-hero__txt { margin-right: 0; padding-right: 20px; }
+	.zq-v-hero__txt { margin-right: 0; padding-right: 20px; padding-left: 20px; }
 	.zq-v-hero__img { min-height: 320px; }
 	.zq-v-datos { gap: 40px; }
 	.zq-v-galeria { grid-template-rows: 200px 200px; }
