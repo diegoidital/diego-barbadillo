@@ -1308,13 +1308,13 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 }
 
 .zq-v-planos {
-	padding: 70px 0 0;
+	padding-top: 40px;
 }
 
 .zq-v-planos__grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-	gap: 20px;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 16px;
 }
 
 .zq-v-planos__grid a {
