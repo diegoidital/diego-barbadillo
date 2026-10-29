@@ -165,6 +165,13 @@ function zq_humanize( $v ) {
 		'unfurnished'          => 'Sin amueblar',
 		'optionally_furnished' => 'Amueblado opcionalmente',
 		'partially_furnished'  => 'Parcialmente amueblado',
+		'semi_furnished'       => 'Semiamueblado',
+		'fully_furnished'      => 'Totalmente amueblado',
+		'key_ready'            => 'Llave en mano',
+		'resale'               => 'Reventa',
+		'new_build'            => 'Obra nueva',
+		'closed'               => 'Cerrada',
+		'kitchenette'          => 'Office',
 		'open_plan'            => 'Americana',
 		'american'             => 'Americana',
 		'separate'             => 'Independiente',
@@ -178,7 +185,7 @@ function zq_humanize( $v ) {
 		'gf'                   => 'Planta baja',
 		'ground_floor'         => 'Planta baja',
 	) );
-	$k = strtolower( trim( (string) $v ) );
+	$k = str_replace( array( ' ', '-' ), '_', strtolower( trim( (string) $v ) ) ); // «Semi furnished» = semi_furnished
 	if ( isset( $dic[ $k ] ) ) {
 		return $dic[ $k ];
 	}
@@ -272,7 +279,10 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 		$folleto = (string) get_post_meta( $promo, '_zq_folleto', true );
 	}
 	$fotos  = array_values( (array) get_post_meta( $post_id, '_zq_galeria', true ) );
-	$planos = array_values( (array) get_post_meta( $post_id, '_zq_planos', true ) );
+	// Solo planos que existan de verdad en la Biblioteca de medios.
+	$planos = array_values( array_filter( (array) get_post_meta( $post_id, '_zq_planos', true ), function ( $id ) {
+		return (int) $id && wp_get_attachment_image_url( (int) $id, 'large' );
+	} ) );
 	if ( ! $fotos && $promo ) { // Sin fotos propias: las de la promoción.
 		$fotos = array_values( (array) get_post_meta( $promo, '_zq_galeria', true ) );
 	}
@@ -343,13 +353,23 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 						$v      = 'Superficies' === $titulo ? zq_viv_m2( $v ) : zq_humanize( $v );
 						$filas .= '<div><dt>' . esc_html( $label ) . '</dt><dd>' . esc_html( $v ) . '</dd></div>';
 					}
-					if ( ! $filas ) {
+					if ( ! $filas && ! ( 'Superficies' === $titulo && $planos ) ) {
 						continue;
 					}
 					?>
 					<section class="zq-v-bloque">
 						<h3 class="zq-v-h3"><?php echo esc_html( $titulo ); ?></h3>
 						<dl class="zq-v-dl"><?php echo $filas; // phpcs:ignore ?></dl>
+						<?php if ( 'Superficies' === $titulo && $planos ) : ?>
+							<div class="zq-v-planos">
+								<h3 class="zq-v-h3">Planos</h3>
+								<div class="zq-v-planos__grid">
+									<?php foreach ( $planos as $id ) : ?>
+										<a href="<?php echo esc_url( wp_get_attachment_image_url( $id, 'full' ) ); ?>" data-zq-lb="<?php echo esc_attr( $lb ); ?>-planos"><?php echo wp_get_attachment_image( $id, 'large', false, array( 'loading' => 'lazy' ) ); ?></a>
+									<?php endforeach; ?>
+								</div>
+							</div>
+						<?php endif; ?>
 					</section>
 				<?php endforeach; ?>
 			</div>
@@ -365,18 +385,6 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 			</section>
 		<?php endif; ?>
 
-		<?php if ( $planos ) : ?>
-			<div class="zq-v-canvas">
-				<section class="zq-v-planos">
-					<h2 class="zq-v-h2">Planos</h2>
-					<div class="zq-v-planos__grid">
-						<?php foreach ( $planos as $id ) : ?>
-							<a href="<?php echo esc_url( wp_get_attachment_image_url( $id, 'full' ) ); ?>" data-zq-lb="<?php echo esc_attr( $lb ); ?>-planos"><?php echo wp_get_attachment_image( $id, 'large', false, array( 'loading' => 'lazy' ) ); ?></a>
-						<?php endforeach; ?>
-					</div>
-				</section>
-			</div>
-		<?php endif; ?>
 
 		<?php if ( $coord ) : ?>
 			<section class="zq-v-mapa">
