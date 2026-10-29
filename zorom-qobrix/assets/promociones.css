@@ -187,6 +187,44 @@ body:has(.zq-promos) {
 	font-size: 22px;
 }
 
+/* Tarjeta: al pasar el ratón el contenedor pasa a negro y textos e iconos a blanco. */
+.zq-listado .zq-card {
+	height: 100%;
+	box-sizing: border-box;
+	padding: 14px 14px 22px;
+	border-radius: 18px;
+	background: transparent;
+	transition: background-color .25s, color .25s;
+}
+
+.zq-card__ubi {
+	font-size: 14px;
+	opacity: .7;
+}
+
+.zq-card__texto {
+	font-size: 15px;
+	line-height: 1.45;
+	opacity: .85;
+}
+
+.zq-listado .zq-card .zq-link {
+	margin-top: auto;
+	padding-top: 10px;
+}
+
+.zq-listado .zq-card:hover,
+.zq-listado .zq-card:focus-visible {
+	background: #000;
+	color: #fff !important;
+}
+
+.zq-listado .zq-card:hover *,
+.zq-listado .zq-card:focus-visible * {
+	color: #fff !important;
+	border-color: #fff !important;
+}
+
 @media (max-width: 900px) {
 	.zq-listado {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -485,4 +523,9 @@ body:has(.zq-promos) {
 
 .zq-hero.zq-bajo-menu .zq-hero__inner {
 	padding-top: calc(60px + var(--zq-menu-h, 0px));
+}
+
+.zq-listado .zq-card,
+.zq-listado .zq-card * {
+	text-decoration: none !important;
 }
