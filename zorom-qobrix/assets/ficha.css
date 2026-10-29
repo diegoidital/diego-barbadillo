@@ -874,6 +874,17 @@ body:has(.zq-f) {
 	flex: 1 1 100%;
 }
 
+.zq-f .zq-f-form :is(.e-con, .e-con-inner):not(.elementor-field-group) {
+	/* Si el formulario global va en un contenedor en fila junto a otro elemento, apilarlos
+	   para que el formulario no se quede a la mitad del ancho. */
+	flex-direction: column !important;
+	flex-wrap: nowrap !important;
+}
+
+.zq-f .zq-f-form :is(.elementor-section, .elementor-container) {
+	flex-wrap: wrap !important;
+}
+
 .zq-f .zq-f-form :is(.e-con, .e-con-inner, .elementor-section, .elementor-container, .elementor-column, .elementor-widget-wrap):not(.elementor-field-group) {
 	padding-left: 0 !important;
 	padding-right: 0 !important;
@@ -1349,7 +1360,8 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 
 .zq-v-cards {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(3, minmax(0, 360px));
+	justify-content: center;
 	gap: 24px;
 	margin-top: 40px;
 }

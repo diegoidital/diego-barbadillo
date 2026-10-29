@@ -393,6 +393,30 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 	return ob_get_clean();
 } );
 
+/**
+ * Foto principal de un inmueble: su destacada, su primera foto o, si no tiene,
+ * una de la galería de la promoción ($n elige cuál, para no repetir la misma) y su destacada.
+ */
+function zq_viv_portada( $post_id, $n = 0 ) {
+	$id = (int) get_post_thumbnail_id( $post_id );
+	if ( $id ) {
+		return $id;
+	}
+	$fotos = array_values( array_filter( (array) get_post_meta( $post_id, '_zq_galeria', true ) ) );
+	if ( $fotos ) {
+		return (int) $fotos[0];
+	}
+	$promo = (int) get_post_meta( $post_id, '_zq_promocion', true );
+	if ( $promo ) {
+		$g = array_values( array_filter( (array) get_post_meta( $promo, '_zq_galeria', true ) ) );
+		if ( $g ) {
+			return (int) $g[ $n % count( $g ) ];
+		}
+		return (int) get_post_thumbnail_id( $promo );
+	}
+	return 0;
+}
+
 /** Iconos de línea para dormitorios, baños y superficie. */
 function zq_viv_icono( $n ) {
 	$p = array(
@@ -441,7 +465,7 @@ function zq_viv_similares( $post_id, $promo, $max = 3 ) {
 		'meta_value'     => $promo,
 	) );
 	$ids = array_values( array_filter( $ids, function ( $id ) {
-		return 'sold' !== strtolower( (string) get_post_meta( $id, ZQ_META_PREFIX . 'status', true ) );
+		return ! preg_match( '/sold|vendid|withdrawn/', strtolower( (string) get_post_meta( $id, ZQ_META_PREFIX . 'status', true ) ) );
 	} ) );
 	$ids = array_slice( $ids, 0, $max );
 	if ( ! $ids ) {
@@ -449,10 +473,11 @@ function zq_viv_similares( $post_id, $promo, $max = 3 ) {
 	}
 	$c    = zq_viv_campos();
 	$html = '';
+	$n    = 1;
 	foreach ( $ids as $id ) {
 		$p     = zq_viv_val( $id, $c['precio'] );
 		$html .= '<a class="zq-v-card" href="' . esc_url( get_permalink( $id ) ) . '">'
-			. zq_image_html( $id, 'destacada', 'medium_large' )
+			. wp_get_attachment_image( zq_viv_portada( $id, $n++ ), 'medium_large', false, array( 'loading' => 'lazy', 'alt' => get_the_title( $id ) ) )
 			. '<span class="zq-v-card__ref">#' . esc_html( get_post_meta( $id, ZQ_META_PREFIX . 'ref', true ) ) . '</span>'
 			. '<span class="zq-v-card__titulo">' . esc_html( get_the_title( $id ) ) . '</span>'
 			. ( '' !== $p ? '<span class="zq-v-card__precio">' . esc_html( zq_viv_precio( $p ) ) . ' + IVA</span>' : '' )
