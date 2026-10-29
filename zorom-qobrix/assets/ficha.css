@@ -1291,3 +1291,32 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 	.zq-v-fotos--1, .zq-v-fotos--2, .zq-v-fotos--3, .zq-v-fotos--4 { grid-template-columns: 1fr 1fr; grid-template-rows: 240px 140px 140px; }
 	.zq-v-fotos--2 .zq-v-foto--peq { grid-row: auto; }
 }
+
+/* 2.8.3 · Cabecera centrada en vertical y desplegables integrados en la tabla. */
+.zq-propiedades thead th,
+.zq-f .zq-propiedades th {
+	vertical-align: middle !important;
+	line-height: 1.2 !important;
+	padding-top: 0 !important;
+	padding-bottom: 0 !important;
+}
+
+.zq-vendidas > summary {
+	display: flex;
+	justify-content: center;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 16px 0;
+	border: 0 !important;
+	border-radius: 0;
+	background: transparent;
+	font-size: 16px;
+}
+
+.zq-vendidas {
+	margin-top: 8px;
+}
+
+.zq-vendidas > summary + table {
+	margin-top: 0;
+}
