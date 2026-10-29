@@ -207,7 +207,7 @@ function zq_sync_media( $seconds = 20 ) {
 	$pending = 0;
 
 	$ids = get_posts( array(
-		'post_type'      => ZQ_CPT,
+		'post_type'      => array( ZQ_CPT, ZQ_CPT_VIVIENDA ),
 		'post_status'    => 'any',
 		'meta_key'       => '_zq_media_pending',
 		'fields'         => 'ids',
@@ -222,11 +222,19 @@ function zq_sync_media( $seconds = 20 ) {
 		$name = get_the_title( $post_id );
 		$flag = get_post_meta( $post_id, '_zq_media_pending', true );
 
-		if ( 'gallery' !== $flag ) { // La destacada solo una vez por cambio.
+		$es_vivienda = ZQ_CPT_VIVIENDA === get_post_type( $post_id );
+		if ( 'gallery' !== $flag && ! $es_vivienda ) { // La destacada solo una vez por cambio.
 			zq_sync_image( $post_id, $qid, $name );
 			update_post_meta( $post_id, '_zq_media_pending', 'gallery' );
 		}
-		$r = zq_sync_gallery( $post_id, $qid, $name );
+		$r = zq_sync_gallery( $post_id, $qid, $name, $es_vivienda ? 'Properties' : 'Projects' );
+		if ( $es_vivienda && 'partial' !== $r ) {
+			// Inmueble: su imagen destacada es la primera foto de su galería.
+			$gal = array_values( (array) get_post_meta( $post_id, '_zq_galeria', true ) );
+			if ( $gal ) {
+				set_post_thumbnail( $post_id, (int) $gal[0] );
+			}
+		}
 		if ( 'partial' === $r ) {
 			$pending++;
 			continue;
@@ -330,9 +338,20 @@ function zq_sync_units( array $post_ids ) {
 		}
 	}
 
+	// Una página por inmueble (includes/viviendas.php).
+	$promos = array();
+	foreach ( $post_ids as $post_id ) {
+		$promos[ (string) get_post_meta( $post_id, '_qobrix_id', true ) ] = $post_id;
+	}
+	$paginas = function_exists( 'zq_sync_viviendas' ) ? zq_sync_viviendas( $rows, $promos ) : array();
+
 	foreach ( $post_ids as $post_id ) {
 		$qid   = get_post_meta( $post_id, '_qobrix_id', true );
 		$units = isset( $by_project[ $qid ] ) ? $by_project[ $qid ] : array();
+		foreach ( $units as &$u ) {
+			$u['_post'] = isset( $u['id'], $paginas[ (string) $u['id'] ] ) ? (int) $paginas[ (string) $u['id'] ] : 0;
+		}
+		unset( $u );
 		usort( $units, function ( $a, $b ) {
 			return strnatcmp( (string) ( isset( $a['ref'] ) ? $a['ref'] : '' ), (string) ( isset( $b['ref'] ) ? $b['ref'] : '' ) );
 		} );
@@ -356,7 +375,7 @@ function zq_get_units( $post_id ) {
  * Descarga a la Biblioteca de medios las fotos del proyecto (hasta el máximo de Ajustes)
  * y guarda sus IDs, en orden, en «_zq_galeria». Solo se ejecuta cuando el proyecto cambia.
  */
-function zq_sync_gallery( $post_id, $qobrix_id, $name ) {
+function zq_sync_gallery( $post_id, $qobrix_id, $name, $model = 'Projects' ) {
 	$o     = zq_options();
 	$max   = max( 0, (int) $o['gallery_max'] );
 	$known = (array) get_post_meta( $post_id, '_zq_galeria_map', true ); // id media Qobrix => id adjunto.
@@ -364,11 +383,12 @@ function zq_sync_gallery( $post_id, $qobrix_id, $name ) {
 		return '';
 	}
 
-	$res = zq_api_get( 'media', array( 'related_model' => 'Projects', 'related_id' => $qobrix_id, 'limit' => 100 ) );
+	$res = zq_api_get( 'media', array( 'related_model' => $model, 'related_id' => $qobrix_id, 'limit' => 100 ) );
 	if ( is_wp_error( $res ) ) {
 		return $res->get_error_message();
 	}
 	$items = isset( $res['data'] ) ? (array) $res['data'] : array();
+	zq_sync_planos_folleto( $post_id, $items, $name );
 
 	// Solo fotos: fuera documentos, folletos, planos y vídeos.
 	$items = array_values( array_filter( $items, function ( $m ) {
@@ -524,4 +544,53 @@ function zq_sideload( $url, $post_id, $title, $auth = false ) {
 	}
 	update_post_meta( $att, '_wp_attachment_image_alt', $title );
 	return (int) $att;
+}
+
+/** Categoría (texto) de un medio de Qobrix. */
+function zq_media_kind( array $m ) {
+	$cat  = isset( $m['category'] ) ? $m['category'] : '';
+	$cat  = is_array( $cat ) ? ( isset( $cat['name'] ) ? $cat['name'] . ' ' . ( isset( $cat['label'] ) ? $cat['label'] : '' ) : '' ) : (string) $cat;
+	$mime = isset( $m['file']['mime_type'] ) ? (string) $m['file']['mime_type'] : '';
+	$type = isset( $m['media_type'] ) && is_string( $m['media_type'] ) ? $m['media_type'] : '';
+	return strtolower( $type . ' ' . $cat . ' ' . $mime );
+}
+
+/**
+ * Planos (imágenes de categoría plano) y folleto (PDF) del proyecto o inmueble.
+ * Planos: se descargan (máx. 6) a «_zq_planos». Folleto: se guarda su URL en «_zq_folleto».
+ */
+function zq_sync_planos_folleto( $post_id, array $items, $name ) {
+	$base   = rtrim( zq_options()['api_url'], '/' );
+	$known  = (array) get_post_meta( $post_id, '_zq_planos_map', true );
+	$map    = array();
+	$planos = array();
+	$folleto = '';
+	foreach ( $items as $m ) {
+		if ( empty( $m['id'] ) ) {
+			continue;
+		}
+		$kind = zq_media_kind( $m );
+		$href = isset( $m['file']['href'] ) && is_string( $m['file']['href'] ) ? $m['file']['href'] : '';
+		if ( ! $folleto && $href && preg_match( '/pdf|brochure|folleto|document/', $kind ) ) {
+			$folleto = preg_match( '#^https?://#', $href ) ? $href : $base . '/' . ltrim( $href, '/' );
+			continue;
+		}
+		if ( count( $planos ) < 6 && preg_match( '/floor|plan|plano/', $kind ) && false !== strpos( $kind, 'image' ) ) {
+			$mid = (string) $m['id'];
+			$att = isset( $known[ $mid ] ) && get_post( $known[ $mid ] ) ? (int) $known[ $mid ] : 0;
+			foreach ( $att || zq_out_of_time() ? array() : zq_media_candidates( $m ) as $url ) {
+				$att = zq_sideload( $url, $post_id, $name . ' plano', zq_is_api_url( $url ) );
+				if ( $att ) {
+					break;
+				}
+			}
+			if ( $att ) {
+				$map[ $mid ] = $att;
+				$planos[]    = $att;
+			}
+		}
+	}
+	update_post_meta( $post_id, '_zq_planos_map', $map + $known );
+	update_post_meta( $post_id, '_zq_planos', $planos );
+	update_post_meta( $post_id, '_zq_folleto', $folleto );
 }

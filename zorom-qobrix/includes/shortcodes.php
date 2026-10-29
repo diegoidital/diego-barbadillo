@@ -376,10 +376,12 @@ add_shortcode( 'qobrix_datos', function ( $atts ) {
 
 add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 	$a = shortcode_atts( array(
-		'proyecto'   => '',
-		'columnas'   => 'ref:Referencia,floor:Piso,bedrooms:Dormitorios,bathrooms:Baños,plot_area_amount:Área parcela:m2,covered_area_amount:Área interna:m2,list_selling_price_amount:Precio:precio,status:Estado:estado',
-		'ocultar'    => 'withdrawn',
-		'vacio'      => '',
+		'proyecto' => '',
+		// campo:Etiqueta:formato. Varios nombres posibles separados por «|» (se usa el primero con dato).
+		'columnas' => 'ref:Referencia,floor_number|floor|floor_level|level:Piso,bedrooms:Dormitorios,bathrooms:Baños,plot_area_amount|land_area_amount:Área parcela:m2,internal_area_amount|living_area_amount|covered_area_amount|net_area_amount:Área interna:m2,list_selling_price_amount|selling_price_amount:Precio:precio,status:Estado:estado',
+		'ocultar'  => 'withdrawn',
+		'vacio'    => '',
+		'vendidas' => 'Ver propiedades vendidas',
 	), $atts, 'qobrix_propiedades' );
 
 	$post_id = zq_resolve_project( $a['proyecto'] );
@@ -393,45 +395,82 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 	}
 	wp_enqueue_style( 'zorom-qobrix' );
 
-	// En esta tabla el tercer valor de cada columna es el formato.
 	$cols = array();
 	foreach ( array_filter( array_map( 'trim', explode( ',', $a['columnas'] ) ) ) as $c ) {
 		$p      = array_map( 'trim', explode( ':', $c ) );
-		$cols[] = array( $p[0], isset( $p[1] ) ? $p[1] : $p[0], isset( $p[2] ) ? $p[2] : 'texto' );
+		$cols[] = array( explode( '|', $p[0] ), isset( $p[1] ) ? $p[1] : $p[0], isset( $p[2] ) ? $p[2] : 'texto' );
 	}
-	$estados = array(
-		'available' => 'Disponible',
-		'reserved'  => 'Reservado',
-		'sold'      => 'Vendido',
-		'withdrawn' => 'Retirado',
-	);
 
-	$html = '<div class="zq-propiedades-wrap"><table class="zq-propiedades"><thead><tr>';
-	foreach ( $cols as $c ) {
-		$html .= '<th scope="col">' . esc_html( $c[1] ) . '</th>';
-	}
-	$html .= '</tr></thead><tbody>';
+	// Disponibles (y reservadas) arriba; vendidas en el desplegable.
+	$disponibles = array();
+	$vendidas    = array();
 	foreach ( $units as $u ) {
-		$status = strtolower( (string) ( isset( $u['status'] ) ? $u['status'] : '' ) );
-		$html  .= '<tr class="zq-estado-' . esc_attr( sanitize_html_class( $status ) ) . '">';
-		foreach ( $cols as $c ) {
-			$v = isset( $u[ $c[0] ] ) ? $u[ $c[0] ] : '';
-			switch ( $c[2] ) {
-				case 'precio':
-					$v = is_numeric( $v ) ? number_format( (float) $v, 0, ',', '.' ) . ' €' : $v;
-					break;
-				case 'm2':
-					$v = is_numeric( $v ) ? number_format( (float) $v, 0, ',', '.' ) . ' m²' : $v;
-					break;
-				case 'estado':
-					$v = isset( $estados[ $status ] ) ? $estados[ $status ] : ucfirst( (string) $v );
-					break;
-			}
-			$html .= '<td data-label="' . esc_attr( $c[1] ) . '"><span>' . esc_html( (string) $v ) . '</span></td>';
+		if ( 'sold' === strtolower( (string) ( isset( $u['status'] ) ? $u['status'] : '' ) ) ) {
+			$vendidas[] = $u;
+		} else {
+			$disponibles[] = $u;
 		}
-		$html .= '</tr>';
 	}
-	return $html . '</tbody></table></div>';
+
+	$thead = '<thead><tr>';
+	foreach ( $cols as $c ) {
+		$thead .= '<th scope="col">' . esc_html( $c[1] ) . '</th>';
+	}
+	$thead .= '</tr></thead>';
+
+	$filas = function ( array $list ) use ( $cols ) {
+		$html = '';
+		foreach ( $list as $u ) {
+			$status = strtolower( (string) ( isset( $u['status'] ) ? $u['status'] : '' ) );
+			$url    = ! empty( $u['_post'] ) ? get_permalink( (int) $u['_post'] ) : '';
+			$html  .= '<tr class="zq-estado-' . esc_attr( sanitize_html_class( $status ) ) . ( $url ? ' zq-fila-enlace' : '' ) . '"' . ( $url ? ' data-href="' . esc_url( $url ) . '" tabindex="0"' : '' ) . '>';
+			foreach ( $cols as $i => $c ) {
+				$v = '';
+				foreach ( $c[0] as $f ) {
+					if ( isset( $u[ $f ] ) && '' !== (string) $u[ $f ] && '0' !== (string) $u[ $f ] ) {
+						$v = $u[ $f ];
+						break;
+					}
+				}
+				switch ( $c[2] ) {
+					case 'precio':
+						$v = is_numeric( $v ) ? number_format( (float) $v, 0, ',', '.' ) . ' €' : $v;
+						break;
+					case 'm2':
+						$v = is_numeric( $v ) ? number_format( (float) $v, 0, ',', '.' ) . ' m²' : $v;
+						break;
+					case 'estado':
+						$v = zq_humanize( $status );
+						break;
+					default:
+						$v = zq_humanize( $v );
+				}
+				$txt   = esc_html( (string) $v );
+				$txt   = ( 0 === $i && $url ) ? '<a href="' . esc_url( $url ) . '">' . $txt . '</a>' : $txt;
+				$html .= '<td data-label="' . esc_attr( $c[1] ) . '"><span>' . $txt . '</span></td>';
+			}
+			$html .= '</tr>';
+		}
+		return $html;
+	};
+
+	$out = '<div class="zq-propiedades-wrap">';
+	if ( $disponibles ) {
+		$out .= '<table class="zq-propiedades">' . $thead . '<tbody>' . $filas( $disponibles ) . '</tbody></table>';
+	}
+	if ( $vendidas ) {
+		$out .= '<details class="zq-vendidas"' . ( $disponibles ? '' : ' open' ) . '><summary>' . esc_html( $a['vendidas'] ) . ' (' . count( $vendidas ) . ')</summary>'
+			. '<table class="zq-propiedades zq-propiedades--vendidas">' . $thead . '<tbody>' . $filas( $vendidas ) . '</tbody></table></details>';
+	}
+	$out .= '</div>';
+
+	// Toda la fila lleva a la página del inmueble.
+	static $js = false;
+	if ( ! $js ) {
+		$js   = true;
+		$out .= '<script>document.addEventListener("click",function(e){var t=e.target.closest(".zq-fila-enlace");if(t&&!e.target.closest("a")){location.href=t.dataset.href;}});document.addEventListener("keydown",function(e){var t=e.target.closest&&e.target.closest(".zq-fila-enlace");if(t&&e.key==="Enter"){location.href=t.dataset.href;}});</script>';
+	}
+	return $out;
 } );
 
 add_shortcode( 'qobrix_galeria', function ( $atts ) {
