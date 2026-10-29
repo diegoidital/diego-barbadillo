@@ -263,3 +263,36 @@ add_action( 'manage_' . ZQ_CPT . '_posts_custom_column', function ( $col, $post_
 		echo '<code>' . esc_html( get_post_meta( $post_id, '_qobrix_id', true ) ) . '</code>';
 	}
 }, 10, 2 );
+
+/* -------------------------------------------------------------------------
+ * URL limpias: si WordPress tiene los enlaces permanentes en «Simple»
+ * (?page_id=22, ?promocion=el-paraiso), avisar y arreglarlo con un clic.
+ * ---------------------------------------------------------------------- */
+
+add_action( 'admin_notices', function () {
+	if ( get_option( 'permalink_structure' ) || ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	$url = wp_nonce_url( admin_url( 'admin-post.php?action=zq_urls_limpias' ), 'zq_urls_limpias' );
+	echo '<div class="notice notice-warning"><p><strong>Qobrix:</strong> la web usa URL del tipo <code>?page_id=22</code> y <code>?promocion=el-paraiso</code>. '
+		. 'Actívalas limpias: <code>/proyectos/</code>, <code>/proyectos/el-paraiso/</code>, <code>/propiedad/gran-sol-villa-2l-1069/</code>.</p>'
+		. '<p><a class="button button-primary" href="' . esc_url( $url ) . '">Activar URL limpias</a></p></div>';
+} );
+
+add_action( 'admin_post_zq_urls_limpias', function () {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( 'Sin permiso.' );
+	}
+	check_admin_referer( 'zq_urls_limpias' );
+	global $wp_rewrite;
+	$wp_rewrite->set_permalink_structure( '/%postname%/' );
+	// Las promociones cuelgan de la página «Proyectos»: /proyectos/<promoción>/.
+	$o = (array) get_option( ZQ_OPTION, array() );
+	if ( empty( $o['slug'] ) || 'promociones' === $o['slug'] ) {
+		$o['slug'] = 'proyectos';
+		update_option( ZQ_OPTION, $o );
+	}
+	update_option( 'zq_flush', 1 );
+	wp_safe_redirect( admin_url( 'options-permalink.php?settings-updated=true' ) );
+	exit;
+} );
