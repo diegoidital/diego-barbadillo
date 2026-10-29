@@ -266,6 +266,7 @@ add_shortcode( 'qobrix_listado', function ( $atts ) {
 		'plantilla'    => '',
 		'columnas'     => 3,
 		'texto_enlace' => 'Ver promoción',
+		'palabras'     => 24, // Palabras del texto de cada promoción (0 = sin texto).
 	), $atts, 'qobrix_listado' );
 
 	$projects = zq_query_projects( $a );
@@ -282,10 +283,19 @@ add_shortcode( 'qobrix_listado', function ( $atts ) {
 			$out .= zq_render_template( (int) $a['plantilla'], $p );
 		} else {
 			$precio = zq_render_field( $p->ID, 'precio' );
+			$ubi    = trim( wp_strip_all_tags( zq_render_field( $p->ID, 'ubicacion' ) ) );
+			$texto  = '';
+			if ( (int) $a['palabras'] ) {
+				// Extracto manual de la promoción; si no hay, su descripción de Qobrix.
+				$texto = has_excerpt( $p ) ? get_the_excerpt( $p ) : zq_render_field( $p->ID, 'descripcion' );
+				$texto = wp_trim_words( wp_strip_all_tags( $texto ), (int) $a['palabras'], '…' );
+			}
 			$out   .= '<a class="zq-card" href="' . esc_url( get_permalink( $p ) ) . '">'
 				. zq_image_html( $p->ID, 'destacada', ZQ_IMAGE_SIZE )
 				. '<span class="zq-card__title">' . esc_html( get_the_title( $p ) ) . '</span>'
+				. ( $ubi ? '<span class="zq-card__ubi">' . esc_html( $ubi ) . '</span>' : '' )
 				. ( $precio ? '<span class="zq-card__price">Desde ' . $precio . '</span>' : '' )
+				. ( $texto ? '<span class="zq-card__texto">' . esc_html( $texto ) . '</span>' : '' )
 				. '<span class="zq-link">' . esc_html( $a['texto_enlace'] ) . ' <span aria-hidden="true">&rarr;</span></span>'
 				. '</a>';
 		}
