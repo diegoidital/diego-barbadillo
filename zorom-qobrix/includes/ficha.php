@@ -131,7 +131,7 @@ function zq_ficha_caracteristicas( $post_id, $a ) {
 
 /* 07. Lista de propiedades ------------------------------------------------- */
 function zq_ficha_propiedades( $post_id, $a ) {
-	$tabla = do_shortcode( '[qobrix_propiedades proyecto="' . (int) $post_id . '" columnas="ref:Referencia,floor:Piso,bedrooms:Dormitorios,bathrooms:Baños,plot_area_amount:Área parcela:m2,covered_area_amount:Área interna:m2,list_selling_price_amount:Precio:precio,status:Estado:estado"]' );
+	$tabla = do_shortcode( '[qobrix_propiedades proyecto="' . (int) $post_id . '"]' );
 	if ( ! $tabla ) {
 		return '';
 	}
