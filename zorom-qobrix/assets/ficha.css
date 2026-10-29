@@ -878,3 +878,51 @@ body:has(.zq-f) {
 	padding-left: 0 !important;
 	padding-right: 0 !important;
 }
+
+/*
+ * Clases para montar la plantilla a mano en Elementor (Avanzado → Clases CSS del widget Imagen):
+ *   zq-bloque-dcha → bloque negro detrás, saliendo hacia la derecha hasta el borde de la pantalla
+ *   zq-bloque-izda → bloque negro detrás, saliendo hacia la izquierda
+ * El negro sobresale 15 px por arriba y por abajo. Variables ajustables en el widget:
+ *   --zq-bloque-desplazamiento (46px por defecto), --zq-bloque-sobresale (15px), --zq-bloque-radio (20px)
+ */
+.zq-bloque-dcha,
+.zq-bloque-izda {
+	position: relative;
+	z-index: 0;
+	margin-top: var(--zq-bloque-sobresale, 15px);
+	margin-bottom: var(--zq-bloque-sobresale, 15px);
+}
+
+.zq-bloque-dcha::before,
+.zq-bloque-izda::before {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	top: calc(-1 * var(--zq-bloque-sobresale, 15px));
+	bottom: calc(-1 * var(--zq-bloque-sobresale, 15px));
+	width: 100vw;
+	border-radius: var(--zq-bloque-radio, 20px);
+	background: #000;
+}
+
+.zq-bloque-dcha::before {
+	left: var(--zq-bloque-desplazamiento, 46px);
+}
+
+.zq-bloque-izda::before {
+	right: var(--zq-bloque-desplazamiento, 46px);
+}
+
+.zq-bloque-dcha img,
+.zq-bloque-izda img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: var(--zq-bloque-radio, 20px);
+}
+
+body:has(.zq-bloque-dcha, .zq-bloque-izda) {
+	overflow-x: clip;
+}

@@ -27,6 +27,12 @@ function zq_field_aliases() {
 		'fecha'             => array( 'label' => 'Fecha', 'format' => 'fecha' ),
 		'eficiencia'        => array( 'label' => 'Eficiencia energética', 'format' => 'texto' ),
 		'comodidades'       => array( 'label' => 'Comodidades (español de Qobrix)', 'format' => 'html' ),
+		'distancia_aeropuerto' => array( 'label' => 'Distancia: aeropuerto más cercano', 'format' => 'km' ),
+		'distancia_playa'      => array( 'label' => 'Distancia: playa más cercana', 'format' => 'km' ),
+		'distancia_centro'     => array( 'label' => 'Distancia: centro de la localidad', 'format' => 'km' ),
+		'distancia_hospital'   => array( 'label' => 'Distancia: hospital más cercano', 'format' => 'km' ),
+		'distancia_escuela'    => array( 'label' => 'Distancia: escuela más próxima', 'format' => 'km' ),
+		'distancia_tiendas'    => array( 'label' => 'Distancia: zona de compras', 'format' => 'km' ),
 		'ubicacion'         => array( 'label' => 'Ubicación (manual o ciudad de Qobrix)', 'format' => 'texto' ),
 		'coordenadas'       => array( 'label' => 'Coordenadas (lat,lng)', 'format' => 'texto' ),
 		'enlace'            => array( 'label' => 'Enlace a la promoción', 'format' => 'url' ),
@@ -139,6 +145,16 @@ function zq_get_raw( $post_id, $campo ) {
 			return implode( ', ', array_unique( $parts ) ); // «La Nucia, Alicante».
 		case 'eficiencia':
 			return strtoupper( (string) zq_meta_pick( $post_id, $o['field_energy'] ) );
+		case 'distancia_aeropuerto':
+		case 'distancia_playa':
+		case 'distancia_centro':
+		case 'distancia_hospital':
+		case 'distancia_escuela':
+		case 'distancia_tiendas':
+			$k   = substr( $campo, 10 );
+			$map = array( 'aeropuerto' => 'airport', 'playa' => 'beach', 'centro' => 'centre', 'hospital' => 'hospital', 'escuela' => 'school', 'tiendas' => 'shops' );
+			$v   = zq_get_manual( $post_id, 'dist_' . $k );
+			return '' !== trim( (string) $v ) ? $v : get_post_meta( $post_id, ZQ_META_PREFIX . 'distance_from_' . $map[ $k ] . '_amount', true );
 		case 'comodidades':
 			return zq_meta_pick( $post_id, 'custom_amenities_description_es,amenities_description' );
 		case 'coordenadas':
@@ -197,8 +213,9 @@ function zq_render_field( $post_id, $campo, $formato = 'auto' ) {
 		case 'fecha':
 			$ts = strtotime( $value );
 			return esc_html( $ts ? gmdate( 'd/m/Y', $ts ) : $value );
-		case 'km':
-			return is_numeric( $value ) ? esc_html( rtrim( rtrim( number_format( (float) $value, 1, ',', '.' ), '0' ), ',' ) . ' km' ) : esc_html( $value );
+		case 'km': // Como en el diseño: «78 km», «2.5 km».
+			$n = str_replace( ',', '.', (string) $value );
+			return is_numeric( $n ) ? esc_html( rtrim( rtrim( number_format( (float) $n, 1, '.', '' ), '0' ), '.' ) . ' km' ) : esc_html( $value );
 		case 'si_no':
 			return in_array( strtolower( (string) $value ), array( '1', 'true', 'yes', 'si', 'sí' ), true ) ? 'Sí' : 'No';
 		case 'html':
