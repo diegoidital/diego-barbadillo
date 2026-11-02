@@ -284,3 +284,26 @@ Después, en Plesk, vuelve a poner la versión de PHP que tenía la web (**alt-p
 - Se eliminaron el subdominio `staging.belenoyrosello.com` y su base de datos `belenoy_staging`.
 - Disco libre: de 148 GB a 173 GB.
 - Siguen en el servidor: el vigilante (`/root/vigila_beleno.sh`, `/root/.vigila_beleno` y `/etc/cron.d/vigila_beleno`).
+
+## Correcciones posteriores (28/10 – 02/11/2026)
+Las detectó el vigilante o se reportaron en el uso diario. Todas se hicieron directamente en producción.
+
+- **Back office · pedidos, carritos y clientes daban error 500:**
+  - `redsyspur` y `psshipping` usaban `PrestaShopBundle\Controller\Admin\Sell\Order\ActionsBarButton(sCollection)`, que en PS9 está en `PrestaShop\PrestaShop\Core\Action\`. Se cambió en ambos módulos.
+  - En staging no salió porque redsys estaba desactivado allí.
+- **`override/classes/Cart.php`:** `id_address_delivery` puede no venir en el producto. Se usa `?? $this->id_address_delivery` (líneas 491 y 641).
+- **Modo depuración:** `config/defines.inc.php` tenía `_PS_MODE_DEV_` a `true` porque se había pulsado el botón de depuración. Se volvió a dejar en `false`.
+- **Filtros por facetas:**
+  - `ps_layered_category` estaba vacía; se llenó volviendo a guardar la plantilla "Mi plantilla - 2019-11-20".
+  - Se copió `facets.tpl` y `active-filters.tpl` del tema a `themes/theme1511/modules/ps_facetedsearch/views/templates/front/catalog/` para que los filtros conserven el estilo del tema.
+  - Se vació la caché de filtros: `TRUNCATE ps_layered_filter_block`.
+  - Un filtro solo aparece si los productos de la categoría tienen valores en él. Los marcos estándar (categoría 82) usan los grupos de atributo **13 "Colores Marcos estandar"** y **14 "Con Passepartout colores"**, no el 3 "Color"; hay que activarlos en la plantilla.
+- **`order=` mal formado (bots):** con valores como `?order=760810476`, `SortOrder::newFromString` lanzaba una `CoreException` no capturada y daba error 500.
+  - Al principio del `.htaccess`, fuera del bloque que regenera PrestaShop, se añadió una regla que devuelve 403 si `order` no tiene la forma `entidad.campo.asc|desc`. Copia previa: `.htaccess.bak-20261102`.
+  - Comprobado: `order=760810476` → 403; `order=product.price.asc` → 200.
+- **megaproduct (Baiduspider):** un 500 aislado, sin rastro en los logs. Las 42 llamadas al configurador de ese día dieron 200, así que no afecta a clientes.
+- **Caídas nocturnas (~00:20–00:24):** las provoca el cron de root `/root/mysql_dumps_all/backupdbs.sh`, común a todo el servidor. Ejecuta `mysqlcheck --auto-repair` y `mysqldump` sin `--single-transaction`, y bloquea `ps_connections` y `ps_guest`. Por decisión del cliente, el script **no se modifica**.
+  - Como mitigación, `/root/limpia_stats_beleno.sh` borra las visitas y los visitantes anónimos y conserva 2 años de las visitas de clientes. Se ejecutó el 28/10:
+    - `ps_connections`: de 14,5 M filas a ~2.500;
+    - `ps_connections_source`: unas 2.100 filas;
+    - `ps_guest`: ~15 M filas, en curso.
