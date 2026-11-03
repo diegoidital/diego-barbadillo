@@ -386,15 +386,19 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 		<?php endif; ?>
 
 
-		<?php if ( $coord ) : ?>
-			<section class="zq-v-mapa">
-				<iframe src="<?php echo esc_url( 'https://maps.google.com/maps?q=' . rawurlencode( $coord[0] . ',' . $coord[1] ) . '&z=13&output=embed' ); ?>" title="<?php echo esc_attr( 'Mapa de ' . get_the_title( $post_id ) ); ?>" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-			</section>
-		<?php endif; ?>
-
-		<?php echo zq_ficha_contacto( $promo ? $promo : $post_id, array( 'formulario' => '', 'nativo' => 1 ) ); // phpcs:ignore ?>
-
 		<?php echo zq_viv_similares( $post_id, $promo ); // phpcs:ignore ?>
+
+		<section class="zq-v-contacto<?php echo $coord ? '' : ' zq-v-contacto--sin-mapa'; ?>" id="contacto">
+			<?php if ( $coord ) : ?>
+				<div class="zq-v-mapa">
+					<iframe src="<?php echo esc_url( 'https://maps.google.com/maps?q=' . rawurlencode( $coord[0] . ',' . $coord[1] ) . '&z=13&output=embed' ); ?>" title="<?php echo esc_attr( 'Mapa de ' . get_the_title( $post_id ) ); ?>" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+				</div>
+			<?php endif; ?>
+			<div class="zq-v-contacto__form">
+				<h2 class="zq-v-h2">Contacta</h2>
+				<div class="zq-v-form"><?php echo zq_form_html(); // phpcs:ignore ?></div>
+			</div>
+		</section>
 	</div>
 	<?php echo zq_viv_lightbox(); // phpcs:ignore ?>
 	<?php
