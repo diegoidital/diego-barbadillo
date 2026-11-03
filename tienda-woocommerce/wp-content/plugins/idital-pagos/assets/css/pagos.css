@@ -1,0 +1,47 @@
+/* Las dos opciones de pago como tarjetas grandes y claras. */
+.wc_payment_methods .payment_method_idital_qonto,
+.wc_payment_methods .payment_method_idital_tropipay {
+	border: 2px solid #d8dde3;
+	border-radius: 10px;
+	padding: 14px 16px;
+	margin: 0 0 12px;
+	list-style: none;
+}
+.wc_payment_methods .payment_method_idital_qonto:has(input:checked),
+.wc_payment_methods .payment_method_idital_tropipay:has(input:checked) {
+	border-color: #1d4ed8;
+	background: #f5f8ff;
+}
+.wc_payment_methods .payment_method_idital_qonto > label,
+.wc_payment_methods .payment_method_idital_tropipay > label {
+	font-weight: 600;
+	font-size: 1.05em;
+	cursor: pointer;
+}
+.idital-pago__etiqueta { font-weight: 600; }
+
+.idital-pago {
+	border: 2px solid #1d4ed8;
+	border-radius: 12px;
+	padding: 20px 24px;
+	margin: 0 0 2em;
+	background: #f8faff;
+}
+.idital-pago__titulo { margin-top: 0; }
+.idital-pago .idital-pago__boton {
+	display: inline-block;
+	background: #1d4ed8;
+	color: #fff;
+	font-size: 1.1em;
+	font-weight: 600;
+	padding: 0.8em 1.6em;
+	border-radius: 8px;
+	text-decoration: none;
+}
+.idital-pago .idital-pago__boton:hover,
+.idital-pago .idital-pago__boton:focus { background: #1e40af; color: #fff; }
+.idital-pago__transferencia { margin-top: 1.2em; padding-top: 1em; border-top: 1px solid #d8dde3; }
+.idital-pago__transferencia dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0 0 1em; }
+.idital-pago__transferencia dt { font-weight: 600; }
+.idital-pago__transferencia dd { margin: 0; overflow-wrap: anywhere; }
+.idital-pago__estado { font-style: italic; color: #4b5563; margin-bottom: 0; }

@@ -1,0 +1,30 @@
+# Solo para pruebas locales: añade un simulador de las APIs de Qonto y TropiPay.
+#   docker compose -f docker-compose.yml -f docker-compose.pruebas.yml up -d
+# NUNCA usar en producción (el plugin además ignora estas URLs fuera de local/development).
+services:
+  wordpress:
+    environment:
+      WP_ENVIRONMENT_TYPE: local
+      IDITAL_QONTO_API_BASE: http://simulador:8090
+      IDITAL_TROPIPAY_API_BASE: http://simulador:8090
+  wpcli:
+    volumes:
+      - ./pruebas:/pruebas:ro
+    environment:
+      WP_ENVIRONMENT_TYPE: local
+      IDITAL_QONTO_API_BASE: http://simulador:8090
+      IDITAL_TROPIPAY_API_BASE: http://simulador:8090
+
+  simulador:
+    image: wordpress:7-php8.3-apache
+    command: ["php", "-S", "0.0.0.0:8090", "/simulador/router.php"]
+    environment:
+      WP_INTERNO: http://wordpress
+      WP_PUBLICO: http://localhost:${WP_PUERTO:-8080}
+      SIM_PUBLICO: http://localhost:8090
+    secrets: [qonto_login, qonto_secret_key, qonto_webhook_token, tropipay_client_id, tropipay_client_secret]
+    volumes:
+      - ./pruebas/simulador:/simulador:ro
+    ports:
+      - "127.0.0.1:8090:8090"
+    networks: [interna, salida]

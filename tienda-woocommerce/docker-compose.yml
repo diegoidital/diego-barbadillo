@@ -1,0 +1,115 @@
+# WordPress + WooCommerce + pasarelas Qonto/TropiPay, endurecido.
+#
+#   1. ./scripts/preparar-secretos.sh     (genera contraseñas y los huecos para las credenciales)
+#   2. cp .env.example .env               (y revisar valores)
+#   3. ./scripts/instalar.sh              (levanta e instala todo)
+#
+name: tienda
+
+x-secretos-wp: &secretos-wp
+  - db_password
+  - qonto_login
+  - qonto_secret_key
+  - qonto_staging_token
+  - qonto_webhook_token
+  - tropipay_client_id
+  - tropipay_client_secret
+  - pagos_clave_hmac
+
+x-entorno-wp: &entorno-wp
+  WORDPRESS_DB_HOST: db
+  WORDPRESS_DB_NAME: ${DB_NAME:-tienda}
+  WORDPRESS_DB_USER: ${DB_USER:-tienda}
+  WORDPRESS_DB_PASSWORD_FILE: /run/secrets/db_password
+  WORDPRESS_TABLE_PREFIX: ${WP_TABLE_PREFIX:-tnd_}
+  WORDPRESS_CONFIG_EXTRA: "require '/etc/idital/wp-config-idital.php';"
+  WP_ENVIRONMENT_TYPE: ${WP_ENVIRONMENT_TYPE:-production}
+  WP_FORZAR_SSL: ${WP_FORZAR_SSL:-false}
+  WP_BLOQUEAR_INSTALACIONES: ${WP_BLOQUEAR_INSTALACIONES:-false}
+  IDITAL_PROXY_CONFIANZA: ${IDITAL_PROXY_CONFIANZA:-false}
+  IDITAL_QONTO_ENTORNO: ${IDITAL_QONTO_ENTORNO:-sandbox}
+  IDITAL_TROPIPAY_ENTORNO: ${IDITAL_TROPIPAY_ENTORNO:-sandbox}
+  IDITAL_QONTO_API_BASE: ${IDITAL_QONTO_API_BASE:-}
+  IDITAL_TROPIPAY_API_BASE: ${IDITAL_TROPIPAY_API_BASE:-}
+
+x-volumenes-wp: &volumenes-wp
+  - wp_datos:/var/www/html
+  - ./wp-content/plugins/idital-pagos:/var/www/html/wp-content/plugins/idital-pagos:ro
+  - ./wp-content/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
+  - ./config/wp-config-idital.php:/etc/idital/wp-config-idital.php:ro
+
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-tienda}
+      MARIADB_USER: ${DB_USER:-tienda}
+      MARIADB_PASSWORD_FILE: /run/secrets/db_password
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MARIADB_AUTO_UPGRADE: "1"
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--local-infile=0", "--skip-name-resolve"]
+    secrets: [db_password, db_root_password]
+    volumes:
+      - db_datos:/var/lib/mysql
+    networks: [interna]          # La base de datos no tiene salida a internet ni puerto publicado.
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  wordpress:
+    image: wordpress:7-php8.3-apache
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment: *entorno-wp
+    secrets: *secretos-wp
+    volumes:
+      - wp_datos:/var/www/html
+      - ./wp-content/plugins/idital-pagos:/var/www/html/wp-content/plugins/idital-pagos:ro
+      - ./wp-content/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
+      - ./config/wp-config-idital.php:/etc/idital/wp-config-idital.php:ro
+      - ./config/php/seguridad.ini:/usr/local/etc/php/conf.d/zz-seguridad.ini:ro
+      - ./config/apache/seguridad.conf:/etc/apache2/conf-enabled/zz-seguridad.conf:ro
+    # Solo escucha en localhost: en producción se publica a través de un proxy con HTTPS.
+    ports:
+      - "127.0.0.1:${WP_PUERTO:-8080}:80"
+    networks: [interna, salida]
+    security_opt: ["no-new-privileges:true"]
+
+  # Herramienta de administración (no se queda corriendo): docker compose run --rm wpcli wp ...
+  wpcli:
+    image: wordpress:cli-php8.3
+    profiles: [herramientas]
+    user: "33:33"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment: *entorno-wp
+    secrets: *secretos-wp
+    volumes: *volumenes-wp
+    networks: [interna, salida]
+
+secrets:
+  db_password:            { file: ./secretos/db_password.txt }
+  db_root_password:       { file: ./secretos/db_root_password.txt }
+  qonto_login:            { file: ./secretos/qonto_login.txt }
+  qonto_secret_key:       { file: ./secretos/qonto_secret_key.txt }
+  qonto_staging_token:    { file: ./secretos/qonto_staging_token.txt }
+  qonto_webhook_token:    { file: ./secretos/qonto_webhook_token.txt }
+  tropipay_client_id:     { file: ./secretos/tropipay_client_id.txt }
+  tropipay_client_secret: { file: ./secretos/tropipay_client_secret.txt }
+  pagos_clave_hmac:       { file: ./secretos/pagos_clave_hmac.txt }
+
+networks:
+  interna:
+    internal: true
+  salida: {}
+
+volumes:
+  db_datos:
+  wp_datos:
