@@ -1503,11 +1503,13 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 }
 
 /* Sin propiedades a la venta. */
-.zq-sin-propiedades {
-	margin: 0 0 8px;
+.zq-propiedades td.zq-sin-propiedades,
+.zq-f .zq-propiedades td.zq-sin-propiedades {
 	padding: 24px 0;
+	color: #000;
 	font-size: 16px;
-	text-align: center;
+	font-weight: 500;
+	text-align: center !important;
 }
 
 /* Sin contorno azul al pulsar el desplegable (se mantiene con teclado). */
