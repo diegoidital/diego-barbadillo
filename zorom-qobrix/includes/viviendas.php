@@ -386,8 +386,6 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 		<?php endif; ?>
 
 
-		<?php echo zq_viv_similares( $post_id, $promo ); // phpcs:ignore ?>
-
 		<section class="zq-v-contacto<?php echo $coord ? '' : ' zq-v-contacto--sin-mapa'; ?>" id="contacto">
 			<?php if ( $coord ) : ?>
 				<div class="zq-v-mapa">
@@ -399,6 +397,8 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 				<div class="zq-v-form"><?php echo zq_form_html(); // phpcs:ignore ?></div>
 			</div>
 		</section>
+
+		<?php echo zq_viv_similares( $post_id, $promo ); // phpcs:ignore ?>
 	</div>
 	<?php echo zq_viv_lightbox(); // phpcs:ignore ?>
 	<?php
