@@ -1355,8 +1355,8 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 	content: "";
 	position: absolute;
 	z-index: -1;
-	top: -15px;
-	bottom: -15px;
+	top: -30px;
+	bottom: -30px;
 	left: -100vw;
 	right: 90px;
 	border-radius: 0 30px 30px 0;
