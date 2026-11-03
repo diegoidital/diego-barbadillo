@@ -228,6 +228,22 @@ function zq_ficha_zona2( $post_id, $a ) {
 }
 
 /* 08. Contacto ------------------------------------------------------------- */
+/** HTML del formulario de contacto (global de Elementor, plantilla o shortcode de Ajustes). */
+function zq_form_html( $shortcode = '' ) {
+	$form = '';
+	if ( $shortcode ) {
+		$form = do_shortcode( $shortcode );
+	} elseif ( zq_form_template_id() && class_exists( '\Elementor\Plugin' ) ) {
+		$form = \Elementor\Plugin::instance()->frontend->get_builder_content_for_display( zq_form_template_id(), true );
+	} elseif ( zq_options()['form_shortcode'] ) {
+		$form = do_shortcode( zq_options()['form_shortcode'] );
+	}
+	if ( ! $form && current_user_can( 'manage_options' ) ) {
+		$form = '<p class="zq-f-aviso">Falta el formulario: indica su shortcode en Qobrix → Ajustes («Formulario de contacto»).</p>';
+	}
+	return $form;
+}
+
 function zq_ficha_contacto( $post_id, $a ) {
 	$form = '';
 	if ( $a['formulario'] ) {

@@ -1330,10 +1330,33 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 	object-fit: contain;
 }
 
-/* Mapa a ancho completo. */
+/* Mapa a media pantalla con bloque negro detrás (como en las demás secciones) y,
+   en la otra mitad, el formulario. */
+.zq-v-contacto {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	align-items: center;
+	gap: 80px;
+	padding: 115px var(--zq-v-lado) 115px 0;
+	overflow-x: clip;
+}
+
 .zq-v-mapa {
-	margin-top: 70px;
-	height: 500px;
+	position: relative;
+	z-index: 0;
+	height: 560px;
+}
+
+.zq-v-mapa::before {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	top: -15px;
+	bottom: -15px;
+	left: 0;
+	right: -46px;
+	border-radius: 0 20px 20px 0;
+	background: #000;
 }
 
 .zq-v-mapa iframe {
@@ -1341,19 +1364,32 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 	width: 100%;
 	height: 100%;
 	border: 0;
+	border-radius: 0 20px 20px 0;
 }
 
-/* Formulario: el global de Elementor tal cual, en una caja como en las promociones. */
-.zq-v .zq-f-contacto {
-	padding: 80px 0;
+.zq-v-contacto__form {
+	min-width: 0;
 }
 
+.zq-v-contacto--sin-mapa {
+	grid-template-columns: minmax(0, 720px);
+	justify-content: center;
+	padding-left: var(--zq-v-lado);
+}
+
+/* El formulario global trae relleno lateral del 25 %: en media pantalla, a todo el ancho. */
 .zq-v .zq-v-form {
 	box-sizing: border-box;
 	width: 100%;
-	max-width: var(--zq-caja, 1140px); /* misma caja que en las promociones */
-	margin: 64px auto 0;
-	padding: 0 10px;
+	max-width: none;
+	margin: 30px 0 0;
+	padding: 0;
+}
+
+.zq-v .zq-v-form .elementor-widget-form,
+.zq-v .zq-v-form .elementor-widget-global {
+	padding-left: 0 !important;
+	padding-right: 0 !important;
 }
 
 /* Propiedades similares: bloque negro, letras blancas. */
@@ -1470,6 +1506,8 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 	.zq-v-datos { grid-template-columns: 1fr; }
 	.zq-v-galeria { grid-template-columns: 1fr 1fr; grid-template-rows: 220px 140px 140px; }
 	.zq-v-galeria__foto:first-child { grid-column: 1 / -1; grid-row: auto; }
+	.zq-v-contacto { grid-template-columns: 1fr; gap: 60px; padding: 80px 20px 80px 0; }
+	.zq-v-contacto__form { padding-left: 20px; }
 	.zq-v-mapa { height: 360px; }
 	.zq-v-card { flex-basis: 100%; }
 }
