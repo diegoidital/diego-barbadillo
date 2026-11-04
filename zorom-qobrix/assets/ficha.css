@@ -1609,3 +1609,30 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 	clip: rect(0 0 0 0);
 	white-space: nowrap;
 }
+
+/* Toda la web: cada página mide como mínimo el alto de la pantalla y el pie queda abajo. */
+body {
+	display: flex;
+	flex-direction: column;
+	min-height: calc(100vh - var(--wp-admin--admin-bar--height, 0px));
+}
+
+body > * {
+	flex-shrink: 0;
+}
+
+body > main,
+body > #content,
+body > .site-main,
+body > [data-elementor-type="wp-page"],
+body > [data-elementor-type="single-page"],
+body > [data-elementor-type="single-post"],
+body > [data-elementor-type="single"] {
+	flex-grow: 1;
+}
+
+body > .elementor-location-footer,
+body > footer,
+body > #colophon {
+	margin-top: auto;
+}
