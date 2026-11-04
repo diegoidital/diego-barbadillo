@@ -104,6 +104,51 @@ final class Idital_Pagos_Qonto_Client {
 		return $respuesta['datos']['payment_link'];
 	}
 
+	/**
+	 * Diagnóstico de solo lectura para el botón "Probar conexión".
+	 *
+	 * @return array<int, array{0: string, 1: string}> Lista de [ 'ok'|'aviso'|'error', mensaje ].
+	 */
+	public function diagnostico(): array {
+		$base      = Idital_Pagos_Config::qonto_base();
+		$resultado = array();
+		try {
+			$r = Idital_Pagos_Http::json( 'GET', $base . '/v2/organization', $this->cabeceras() );
+			if ( 200 === $r['codigo'] ) {
+				$org         = $r['datos']['organization'] ?? array();
+				$resultado[] = array( 'ok', 'Clave válida. Organización: ' . sanitize_text_field( (string) ( $org['legal_name'] ?? $org['slug'] ?? '?' ) ) );
+			} elseif ( 401 === $r['codigo'] ) {
+				return array( array( 'error', 'Qonto rechaza la clave (401). Revisa el identificador, la clave secreta y el entorno (' . ( Idital_Pagos_Config::qonto_sandbox() ? 'sandbox' : 'producción' ) . ').' ) );
+			} else {
+				return array( array( 'error', 'Respuesta inesperada de Qonto (HTTP ' . $r['codigo'] . ').' ) );
+			}
+
+			$r = Idital_Pagos_Http::json( 'GET', $base . '/v2/payment_links/connections', $this->cabeceras() );
+			$c = $r['datos']['connection'] ?? $r['datos'];
+			$e = is_array( $c ) ? strtolower( (string) ( $c['status'] ?? $c['connection_status'] ?? '' ) ) : '';
+			if ( 200 === $r['codigo'] && in_array( $e, array( 'enabled', 'active', 'connected' ), true ) ) {
+				$resultado[] = array( 'ok', 'Cuenta conectada a Mollie (estado: ' . sanitize_text_field( $e ) . '). Se pueden crear links de pago.' );
+			} elseif ( in_array( $r['codigo'], array( 200, 404 ), true ) ) {
+				$resultado[] = array( 'aviso', 'La cuenta NO está conectada a Mollie' . ( $e ? ' (estado: ' . sanitize_text_field( $e ) . ')' : '' ) . '. Hay que completar la conexión desde Qonto antes de poder cobrar.' );
+			} else {
+				$resultado[] = array( 'error', 'No se pudo consultar la conexión con Mollie (HTTP ' . $r['codigo'] . '). ¿La clave tiene permiso para links de pago?' );
+			}
+
+			$r = Idital_Pagos_Http::json( 'GET', $base . '/v2/payment_links/payment_methods', $this->cabeceras() );
+			if ( 200 === $r['codigo'] ) {
+				$metodos = $r['datos']['payment_methods'] ?? ( array_is_list( $r['datos'] ) ? $r['datos'] : array() );
+				$nombres = array();
+				foreach ( (array) $metodos as $m ) {
+					$nombres[] = sanitize_text_field( is_array( $m ) ? (string) ( $m['name'] ?? $m['type'] ?? '' ) : (string) $m );
+				}
+				$resultado[] = array( 'ok', 'Métodos de pago disponibles: ' . ( implode( ', ', array_filter( $nombres ) ) ?: 'ninguno' ) );
+			}
+		} catch ( Idital_Pagos_Exception $e ) {
+			$resultado[] = array( 'error', 'No hay conexión con Qonto: ' . $e->getMessage() );
+		}
+		return $resultado;
+	}
+
 	public function desactivar_link( string $id ): bool {
 		if ( ! self::id_valido( $id ) ) {
 			return false;

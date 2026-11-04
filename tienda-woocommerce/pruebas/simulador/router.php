@@ -76,9 +76,18 @@ $auth   = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
 $e      = estado();
 
 /* =============================================================== QONTO API */
-if ( str_starts_with( $ruta, '/v2/payment_links' ) ) {
+if ( str_starts_with( $ruta, '/v2/payment_links' ) || '/v2/organization' === $ruta ) {
 	if ( $auth !== secreto( 'qonto_login' ) . ':' . secreto( 'qonto_secret_key' ) ) {
 		json_out( 401, array( 'errors' => array( array( 'code' => 'authorization_token_invalid' ) ) ) );
+	}
+	if ( '/v2/organization' === $ruta ) {
+		json_out( 200, array( 'organization' => array( 'slug' => secreto( 'qonto_login' ), 'legal_name' => 'EMPRESA SIMULADA SL', 'bank_accounts' => array() ) ) );
+	}
+	if ( '/v2/payment_links/connections' === $ruta ) {
+		json_out( 200, array( 'connection' => array( 'status' => 'enabled' ) ) );
+	}
+	if ( '/v2/payment_links/payment_methods' === $ruta ) {
+		json_out( 200, array( 'payment_methods' => array( array( 'name' => 'credit_card' ), array( 'name' => 'apple_pay' ) ) ) );
 	}
 
 	if ( 'POST' === $metodo && '/v2/payment_links' === $ruta ) {

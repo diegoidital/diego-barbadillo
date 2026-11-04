@@ -62,6 +62,7 @@ final class Idital_Pagos_Rest {
 	}
 
 	private static function respuesta( array $datos, int $codigo = 200 ): WP_REST_Response {
+		do_action( 'litespeed_control_set_nocache', 'idital-pagos' );
 		$r = new WP_REST_Response( $datos, $codigo );
 		$r->header( 'Cache-Control', 'no-store, private' );
 		$r->header( 'X-Robots-Tag', 'noindex' );
@@ -75,9 +76,8 @@ final class Idital_Pagos_Rest {
 			return self::respuesta( array( 'ok' => false ), 429 );
 		}
 
-		// Capa extra opcional: token secreto en la URL del webhook.
-		$token = Idital_Pagos_Config::get( 'IDITAL_QONTO_WEBHOOK_TOKEN' );
-		if ( '' !== $token && ! hash_equals( $token, (string) $peticion->get_param( 'token' ) ) ) {
+		// Capa extra: token secreto en la URL del webhook.
+		if ( ! hash_equals( Idital_Pagos_Config::qonto_webhook_token(), (string) $peticion->get_param( 'token' ) ) ) {
 			Idital_Pagos_Log::aviso( 'Webhook de Qonto rechazado: token incorrecto', array( 'ip' => Idital_Pagos_Limite::ip() ) );
 			return self::respuesta( array( 'ok' => false ), 401 );
 		}

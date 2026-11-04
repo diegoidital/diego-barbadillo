@@ -91,6 +91,42 @@ Pruebas automáticas:
 ./pruebas/pruebas-seguridad.sh
 ```
 
+## Instalación en un hosting con Plesk (sin Docker)
+
+Es el caso de una web WordPress que ya existe (por ejemplo con LiteSpeed, Elementor y YITH Request a Quote).
+
+1. **Copia de seguridad** de la web desde Plesk (*Copia de seguridad* o *WordPress Toolkit → Copia de seguridad*).
+2. **Credenciales fuera de la carpeta pública**: en el *Administrador de archivos* de Plesk, sube
+   `instalacion-plesk/idital-pagos-config.php` a la carpeta **`private`** (al mismo nivel que
+   `httpdocs`) y rellena sus datos con el editor de Plesk.
+3. **wp-config.php** (en `httpdocs`): justo antes de `/* That's all, stop editing! */` añade:
+
+   ```php
+   if ( is_readable( dirname( __DIR__ ) . '/private/idital-pagos-config.php' ) ) {
+       require_once dirname( __DIR__ ) . '/private/idital-pagos-config.php';
+   }
+   ```
+
+   Si el fichero no existe, la web sigue funcionando y las pasarelas simplemente no aparecen.
+4. **Plugin**: *Plugins → Añadir nuevo → Subir plugin* con `idital-pagos.zip` (la carpeta
+   `wp-content/plugins/idital-pagos` comprimida) y actívalo.
+5. *WooCommerce → Ajustes → Pagos → Qonto* → **Probar conexión con Qonto**. Comprueba la clave, la conexión
+   con Mollie y los métodos disponibles, sin crear ni cobrar nada. Copia la **URL del webhook** que aparece
+   ahí para darla de alta en Qonto.
+6. Activa la pasarela y haz un pedido de prueba de 1 €.
+7. **Blindaje**:
+   - *WordPress Toolkit → Seguridad*: aplica las medidas recomendadas (bloquear XML-RPC, PHP en uploads,
+     listado de directorios, etc.).
+   - Opcional: sube `wp-content/mu-plugins/idital-blindaje.php` a `httpdocs/wp-content/mu-plugins/`.
+     Desactiva las contraseñas de aplicación: si alguna integración las usa, quita esa línea.
+
+**LiteSpeed Cache**: el plugin marca como "no cachear" sus respuestas y la página del pedido pendiente de pago.
+
+**Presupuestos con YITH Request a Quote**: la versión gratuita solo envía la solicitud por email; no crea
+pedidos. El presupuesto aceptado se convierte en pedido en *WooCommerce → Pedidos → Añadir*, con estado
+"Pendiente de pago", y se envía al cliente con "Enviar detalles del pedido al cliente". La versión Premium
+de YITH crea ese pedido automáticamente cuando el cliente acepta; el plugin es compatible con sus estados.
+
 ## Cuando lleguen las credenciales
 
 1. Guárdalas con el script, que las pide por teclado sin mostrarlas ni dejarlas en el historial:

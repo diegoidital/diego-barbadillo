@@ -126,7 +126,7 @@ add_action(
 		header( 'Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()' );
 		header( "Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self' https:" );
 		if ( is_ssl() ) {
-			header( 'Strict-Transport-Security: max-age=31536000; includeSubDomains' );
+			header( 'Strict-Transport-Security: max-age=31536000' );
 		}
 	}
 );

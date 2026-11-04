@@ -50,6 +50,15 @@ final class Idital_Pagos_Config {
 		return true;
 	}
 
+	/** Token secreto que debe llevar la URL del webhook de Qonto. */
+	public static function qonto_webhook_token(): string {
+		$token = self::get( 'IDITAL_QONTO_WEBHOOK_TOKEN' );
+		if ( strlen( $token ) >= 20 ) {
+			return $token;
+		}
+		return substr( hash_hmac( 'sha256', 'qonto-webhook', self::clave_hmac() ), 0, 40 );
+	}
+
 	/* --------------------------------------------------------------- TropiPay */
 
 	public static function tropipay_sandbox(): bool {

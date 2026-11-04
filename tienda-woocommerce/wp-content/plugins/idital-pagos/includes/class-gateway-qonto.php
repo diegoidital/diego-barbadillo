@@ -35,15 +35,16 @@ final class Idital_Pagos_Gateway_Qonto extends Idital_Pagos_Gateway {
 	}
 
 	public function init_form_fields() {
-		$webhook = add_query_arg(
-			Idital_Pagos_Config::get( 'IDITAL_QONTO_WEBHOOK_TOKEN' ) ? array( 'token' => Idital_Pagos_Config::get( 'IDITAL_QONTO_WEBHOOK_TOKEN' ) ) : array(),
-			rest_url( 'idital-pagos/v1/qonto/webhook' )
-		);
+		$webhook = add_query_arg( 'token', Idital_Pagos_Config::qonto_webhook_token(), rest_url( 'idital-pagos/v1/qonto/webhook' ) );
+		$extra   = array( 'URL del webhook para Qonto: <code>' . esc_html( $webhook ) . '</code>' );
+		if ( $this->configurado() ) {
+			$extra[] = '<a class="button" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=idital_probar_qonto' ), 'idital_probar_qonto' ) ) . '">Probar conexión con Qonto</a> <span class="description">(solo lectura: no crea ni cobra nada)</span>';
+		}
 
 		$this->form_fields = array(
 			'estado'      => $this->campo_estado(
 				Idital_Pagos_Config::qonto_sandbox() ? 'Sandbox (pruebas)' : 'PRODUCCIÓN',
-				array( 'URL del webhook para Qonto: <code>' . esc_html( $webhook ) . '</code>' )
+				$extra
 			),
 			'enabled'     => array(
 				'title'   => __( 'Activar', 'idital-pagos' ),

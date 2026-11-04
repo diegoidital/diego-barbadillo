@@ -31,6 +31,13 @@ final class Idital_Pagos_Confirmacion {
 		return (int) round( (float) $texto * 100 );
 	}
 
+	/**
+	 * Estados en los que WooCommerce (y plugins como YITH Request a Quote) permiten pagar.
+	 */
+	public static function estados_pagables( ?WC_Order $pedido = null ): array {
+		return array_values( array_unique( (array) apply_filters( 'woocommerce_valid_order_statuses_for_payment', array( 'pending', 'failed' ), $pedido ) ) );
+	}
+
 	public static function formatear( int $centimos, string $moneda ): string {
 		return number_format( $centimos / 100, 2, ',', '.' ) . ' ' . $moneda;
 	}
@@ -99,7 +106,7 @@ final class Idital_Pagos_Confirmacion {
 			}
 
 			// 3. Estado del pedido incompatible (reembolsado, borrador...).
-			$estados_validos = array( 'pending', 'failed', 'on-hold', 'cancelled' );
+			$estados_validos = array_merge( array( 'on-hold', 'cancelled' ), self::estados_pagables( $pedido ) );
 			if ( ! $pedido->has_status( $estados_validos ) ) {
 				self::anomalia(
 					$pedido,

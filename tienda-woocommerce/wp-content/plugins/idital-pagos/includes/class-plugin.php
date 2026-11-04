@@ -39,6 +39,10 @@ final class Idital_Pagos_Plugin {
 		add_action( self::HOOK_REVISION, array( __CLASS__, 'revisar_pendientes_qonto' ) );
 		add_action( 'action_scheduler_init', array( __CLASS__, 'programar_revision' ) );
 
+		// Botón "Probar conexión con Qonto".
+		add_action( 'admin_post_idital_probar_qonto', array( __CLASS__, 'probar_qonto' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'aviso_diagnostico' ) );
+
 		// Checkout por bloques.
 		add_action( 'woocommerce_blocks_payment_method_type_registration', array( __CLASS__, 'registrar_bloques' ) );
 	}
@@ -86,7 +90,7 @@ final class Idital_Pagos_Plugin {
 		}
 		$pedidos = wc_get_orders(
 			array(
-				'status'         => array( 'pending', 'on-hold', 'failed' ),
+				'status'         => array_merge( array( 'on-hold' ), Idital_Pagos_Confirmacion::estados_pagables() ),
 				'payment_method' => 'idital_qonto',
 				'date_created'   => '>' . ( time() - self::DIAS_RESERVA * DAY_IN_SECONDS ),
 				'limit'          => 25,
@@ -99,6 +103,39 @@ final class Idital_Pagos_Plugin {
 				Idital_Pagos_Gateway_Qonto::verificar( $pedido, 'revisión automática' );
 			}
 		}
+	}
+
+	public static function probar_qonto(): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'No tienes permiso para hacer esto.', 'idital-pagos' ), 403 );
+		}
+		check_admin_referer( 'idital_probar_qonto' );
+		$resultado = Idital_Pagos_Config::qonto_configurado()
+			? ( new Idital_Pagos_Qonto_Client() )->diagnostico()
+			: array( array( 'error', 'Faltan las credenciales de Qonto en la configuración.' ) );
+		set_transient( 'idital_diag_' . get_current_user_id(), $resultado, 5 * MINUTE_IN_SECONDS );
+		wp_safe_redirect( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=idital_qonto' ) );
+		exit;
+	}
+
+	public static function aviso_diagnostico(): void {
+		$clave     = 'idital_diag_' . get_current_user_id();
+		$resultado = get_transient( $clave );
+		if ( ! is_array( $resultado ) || ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+		delete_transient( $clave );
+		$iconos = array(
+			'ok'    => '✅',
+			'aviso' => '⚠️',
+			'error' => '❌',
+		);
+		$tipo   = in_array( 'error', array_column( $resultado, 0 ), true ) ? 'error' : ( in_array( 'aviso', array_column( $resultado, 0 ), true ) ? 'warning' : 'success' );
+		echo '<div class="notice notice-' . esc_attr( $tipo ) . '"><p><strong>Prueba de conexión con Qonto</strong></p><ul>';
+		foreach ( $resultado as $linea ) {
+			echo '<li>' . esc_html( ( $iconos[ $linea[0] ] ?? '' ) . ' ' . $linea[1] ) . '</li>';
+		}
+		echo '</ul></div>';
 	}
 
 	public static function registrar_bloques( $registro ): void {

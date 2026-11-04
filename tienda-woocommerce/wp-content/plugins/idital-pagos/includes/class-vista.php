@@ -11,9 +11,11 @@ final class Idital_Pagos_Vista {
 
 	public static function caja( $order_id ): void {
 		$pedido = wc_get_order( $order_id );
-		if ( ! $pedido || $pedido->is_paid() || ! $pedido->has_status( array( 'pending', 'on-hold', 'failed' ) ) ) {
+		if ( ! $pedido || $pedido->is_paid() || ! ( $pedido->needs_payment() || $pedido->has_status( 'on-hold' ) ) ) {
 			return;
 		}
+		// Esta página nunca debe salir de la caché (LiteSpeed Cache).
+		do_action( 'litespeed_control_set_nocache', 'idital-pagos: pedido pendiente de pago' );
 
 		$metodo = $pedido->get_payment_method();
 		if ( ! in_array( $metodo, array( 'idital_qonto', 'idital_tropipay' ), true ) ) {
