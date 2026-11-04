@@ -307,3 +307,9 @@ Las detectó el vigilante o se reportaron en el uso diario. Todas se hicieron di
     - `ps_connections`: de 14,5 M filas a ~2.500;
     - `ps_connections_source`: unas 2.100 filas;
     - `ps_guest`: ~15 M filas, en curso.
+- **Vigilante:** desde el 03/11 ignora los 500 de Baiduspider-render en `ajaxmegaproduct`. Son aislados, no dejan rastro en los logs y todas las llamadas de clientes dan 200. Copia previa: `/root/vigila_beleno.sh.bak-20261103`.
+- **Aviso de pedido nuevo al comerciante (`ps_emailalerts` 3.0.1):**
+  - Desde el 27/10 no llegaba a `web@belenoyrosello.com`.
+  - Esta versión lee los destinatarios de `MA_MERCHANT_ORDER_EMAILS` (y de `MA_RETURN_SLIP_EMAILS` para las devoluciones), no de `MA_MERCHANT_MAILS`, y esa clave no existía tras la actualización.
+  - El 04/11 se rellenaron ambas en Módulos → Alertas por email; hay que pulsar Enter en el campo de etiqueta antes de guardar.
+  - Quedaron sin aviso los pedidos 1505, 1506, 1507 y 1508.
