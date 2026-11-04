@@ -394,6 +394,7 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 		'reservadas' => 'Ver propiedades reservadas',
 		'sin_disponibles' => 'En este momento no hay propiedades a la venta en esta promoción.',
 		'todas_vendidas'  => 'Todas las propiedades vendidas',
+		'ver'             => 'Ver propiedad', // Texto de la última columna (vacío = sin columna).
 		'vendidas' => 'Ver propiedades vendidas',
 	), $atts, 'qobrix_propiedades' );
 
@@ -439,9 +440,13 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 	foreach ( $cols as $c ) {
 		$thead .= '<th scope="col">' . esc_html( $c[1] ) . '</th>';
 	}
+	if ( $a['ver'] ) {
+		$thead .= '<th scope="col" class="zq-col-ver"><span class="screen-reader-text">' . esc_html( $a['ver'] ) . '</span></th>';
+	}
 	$thead .= '</tr></thead>';
 
-	$filas = function ( array $list ) use ( $cols ) {
+	$ver   = $a['ver'];
+	$filas = function ( array $list ) use ( $cols, $ver ) {
 		$html = '';
 		foreach ( $list as $u ) {
 			$status = strtolower( (string) ( isset( $u['status'] ) ? $u['status'] : '' ) );
@@ -472,6 +477,10 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 				$txt   = ( 0 === $i && $url ) ? '<a href="' . esc_url( $url ) . '">' . $txt . '</a>' : $txt;
 				$html .= '<td data-label="' . esc_attr( $c[1] ) . '"><span>' . $txt . '</span></td>';
 			}
+			if ( $ver ) {
+				// Columna extra para que se entienda que la fila lleva a la ficha del inmueble.
+				$html .= '<td class="zq-col-ver">' . ( $url ? '<a class="zq-ver-propiedad" href="' . esc_url( $url ) . '">' . esc_html( $ver ) . ' <span aria-hidden="true">&rarr;</span></a>' : '' ) . '</td>';
+			}
 			$html .= '</tr>';
 		}
 		return $html;
@@ -483,7 +492,7 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 	} else {
 		// Sin disponibles: la cabecera de la tabla se mantiene, con el aviso en una fila.
 		$aviso = ( $vendidas && ! $reservadas ) ? $a['todas_vendidas'] : $a['sin_disponibles'];
-		$out  .= '<table class="zq-propiedades zq-propiedades--vacia">' . $thead . '<tbody><tr><td class="zq-sin-propiedades" colspan="' . count( $cols ) . '">' . esc_html( $aviso ) . '</td></tr></tbody></table>';
+		$out  .= '<table class="zq-propiedades zq-propiedades--vacia">' . $thead . '<tbody><tr><td class="zq-sin-propiedades" colspan="' . ( count( $cols ) + ( $a['ver'] ? 1 : 0 ) ) . '">' . esc_html( $aviso ) . '</td></tr></tbody></table>';
 	}
 	if ( $reservadas ) {
 		$out .= '<details class="zq-vendidas zq-reservadas"><summary>' . esc_html( $a['reservadas'] ) . ' (' . count( $reservadas ) . ')</summary>'
