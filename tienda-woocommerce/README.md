@@ -93,7 +93,17 @@ Pruebas automáticas:
 
 ## Cuando lleguen las credenciales
 
-1. Escríbelas, sin salto de línea final, en:
+1. Guárdalas con el script, que las pide por teclado sin mostrarlas ni dejarlas en el historial:
+
+   ```bash
+   ./scripts/guardar-secreto.sh qonto_login
+   ```
+
+   ```bash
+   ./scripts/guardar-secreto.sh qonto_secret_key
+   ```
+
+   (o escríbelas a mano, sin salto de línea final). Cada credencial va en:
 
    | Fichero | Contenido |
    |---|---|
@@ -112,9 +122,23 @@ Pruebas automáticas:
 3. **Qonto:** conecta la cuenta con Mollie una vez (desde la app de Qonto o con
    `POST /v2/payment_links/connections`). Después da de alta el webhook con la URL que aparece en
    *WooCommerce → Ajustes → Pagos → Qonto* (ya incluye su token secreto).
-4. Prueba en **sandbox** (por defecto) los dos flujos y revisa *WooCommerce → Estado → Registros*
+4. Comprueba la conexión con Qonto. Primero solo lectura (no crea ni cobra nada):
+
+   ```bash
+   ./scripts/comprobar-qonto.sh
+   ```
+
+   y después un link real de 1 € creado por la tienda, que se desactiva sin pagarlo:
+
+   ```bash
+   ./scripts/comprobar-qonto.sh --link-prueba
+   ```
+
+   Una clave API sacada de la app normal de Qonto es de **producción**: requiere
+   `IDITAL_QONTO_ENTORNO=produccion` en `.env`.
+5. Prueba en **sandbox** (por defecto) los dos flujos y revisa *WooCommerce → Estado → Registros*
    (fuente `idital-pagos`).
-5. Cuando todo cuadre, en `.env` pon `IDITAL_QONTO_ENTORNO=produccion` y/o
+6. Cuando todo cuadre, en `.env` pon `IDITAL_QONTO_ENTORNO=produccion` y/o
    `IDITAL_TROPIPAY_ENTORNO=produccion` y reinicia. **Hasta entonces no se mueve dinero real.**
 
 ### Puntos a confirmar en el sandbox
