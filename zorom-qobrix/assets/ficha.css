@@ -319,6 +319,7 @@ body:has(.zq-f) {
 .zq-f .zq-propiedades-wrap {
 	width: 1311px;
 	max-width: 100%;
+	box-sizing: border-box;
 	margin-top: 11px;
 	overflow: visible;
 }
@@ -340,13 +341,16 @@ body:has(.zq-f) {
 }
 
 /* Columnas centradas sobre las posiciones del Figma. */
-.zq-f .zq-propiedades th:nth-child(1) { width: 158px; }
-.zq-f .zq-propiedades th:nth-child(2) { width: 134px; }
-.zq-f .zq-propiedades th:nth-child(3) { width: 140px; }
-.zq-f .zq-propiedades th:nth-child(4) { width: 156px; }
-.zq-f .zq-propiedades th:nth-child(5) { width: 188px; }
-.zq-f .zq-propiedades th:nth-child(6) { width: 194px; }
-.zq-f .zq-propiedades th:nth-child(7) { width: 170px; }
+/* Anchos en % para que la tabla ocupe siempre el 100 % sin cortarse (portátil incluido). */
+.zq-f .zq-propiedades th:nth-child(1) { width: 11%; }
+.zq-f .zq-propiedades th:nth-child(2) { width: 8%; }
+.zq-f .zq-propiedades th:nth-child(3) { width: 11%; }
+.zq-f .zq-propiedades th:nth-child(4) { width: 8%; }
+.zq-f .zq-propiedades th:nth-child(5) { width: 12%; }
+.zq-f .zq-propiedades th:nth-child(6) { width: 12%; }
+.zq-f .zq-propiedades th:nth-child(7) { width: 12%; }
+.zq-f .zq-propiedades th:nth-child(8) { width: 12%; }
+.zq-f .zq-propiedades th.zq-col-ver { width: 14%; }
 
 .zq-f .zq-propiedades th {
 	height: 50px;
@@ -618,7 +622,6 @@ body:has(.zq-f) {
 	.zq-f-mapa { flex-basis: 42.5vw; height: 43.5vw; margin-left: 4vw; }
 	.zq-f-gal__grid { margin-left: auto; margin-right: auto; }
 	.zq-f-cards { flex-wrap: wrap; }
-	.zq-f .zq-propiedades-wrap { overflow-x: auto; overflow-y: hidden; }
 }
 
 /* Tableta y móvil: una columna, fotos arriba, medidas proporcionales ------ */
@@ -1562,4 +1565,47 @@ body:has(.zq-bloque-dcha, .zq-bloque-izda) {
 /* Sin contorno azul al pulsar el desplegable (se mantiene con teclado). */
 .zq-vendidas > summary:focus:not(:focus-visible) {
 	outline: none;
+}
+
+/* Columna «Ver propiedad». */
+.zq-propiedades td.zq-col-ver {
+	white-space: nowrap;
+}
+
+.zq-propiedades .zq-ver-propiedad {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 14px;
+	border: 1px solid currentColor;
+	border-radius: 8px;
+	color: #000 !important;
+	font-size: 14px;
+	font-weight: 500;
+	text-decoration: none !important;
+	transition: background .2s, color .2s;
+}
+
+.zq-propiedades .zq-fila-enlace:hover .zq-ver-propiedad,
+.zq-propiedades .zq-ver-propiedad:focus-visible {
+	background: #000;
+	color: #fff !important;
+}
+
+.zq-propiedades--vendidas .zq-ver-propiedad {
+	opacity: .6;
+}
+
+@media (max-width: 1280px) {
+	.zq-f .zq-propiedades th, .zq-f .zq-propiedades td { font-size: 16px; }
+	.zq-propiedades .zq-ver-propiedad { padding: 5px 10px; font-size: 13px; }
+}
+
+.zq-propiedades .screen-reader-text {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
 }
