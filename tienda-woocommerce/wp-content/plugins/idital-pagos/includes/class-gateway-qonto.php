@@ -152,6 +152,10 @@ final class Idital_Pagos_Gateway_Qonto extends Idital_Pagos_Gateway {
 	protected function crear_link( WC_Order $pedido ): string {
 		$link = ( new Idital_Pagos_Qonto_Client() )->crear_link( $pedido, $this->metodos() );
 
+		Idital_Pagos_Registro::asociar( 'qonto_link', $link['id'], $pedido->get_id() );
+		$historial   = (array) $this->meta( $pedido, 'links' );
+		$historial[] = $link['id'];
+		$this->guardar_meta( $pedido, 'links', array_slice( array_values( array_unique( $historial ) ), -20 ) );
 		$this->guardar_meta( $pedido, 'link_id', $link['id'] );
 		$this->guardar_meta( $pedido, 'link_url', $link['url'] );
 		$this->guardar_meta( $pedido, 'importe', $link['importe'] );
@@ -231,10 +235,19 @@ final class Idital_Pagos_Gateway_Qonto extends Idital_Pagos_Gateway {
 	 * Nunca se fía del contenido de un webhook: siempre pregunta a la API.
 	 */
 	public static function verificar( WC_Order $pedido, string $origen ): bool {
-		$id = (string) $pedido->get_meta( '_idital_qonto_link_id' );
-		if ( '' === $id || ! Idital_Pagos_Config::qonto_configurado() ) {
+		if ( ! Idital_Pagos_Config::qonto_configurado() ) {
 			return false;
 		}
+		// Se comprueban todos los links creados para el pedido (el actual primero).
+		$ids = array_values( array_unique( array_filter( array_merge( array( (string) $pedido->get_meta( '_idital_qonto_link_id' ) ), array_reverse( (array) $pedido->get_meta( '_idital_qonto_links' ) ) ) ) ) );
+		$ok  = false;
+		foreach ( array_slice( $ids, 0, 5 ) as $id ) {
+			$ok = self::verificar_link( $pedido, (string) $id, $origen ) || $ok;
+		}
+		return $ok;
+	}
+
+	private static function verificar_link( WC_Order $pedido, string $id, string $origen ): bool {
 		try {
 			$link = ( new Idital_Pagos_Qonto_Client() )->obtener_link( $id );
 		} catch ( Idital_Pagos_Exception $e ) {

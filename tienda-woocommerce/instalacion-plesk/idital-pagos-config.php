@@ -31,5 +31,12 @@ define( 'IDITAL_TROPIPAY_ENTORNO', 'sandbox' );          // 'produccion' cuando 
 define( 'IDITAL_TROPIPAY_CLIENT_ID', '' );
 define( 'IDITAL_TROPIPAY_CLIENT_SECRET', '' );
 
-// Opcional: true solo si la web está detrás de Cloudflare u otro proxy que añada X-Forwarded-For.
-define( 'IDITAL_PROXY_CONFIANZA', false );
+// ------------------------------------------------- Claves internas (OBLIGATORIAS)
+// Dos cadenas aleatorias largas y distintas (p. ej. de https://api.wordpress.org/secret-key/1.1/salt/,
+// copiando solo el texto entre comillas). No cambiarlas después: invalidan los avisos de pago pendientes.
+define( 'IDITAL_PAGOS_CLAVE_HMAC', '' );                 // mínimo 32 caracteres
+define( 'IDITAL_QONTO_WEBHOOK_TOKEN', '' );              // mínimo 20 caracteres (letras y números)
+
+// Opcional: solo si la web está detrás de Cloudflare u otro proxy. IP o rangos CIDR del proxy,
+// separados por comas. Vacío = sin proxy (lo normal en Plesk).
+define( 'IDITAL_PROXY_CONFIANZA', '' );

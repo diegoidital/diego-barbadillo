@@ -66,12 +66,17 @@ add_filter( 'wp_is_application_passwords_available', '__return_false' );
 
 /* ---------------------------------------------- 3. Inicio de sesión: límite de intentos */
 function idital_blindaje_ip(): string {
-	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-	if ( defined( 'IDITAL_PROXY_CONFIANZA' ) && IDITAL_PROXY_CONFIANZA && ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-		$lista = array_map( 'trim', explode( ',', sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) ) );
-		$ip    = (string) end( $lista );
+	// Misma lógica que el plugin de pagos (proxies de confianza por lista de IP/CIDR).
+	if ( class_exists( 'Idital_Pagos_Limite' ) ) {
+		return Idital_Pagos_Limite::ip();
 	}
+	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 	return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
+}
+
+/** Clave del contador: IP + usuario, para que un atacante no pueda bloquear a todo el mundo. */
+function idital_blindaje_clave( string $usuario ): string {
+	return 'idital_login_' . md5( idital_blindaje_ip() . '|' . strtolower( trim( $usuario ) ) );
 }
 
 const IDITAL_BLINDAJE_MAX_FALLOS = 5;
@@ -80,8 +85,8 @@ const IDITAL_BLINDAJE_BLOQUEO    = 15 * MINUTE_IN_SECONDS;
 add_filter(
 	'authenticate',
 	static function ( $usuario, $nombre ) {
-		$clave = 'idital_login_' . md5( idital_blindaje_ip() );
-		if ( (int) get_transient( $clave ) >= IDITAL_BLINDAJE_MAX_FALLOS ) {
+		$datos = get_transient( idital_blindaje_clave( (string) $nombre ) );
+		if ( is_array( $datos ) && (int) $datos['n'] >= IDITAL_BLINDAJE_MAX_FALLOS ) {
 			return new WP_Error( 'idital_bloqueado', __( 'Demasiados intentos fallidos. Inténtalo de nuevo dentro de 15 minutos.' ) );
 		}
 		return $usuario;
@@ -92,16 +97,26 @@ add_filter(
 
 add_action(
 	'wp_login_failed',
-	static function () {
-		$clave = 'idital_login_' . md5( idital_blindaje_ip() );
-		set_transient( $clave, (int) get_transient( $clave ) + 1, IDITAL_BLINDAJE_BLOQUEO );
+	static function ( $nombre ) {
+		$clave = idital_blindaje_clave( (string) $nombre );
+		$datos = get_transient( $clave );
+		if ( ! is_array( $datos ) ) {
+			$datos = array(
+				'n'      => 0,
+				'inicio' => time(),
+			);
+		}
+		++$datos['n'];
+		// Ventana fija: los intentos nuevos no alargan el bloqueo indefinidamente.
+		$restante = max( 60, IDITAL_BLINDAJE_BLOQUEO - ( time() - (int) $datos['inicio'] ) );
+		set_transient( $clave, $datos, $restante );
 	}
 );
 
 add_action(
 	'wp_login',
-	static function () {
-		delete_transient( 'idital_login_' . md5( idital_blindaje_ip() ) );
+	static function ( $nombre ) {
+		delete_transient( idital_blindaje_clave( (string) $nombre ) );
 	}
 );
 

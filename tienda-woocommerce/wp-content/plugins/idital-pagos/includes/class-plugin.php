@@ -89,19 +89,24 @@ final class Idital_Pagos_Plugin {
 		if ( ! Idital_Pagos_Config::qonto_configurado() ) {
 			return;
 		}
-		$pedidos = wc_get_orders(
-			array(
-				'status'         => array_merge( array( 'on-hold' ), Idital_Pagos_Confirmacion::estados_pagables() ),
-				'payment_method' => 'idital_qonto',
-				'date_created'   => '>' . ( time() - self::DIAS_RESERVA * DAY_IN_SECONDS ),
-				'limit'          => 25,
-				'orderby'        => 'date',
-				'order'          => 'DESC',
-			)
-		);
-		foreach ( $pedidos as $pedido ) {
-			if ( '' !== (string) $pedido->get_meta( '_idital_qonto_link_id' ) ) {
-				Idital_Pagos_Gateway_Qonto::verificar( $pedido, 'revisión automática' );
+		for ( $pagina = 1; $pagina <= 8; $pagina++ ) {
+			$pedidos = wc_get_orders(
+				array(
+					'status'       => array_merge( array( 'on-hold' ), Idital_Pagos_Confirmacion::estados_pagables() ),
+					'date_created' => '>' . ( time() - self::DIAS_RESERVA * DAY_IN_SECONDS ),
+					'limit'        => 25,
+					'paged'        => $pagina,
+					'orderby'      => 'date',
+					'order'        => 'DESC',
+				)
+			);
+			foreach ( $pedidos as $pedido ) {
+				if ( $pedido instanceof WC_Order && $pedido->get_meta( '_idital_qonto_links' ) ) {
+					Idital_Pagos_Gateway_Qonto::verificar( $pedido, 'revisión automática' );
+				}
+			}
+			if ( count( $pedidos ) < 25 ) {
+				break;
 			}
 		}
 	}

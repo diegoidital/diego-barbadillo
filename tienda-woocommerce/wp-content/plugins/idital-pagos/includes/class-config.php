@@ -23,9 +23,14 @@ final class Idital_Pagos_Config {
 		return defined( $nombre ) ? trim( (string) constant( $nombre ) ) : '';
 	}
 
-	/** Entorno local o de desarrollo: permite http y simuladores. Nunca en producción. */
+	/** Entorno local de pruebas: permite http y el simulador. Nunca en una web real. */
 	public static function entorno_local(): bool {
-		return in_array( wp_get_environment_type(), array( 'local', 'development' ), true );
+		return 'local' === wp_get_environment_type();
+	}
+
+	/** ¿Esta pasarela funciona en modo pruebas (sandbox)? */
+	public static function sandbox( string $pasarela ): bool {
+		return 'idital_qonto' === $pasarela ? self::qonto_sandbox() : self::tropipay_sandbox();
 	}
 
 	/* ------------------------------------------------------------------ Qonto */
@@ -95,18 +100,16 @@ final class Idital_Pagos_Config {
 	}
 
 	/**
-	 * Devuelve la URL base, permitiendo sobrescribirla. Fuera de local solo se aceptan URLs https.
+	 * URL base de la API. Solo se puede sobrescribir (simulador) en entorno local:
+	 * en una web real siempre se usan los hosts oficiales.
 	 */
 	private static function base( string $constante, string $por_defecto ): string {
 		$override = self::get( $constante );
-		if ( '' === $override ) {
+		if ( '' === $override || ! self::entorno_local() ) {
 			return $por_defecto;
 		}
 		$esquema = wp_parse_url( $override, PHP_URL_SCHEME );
-		if ( 'https' === $esquema || ( 'http' === $esquema && self::entorno_local() ) ) {
-			return untrailingslashit( $override );
-		}
-		return $por_defecto;
+		return in_array( $esquema, array( 'http', 'https' ), true ) ? untrailingslashit( $override ) : $por_defecto;
 	}
 
 	public static function override_activo( string $constante ): bool {

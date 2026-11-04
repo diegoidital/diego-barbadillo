@@ -72,12 +72,11 @@ final class Idital_Pagos_Rest {
 	/* --------------------------------------------------------------- Qonto */
 
 	public static function qonto_webhook( WP_REST_Request $peticion ): WP_REST_Response {
-		if ( ! Idital_Pagos_Limite::permitir( 'qonto_webhook', 120, 60 ) ) {
-			return self::respuesta( array( 'ok' => false ), 429 );
-		}
-
-		// Capa extra: token secreto en la URL del webhook.
+		// Token secreto en la URL del webhook. Solo los intentos fallidos consumen límite.
 		if ( ! hash_equals( Idital_Pagos_Config::qonto_webhook_token(), (string) $peticion->get_param( 'token' ) ) ) {
+			if ( ! Idital_Pagos_Limite::permitir( 'qonto_webhook_fallo', 20, 300 ) ) {
+				return self::respuesta( array( 'ok' => false ), 429 );
+			}
 			Idital_Pagos_Log::aviso( 'Webhook de Qonto rechazado: token incorrecto', array( 'ip' => Idital_Pagos_Limite::ip() ) );
 			return self::respuesta( array( 'ok' => false ), 401 );
 		}
@@ -93,19 +92,9 @@ final class Idital_Pagos_Rest {
 
 		$verificados = 0;
 		foreach ( array_slice( self::extraer_ids( $json ), 0, 5 ) as $id ) {
-			$pedidos = wc_get_orders(
-				array(
-					'limit'      => 1,
-					'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery
-						array(
-							'key'   => '_idital_qonto_link_id',
-							'value' => $id,
-						),
-					),
-				)
-			);
-			if ( $pedidos ) {
-				Idital_Pagos_Gateway_Qonto::verificar( $pedidos[0], 'webhook de Qonto' );
+			$pedido = wc_get_order( Idital_Pagos_Registro::pedido( 'qonto_link', $id ) );
+			if ( $pedido instanceof WC_Order ) {
+				Idital_Pagos_Gateway_Qonto::verificar( $pedido, 'webhook de Qonto' );
 				++$verificados;
 			}
 		}
@@ -136,12 +125,12 @@ final class Idital_Pagos_Rest {
 	/* ------------------------------------------------------------ TropiPay */
 
 	public static function tropipay_notificacion( WP_REST_Request $peticion ): WP_REST_Response {
-		if ( ! Idital_Pagos_Limite::permitir( 'tropipay_notif', 60, 60 ) ) {
-			return self::respuesta( array( 'ok' => false ), 429 );
-		}
-
 		$pedido = wc_get_order( absint( $peticion['pedido'] ) );
-		if ( ! $pedido || ! hash_equals( Idital_Pagos_Gateway_Tropipay::token_notificacion( $pedido ), (string) $peticion['firma'] ) ) {
+		if ( ! $pedido instanceof WC_Order || ! hash_equals( Idital_Pagos_Gateway_Tropipay::token_notificacion( $pedido ), (string) $peticion['firma'] ) ) {
+			// Solo los intentos fallidos consumen límite: las notificaciones legítimas nunca se frenan.
+			if ( ! Idital_Pagos_Limite::permitir( 'tropipay_fallo', 20, 300 ) ) {
+				return self::respuesta( array( 'ok' => false ), 429 );
+			}
 			Idital_Pagos_Log::aviso( 'Notificación de TropiPay rechazada: URL no válida', array( 'ip' => Idital_Pagos_Limite::ip() ) );
 			return self::respuesta( array( 'ok' => false ), 404 );
 		}
@@ -171,27 +160,46 @@ final class Idital_Pagos_Rest {
 			return self::respuesta( array( 'ok' => false ), 401 );
 		}
 
+		$codigo = substr( preg_replace( '/[^A-Za-z0-9_-]/', '', (string) ( $datos['bankOrderCode'] ?? '' ) ), 0, 64 );
+		$ko     = (array) $pedido->get_meta( '_idital_tropipay_ko' );
+
 		if ( 'OK' !== $estado ) {
+			// Se recuerda el código de la operación fallida: nunca podrá reutilizarse como "OK".
+			if ( '' !== $codigo && ! in_array( $codigo, $ko, true ) ) {
+				$ko[] = $codigo;
+				$pedido->update_meta_data( '_idital_tropipay_ko', array_slice( $ko, -50 ) );
+			}
 			$pedido->add_order_note( sprintf( 'TropiPay ha notificado un pago no completado (estado: %s).', sanitize_text_field( $estado ) ) );
+			$pedido->save();
 			return self::respuesta( array( 'ok' => true ) );
 		}
 
 		// El cobro tiene que corresponder al link que creamos para esta referencia.
 		$link_id = (string) ( $refs[ $referencia ]['id'] ?? '' );
-		$card_id = (string) ( $datos['paymentcardId'] ?? $datos['paymentcard']['id'] ?? '' );
-		if ( '' !== $link_id && '' !== $card_id && ! hash_equals( $link_id, $card_id ) ) {
-			Idital_Pagos_Log::aviso( 'Notificación de TropiPay de un link distinto al del pedido', array( 'pedido' => $pedido->get_id() ) );
+		$card_id = (string) ( $datos['paymentcardId'] ?? ( is_array( $datos['paymentcard'] ?? null ) ? ( $datos['paymentcard']['id'] ?? '' ) : '' ) );
+		if ( '' === $link_id || '' === $card_id || ! hash_equals( $link_id, $card_id ) ) {
+			Idital_Pagos_Log::aviso( 'Notificación de TropiPay que no corresponde al link del pedido', array( 'pedido' => $pedido->get_id() ) );
+			$pedido->add_order_note( '⚠️ Notificación de TropiPay que no corresponde al link de pago de este pedido. NO se ha marcado como pagado: comprueba el cobro en TropiPay.' );
+			return self::respuesta( array( 'ok' => false ), 400 );
+		}
+
+		// Cada operación de TropiPay solo puede pagar un pedido, una vez.
+		if ( '' === $codigo || in_array( $codigo, $ko, true ) ) {
+			return self::respuesta( array( 'ok' => false ), 400 );
+		}
+		if ( ! Idital_Pagos_Registro::asociar( 'tropipay_operacion', $codigo, $pedido->get_id() ) ) {
+			Idital_Pagos_Log::aviso( 'Notificación de TropiPay reutilizada de otro pedido', array( 'pedido' => $pedido->get_id() ) );
 			return self::respuesta( array( 'ok' => false ), 400 );
 		}
 
 		$importe_txt = (string) ( $datos['originalCurrencyAmount'] ?? '' );
 		$importe     = preg_match( '/^\d+$/', $importe_txt ) ? (int) $importe_txt : -1; // Céntimos.
-		$moneda      = (string) ( $datos['currency'] ?? $datos['originalCurrency'] ?? '' );
+		$moneda      = (string) ( $datos['originalCurrency'] ?? $datos['currency'] ?? '' );
 
 		Idital_Pagos_Confirmacion::confirmar(
 			$pedido,
 			'idital_tropipay',
-			(string) ( $datos['bankOrderCode'] ?? $referencia ),
+			$codigo,
 			$importe,
 			$moneda,
 			'notificación de TropiPay'
@@ -206,12 +214,12 @@ final class Idital_Pagos_Rest {
 			return self::respuesta( array( 'pagado' => false ), 429 );
 		}
 		$pedido = wc_get_order( (int) $peticion['pedido'] );
-		if ( ! $pedido || ! hash_equals( $pedido->get_order_key(), (string) $peticion['clave'] ) ) {
+		if ( ! $pedido instanceof WC_Order || ! hash_equals( $pedido->get_order_key(), (string) $peticion['clave'] ) ) {
 			return self::respuesta( array( 'pagado' => false ), 404 );
 		}
 
 		// Si el webhook no ha llegado aún, se pregunta a Qonto (como mucho cada 15 s por pedido).
-		if ( ! $pedido->is_paid() && '' !== (string) $pedido->get_meta( '_idital_qonto_link_id' ) ) {
+		if ( ! $pedido->is_paid() && $pedido->get_meta( '_idital_qonto_links' ) ) {
 			$marca = 'idital_qonto_check_' . $pedido->get_id();
 			if ( false === get_transient( $marca ) ) {
 				set_transient( $marca, 1, 15 );

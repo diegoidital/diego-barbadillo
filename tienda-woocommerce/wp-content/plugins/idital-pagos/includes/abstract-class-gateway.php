@@ -59,6 +59,11 @@ abstract class Idital_Pagos_Gateway extends WC_Payment_Gateway {
 		if ( ! parent::is_available() || ! $this->configurado() ) {
 			return false;
 		}
+		// Modo pruebas en una web real: solo la ven los gestores de la tienda (para probar);
+		// los clientes nunca pueden pagar con tarjetas de prueba.
+		if ( Idital_Pagos_Config::sandbox( $this->id ) && ! Idital_Pagos_Config::entorno_local() && ! current_user_can( 'manage_woocommerce' ) ) {
+			return false;
+		}
 		return in_array( $this->moneda_actual(), $this->monedas, true );
 	}
 
@@ -92,7 +97,7 @@ abstract class Idital_Pagos_Gateway extends WC_Payment_Gateway {
 		}
 
 		$clave = 'link_' . $pedido->get_id();
-		if ( ! Idital_Pagos_Bloqueo::adquirir( $clave, 45 ) ) {
+		if ( ! Idital_Pagos_Bloqueo::adquirir( $clave, 180 ) ) {
 			wc_add_notice( __( 'Ya estamos generando tu enlace de pago. Espera unos segundos y vuelve a intentarlo.', 'idital-pagos' ), 'error' );
 			return $fallo;
 		}

@@ -29,15 +29,52 @@ final class Idital_Pagos_Limite {
 	}
 
 	/**
-	 * IP del cliente. Solo se confía en X-Forwarded-For si se declara
-	 * IDITAL_PROXY_CONFIANZA (p. ej. detrás de Cloudflare o un proxy propio).
+	 * IP del cliente. X-Forwarded-For solo se tiene en cuenta si la petición llega desde
+	 * un proxy declarado en IDITAL_PROXY_CONFIANZA (lista de IP o rangos CIDR separados
+	 * por comas, p. ej. los de Cloudflare); se toma la IP más a la derecha que no sea un proxy.
 	 */
 	public static function ip(): string {
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-		if ( defined( 'IDITAL_PROXY_CONFIANZA' ) && IDITAL_PROXY_CONFIANZA && ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-			$lista = array_map( 'trim', explode( ',', sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) ) );
-			$ip    = (string) end( $lista ); // La última entrada es la que añadió nuestro proxy.
+		$remota = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		if ( ! filter_var( $remota, FILTER_VALIDATE_IP ) ) {
+			return '0.0.0.0';
 		}
-		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
+		$proxies = defined( 'IDITAL_PROXY_CONFIANZA' ) && is_string( IDITAL_PROXY_CONFIANZA ) ? array_filter( array_map( 'trim', explode( ',', IDITAL_PROXY_CONFIANZA ) ) ) : array();
+		if ( ! $proxies || ! self::en_rangos( $remota, $proxies ) || empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+			return $remota;
+		}
+		$cadena = array_reverse( array_map( 'trim', explode( ',', sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) ) ) );
+		foreach ( $cadena as $ip ) {
+			if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+				break;
+			}
+			if ( ! self::en_rangos( $ip, $proxies ) ) {
+				return $ip;
+			}
+		}
+		return $remota;
+	}
+
+	public static function en_rangos( string $ip, array $rangos ): bool {
+		$bin = @inet_pton( $ip ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		if ( false === $bin ) {
+			return false;
+		}
+		foreach ( $rangos as $rango ) {
+			[ $red, $bits ] = array_pad( explode( '/', $rango, 2 ), 2, null );
+			$red_bin        = @inet_pton( $red ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+			if ( false === $red_bin || strlen( $red_bin ) !== strlen( $bin ) ) {
+				continue;
+			}
+			$bits = null === $bits ? strlen( $bin ) * 8 : (int) $bits;
+			$bytes = intdiv( $bits, 8 );
+			$resto = $bits % 8;
+			if ( substr( $bin, 0, $bytes ) !== substr( $red_bin, 0, $bytes ) ) {
+				continue;
+			}
+			if ( 0 === $resto || ( ( ord( $bin[ $bytes ] ) ^ ord( $red_bin[ $bytes ] ) ) & ( 0xFF << ( 8 - $resto ) ) & 0xFF ) === 0 ) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

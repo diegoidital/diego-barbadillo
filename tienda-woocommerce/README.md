@@ -212,6 +212,13 @@ de YITH crea ese pedido automáticamente cuando el cliente acepta; el plugin es 
 - Los registros ocultan automáticamente claves, tokens, firmas e IBAN.
 
 **Pagos**
+- **Modo pruebas blindado**: una pasarela en sandbox en una web real solo la ven los gestores, y sus
+  cobros **nunca** marcan un pedido como pagado (quedan como nota "pago de prueba").
+- Cada link de Qonto y cada operación de TropiPay se registran de forma atómica y permanente
+  contra un único pedido: una notificación o un cobro no pueden reutilizarse en otro pedido.
+- TropiPay: además de la firma oficial, el aviso tiene que venir del link creado para ese pedido
+  (`paymentcardId`), y una operación notificada como fallida no puede reenviarse luego como pagada.
+- Los links de Qonto anteriores de un pedido también se vigilan: si el cliente paga uno antiguo, se detecta.
 - El pedido solo se marca como pagado en un punto: `Idital_Pagos_Confirmacion`. Allí se exige
   coincidencia exacta de importe (en céntimos) y moneda, hay un bloqueo atómico en base de datos
   contra procesos simultáneos y la operación es idempotente.
@@ -222,16 +229,23 @@ de YITH crea ese pedido automáticamente cuando el cliente acepta; el plugin es 
   en Qonto y el de TropiPay se retira. Si aun así llegaran dos cobros, se detecta y se avisa.
 - Solo se aceptan URLs de pago de dominios esperados (`*.qonto.com`, `*.tropipay.com`…).
   Todas las peticiones van por HTTPS con verificación TLS y sin seguir redirecciones.
-- Endpoints públicos con límite de peticiones por IP y tamaño máximo de cuerpo. La consulta de
+- Endpoints públicos con tamaño máximo de cuerpo y límite de peticiones por IP. Solo cuentan los
+  intentos fallidos, así que las notificaciones legítimas nunca se frenan. Solo se confía en
+  `X-Forwarded-For` si la petición llega desde un proxy declarado (`IDITAL_PROXY_CONFIANZA`,
+  lista de IP/CIDR). La consulta de
   estado exige la clave secreta del pedido y solo responde "pagado sí/no".
-- Fuera de `local`/`development` el plugin ignora las URLs del simulador y no se puede desactivar la firma.
+- Fuera del entorno `local` el plugin solo habla con los hosts oficiales de Qonto y TropiPay y no se
+  puede desactivar la firma.
+- Limitación conocida: TropiPay no documenta cómo anular un link. Si el cliente cambia de método, el
+  link anterior deja de ofrecerse pero sigue siendo pagable hasta que caduca (1 día por defecto). Si
+  se pagara, el sistema lo detecta como posible pago duplicado y avisa para reembolsarlo.
 
 **WordPress / servidor**
 - Base de datos sin puerto publicado y en red interna sin salida a internet. WordPress escucha solo en `127.0.0.1`.
 - Bloqueados: XML-RPC, `wp-config.php`, `readme.html`, ficheros `.log/.sql/.env/.git…`, PHP en
   `uploads/`, PHP de `wp-includes`, el código interno del plugin y el listado de directorios.
 - Usuarios: sin enumeración (`?author=`, REST, sitemaps) y mensajes de login genéricos.
-  Tras 5 fallos de login, la IP queda bloqueada 15 minutos. Contraseñas de aplicación desactivadas.
+  Tras 5 fallos de login, esa IP queda bloqueada 15 minutos para ese usuario (sin afectar a los demás). Contraseñas de aplicación desactivadas.
 - Cabeceras de seguridad: `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`,
   CSP `frame-ancestors` y HSTS con HTTPS.
 - Sin editor de ficheros en el panel. Actualizaciones menores de WordPress automáticas.
@@ -262,7 +276,8 @@ servidor, y sin ello ningún código basta:
       *Usuarios* y quita los que sobren.
 - [ ] **Credenciales mínimas**: en TropiPay, permisos mínimos y restricción por IP del servidor.
       Regenera cualquier clave que haya pasado por email, WhatsApp o chat.
-- [ ] **`private/idital-pagos-config.php` con permisos 600** y fuera de `httpdocs`.
+- [ ] **`private/idital-pagos-config.php` con permisos 600**, fuera de `httpdocs`, y con
+      `IDITAL_PAGOS_CLAVE_HMAC` e `IDITAL_QONTO_WEBHOOK_TOKEN` rellenos con valores aleatorios.
 - [ ] **HTTPS forzado** (Let's Encrypt en Plesk + "Redirección permanente SEO de HTTP a HTTPS").
 - [ ] **Cortafuegos de aplicaciones web** (Plesk → *Web Application Firewall / ModSecurity*, modo
       "Activado") y **Fail2Ban** activos. Imunify360, si el proveedor lo ofrece.

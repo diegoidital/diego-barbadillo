@@ -88,7 +88,24 @@ final class Idital_Pagos_Confirmacion {
 				return $pedido->get_transaction_id() === $transaccion;
 			}
 
-			// 2. El importe o la moneda no coinciden: nunca se marca como pagado.
+			// 2. Estado del pedido incompatible (reembolsado, borrador...).
+			$estados_validos = array_merge( array( 'on-hold', 'cancelled' ), self::estados_pagables( $pedido ) );
+			if ( ! $pedido->has_status( $estados_validos ) ) {
+				self::anomalia(
+					$pedido,
+					'estado_' . md5( $pasarela . $transaccion ),
+					sprintf(
+						'⚠️ %1$s ha confirmado un cobro de %2$s (ref. %3$s) pero el pedido está en estado "%4$s". Revísalo manualmente.',
+						$nombre,
+						self::formatear( $importe_cobrado, strtoupper( $moneda_cobrada ) ),
+						$transaccion,
+						wc_get_order_status_name( $pedido->get_status() )
+					)
+				);
+				return false;
+			}
+
+			// 3. El importe o la moneda no coinciden: nunca se marca como pagado (ni se cambia su estado).
 			if ( $importe_cobrado !== $esperado || strtoupper( $moneda_cobrada ) !== $moneda ) {
 				self::anomalia(
 					$pedido,
@@ -99,30 +116,27 @@ final class Idital_Pagos_Confirmacion {
 						self::formatear( $importe_cobrado, strtoupper( $moneda_cobrada ) ),
 						self::formatear( $esperado, $moneda ),
 						$transaccion
-					),
-					'on-hold'
-				);
-				return false;
-			}
-
-			// 3. Estado del pedido incompatible (reembolsado, borrador...).
-			$estados_validos = array_merge( array( 'on-hold', 'cancelled' ), self::estados_pagables( $pedido ) );
-			if ( ! $pedido->has_status( $estados_validos ) ) {
-				self::anomalia(
-					$pedido,
-					'estado_' . md5( $pasarela . $transaccion ),
-					sprintf(
-						'⚠️ %1$s ha confirmado un cobro de %2$s (ref. %3$s) pero el pedido está en estado "%4$s". Revísalo manualmente.',
-						$nombre,
-						self::formatear( $importe_cobrado, $moneda ),
-						$transaccion,
-						wc_get_order_status_name( $pedido->get_status() )
 					)
 				);
 				return false;
 			}
 
-			// 4. Todo correcto.
+			// 4. Pago en modo pruebas (sandbox) en una web real: no es dinero real, nunca se da por pagado.
+			if ( Idital_Pagos_Config::sandbox( $pasarela ) && ! Idital_Pagos_Config::entorno_local() ) {
+				self::anomalia(
+					$pedido,
+					'sandbox_' . md5( $pasarela . $transaccion ),
+					sprintf(
+						'🧪 Pago de PRUEBA (sandbox de %1$s) de %2$s, ref. %3$s. No es dinero real: el pedido NO se marca como pagado.',
+						$nombre,
+						self::formatear( $importe_cobrado, $moneda ),
+						$transaccion
+					)
+				);
+				return false;
+			}
+
+			// 5. Todo correcto.
 			$pasarelas = WC()->payment_gateways() ? WC()->payment_gateways()->payment_gateways() : array();
 			if ( $pedido->get_payment_method() !== $pasarela && isset( $pasarelas[ $pasarela ] ) ) {
 				$pedido->set_payment_method( $pasarelas[ $pasarela ] );

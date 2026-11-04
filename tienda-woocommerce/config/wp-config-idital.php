@@ -35,8 +35,8 @@ if ( ! defined( 'WP_DEBUG_DISPLAY' ) ) {
 	define( 'WP_DEBUG_DISPLAY', false );
 }
 
-// Detrás de un proxy/Cloudflare con TLS: confiar en X-Forwarded-For solo si se indica.
-define( 'IDITAL_PROXY_CONFIANZA', 'true' === getenv( 'IDITAL_PROXY_CONFIANZA' ) );
+// Detrás de un proxy/Cloudflare: lista de IP o rangos CIDR del proxy (vacío = no hay proxy).
+define( 'IDITAL_PROXY_CONFIANZA', (string) getenv( 'IDITAL_PROXY_CONFIANZA' ) );
 
 // ------------------------------------------------------------------ Pagos: Qonto
 define( 'IDITAL_QONTO_ENTORNO', getenv( 'IDITAL_QONTO_ENTORNO' ) ?: 'sandbox' ); // sandbox | produccion
