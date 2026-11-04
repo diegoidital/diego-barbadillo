@@ -26,7 +26,10 @@ final class Idital_Pagos_Gateway_Tropipay extends Idital_Pagos_Gateway {
 		$this->form_fields = array(
 			'estado'      => $this->campo_estado(
 				Idital_Pagos_Config::tropipay_sandbox() ? 'Sandbox (pruebas)' : 'PRODUCCIÓN',
-				array( 'Las notificaciones de pago llegan a <code>' . esc_html( rest_url( 'idital-pagos/v1/tropipay/notificacion/' ) ) . '…</code> con una firma única por pedido (no hay que configurar nada en TropiPay).' )
+				array_merge(
+					array( 'Las notificaciones de pago llegan a <code>' . esc_html( rest_url( 'idital-pagos/v1/tropipay/notificacion/' ) ) . '…</code> con una firma única por pedido (no hay que configurar nada en TropiPay).' ),
+					$this->configurado() ? array( '<a class="button" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=idital_probar_tropipay' ), 'idital_probar_tropipay' ) ) . '">Probar conexión con TropiPay</a> <span class="description">(solo lectura: no crea ni cobra nada)</span>' ) : array()
+				)
 			),
 			'enabled'     => array(
 				'title'   => __( 'Activar', 'idital-pagos' ),
@@ -85,6 +88,7 @@ final class Idital_Pagos_Gateway_Tropipay extends Idital_Pagos_Gateway {
 			'creado'  => time(),
 			'id'      => $link['id'],
 		);
+		$refs = array_slice( $refs, -20, null, true ); // Historial acotado.
 		$this->guardar_meta( $pedido, 'refs', $refs );
 		$this->guardar_meta( $pedido, 'link_url', $link['url'] );
 		$this->guardar_meta( $pedido, 'importe', $link['importe'] );

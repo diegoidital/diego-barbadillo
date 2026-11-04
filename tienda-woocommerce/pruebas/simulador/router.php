@@ -134,24 +134,24 @@ if ( str_starts_with( $ruta, '/v2/payment_links' ) || '/v2/organization' === $ru
 }
 
 /* ============================================================ TROPIPAY API */
-if ( 'POST' === $metodo && '/api/v2/access/token' === $ruta ) {
+if ( 'POST' === $metodo && '/api/v3/access/token' === $ruta ) {
 	if ( ( $cuerpo['client_id'] ?? '' ) !== secreto( 'tropipay_client_id' ) || ( $cuerpo['client_secret'] ?? '' ) !== secreto( 'tropipay_client_secret' ) ) {
 		json_out( 401, array( 'error' => 'invalid_client' ) );
 	}
 	$token               = bin2hex( random_bytes( 20 ) );
 	$e['tpp_tokens'][]   = $token;
 	guardar( $e );
-	json_out( 200, array( 'access_token' => $token, 'token_type' => 'Bearer', 'expires_in' => 3600 ) );
+	json_out( 200, array( 'access_token' => $token, 'token_type' => 'Bearer', 'expires_in' => time() + 3600, 'scope' => 'ALLOW_PAYMENT_IN ALLOW_EXTERNAL_CHARGE' ) );
 }
 
-if ( 'POST' === $metodo && '/api/v2/paymentcards' === $ruta ) {
+if ( 'POST' === $metodo && '/api/v3/paymentcards' === $ruta ) {
 	if ( ! in_array( substr( $auth, 7 ), $e['tpp_tokens'] ?? array(), true ) ) {
 		json_out( 401, array( 'error' => 'unauthorized' ) );
 	}
 	$id                   = uuid();
 	$card                 = $cuerpo + array( 'id' => $id );
-	$card['paymentUrl']   = getenv( 'SIM_PUBLICO' ) . '/pagar/tropipay/' . $id;
-	$card['shortUrl']     = $card['paymentUrl'];
+	$card['paymentUrl']   = null; // Como la API real: el link útil es shortUrl.
+	$card['shortUrl']     = getenv( 'SIM_PUBLICO' ) . '/pagar/tropipay/' . $id;
 	$card['estado']       = 'abierto';
 	$e['tropipay'][ $id ] = $card;
 	guardar( $e );
@@ -187,7 +187,7 @@ if ( preg_match( '#^/pagar/tropipay/([a-f0-9-]+)$#', $ruta, $m ) ) {
 		$e['tropipay'][ $m[1] ]['estado'] = 'pagado';
 		guardar( $e );
 		$boc   = 'BOC' . random_int( 100000, 999999 );
-		$firma = hash( 'sha256', $boc . secreto( 'tropipay_client_id' ) . secreto( 'tropipay_client_secret' ) . $card['amount'] );
+		$firma = hash( 'sha256', $boc . secreto( 'tropipay_client_id' ) . sha1( secreto( 'tropipay_client_secret' ) ) . $card['amount'] );
 		post_json(
 			interno( $card['urlNotification'] ),
 			array(
@@ -195,14 +195,16 @@ if ( preg_match( '#^/pagar/tropipay/([a-f0-9-]+)$#', $ruta, $m ) ) {
 				'data'   => array(
 					'reference'              => $card['reference'],
 					'bankOrderCode'          => $boc,
-					'originalCurrencyAmount' => $card['amount'],
-					'originalCurrency'       => $card['currency'],
+					'originalCurrencyAmount' => (string) $card['amount'],
+					'amount'                 => $card['amount'],
+					'currency'               => $card['currency'],
+					'paymentcardId'          => $m[1],
 					'state'                  => 5,
-					'signature'              => $firma,
+					'signaturev3'            => $firma,
 				),
 			)
 		);
-		header( 'Location: ' . $card['urlSuccess'], true, 303 );
+		header( 'Location: ' . $card['urlSuccess'], true, 303 ); // phpcs:ignore
 		exit;
 	}
 	pagina(

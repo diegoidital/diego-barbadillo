@@ -1,0 +1,6 @@
+# Guardar como .htaccess dentro de httpdocs/wp-content/uploads/
+# Impide ejecutar PHP subido a la carpeta de medios.
+<FilesMatch "\.(php|php\d|phtml|phar|pht|phps|cgi|pl|py)$">
+    Require all denied
+</FilesMatch>
+Options -Indexes -ExecCGI

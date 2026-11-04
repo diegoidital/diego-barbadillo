@@ -98,7 +98,8 @@ Es el caso de una web WordPress que ya existe (por ejemplo con LiteSpeed, Elemen
 1. **Copia de seguridad** de la web desde Plesk (*Copia de seguridad* o *WordPress Toolkit → Copia de seguridad*).
 2. **Credenciales fuera de la carpeta pública**: en el *Administrador de archivos* de Plesk, sube
    `instalacion-plesk/idital-pagos-config.php` a la carpeta **`private`** (al mismo nivel que
-   `httpdocs`) y rellena sus datos con el editor de Plesk.
+   `httpdocs`) y rellena sus datos con el editor de Plesk. Permisos del fichero: **600**
+   (solo el usuario de la suscripción puede leerlo).
 3. **wp-config.php** (en `httpdocs`): justo antes de `/* That's all, stop editing! */` añade:
 
    ```php
@@ -113,12 +114,29 @@ Es el caso de una web WordPress que ya existe (por ejemplo con LiteSpeed, Elemen
 5. *WooCommerce → Ajustes → Pagos → Qonto* → **Probar conexión con Qonto**. Comprueba la clave, la conexión
    con Mollie y los métodos disponibles, sin crear ni cobrar nada. Copia la **URL del webhook** que aparece
    ahí para darla de alta en Qonto.
-6. Activa la pasarela y haz un pedido de prueba de 1 €.
-7. **Blindaje**:
-   - *WordPress Toolkit → Seguridad*: aplica las medidas recomendadas (bloquear XML-RPC, PHP en uploads,
-     listado de directorios, etc.).
-   - Opcional: sube `wp-content/mu-plugins/idital-blindaje.php` a `httpdocs/wp-content/mu-plugins/`.
+6. *WooCommerce → Ajustes → Pagos → TropiPay* → **Probar conexión con TropiPay** (pide un token y muestra
+   los permisos de la credencial, sin crear ni cobrar nada).
+7. Activa las pasarelas y haz un pedido de prueba de 1 € con cada una.
+8. **Blindaje del servidor** (ver la lista completa en "Seguridad en producción"):
+   - Pega `instalacion-plesk/htaccess-raiz.txt` al principio del `.htaccess` de `httpdocs`.
+   - Guarda `instalacion-plesk/htaccess-uploads.txt` como `httpdocs/wp-content/uploads/.htaccess`.
+   - *WordPress Toolkit → Seguridad*: aplica las medidas recomendadas.
+   - Sube `wp-content/mu-plugins/idital-blindaje.php` a `httpdocs/wp-content/mu-plugins/`.
      Desactiva las contraseñas de aplicación: si alguna integración las usa, quita esa línea.
+
+### TropiPay
+
+1. En TropiPay → *Aplicaciones y credenciales*, crea una credencial **solo con los permisos necesarios**
+   para crear links de pago y recibir cobros, y **restríngela a la IP del servidor** (en Plesk:
+   *Sitios web y dominios → información del hosting*). Así, aunque se filtrara, no serviría desde otro sitio.
+2. Prueba primero en el **sandbox** (`https://sandbox.tropipay.me`, con credenciales del sandbox y
+   `IDITAL_TROPIPAY_ENTORNO = 'sandbox'`): las tarjetas de prueba están en la documentación de TropiPay
+   (*Testing Card Payments*). Las credenciales de sandbox y de producción no son intercambiables.
+3. Cuando todo cuadre, crea la credencial de producción y pon `IDITAL_TROPIPAY_ENTORNO = 'produccion'`.
+
+Integración según la documentación oficial (https://doc.tropipay.com):
+token `POST /api/v3/access/token`, link `POST /api/v3/paymentcards` (céntimos, devuelve `shortUrl`),
+aviso de pago firmado con `signaturev3 = sha256(bankOrderCode + clientId + sha1(clientSecret) + originalCurrencyAmount)`.
 
 **LiteSpeed Cache**: el plugin marca como "no cachear" sus respuestas y la página del pedido pendiente de pago.
 
@@ -177,19 +195,13 @@ de YITH crea ese pedido automáticamente cuando el cliente acepta; el plugin es 
 6. Cuando todo cuadre, en `.env` pon `IDITAL_QONTO_ENTORNO=produccion` y/o
    `IDITAL_TROPIPAY_ENTORNO=produccion` y reinicia. **Hasta entonces no se mueve dinero real.**
 
-### Puntos a confirmar en el sandbox
+### Puntos a confirmar con un pago real de prueba
 
-Se han hecho siguiendo la documentación y SDKs disponibles, pero hay que confirmarlos con las cuentas reales:
-
-- [ ] **Qonto**: URL del sandbox (`thirdparty-sandbox.staging.qonto.co`) y formato del cuerpo del webhook.
-      El plugin acepta cualquier formato porque solo usa el aviso para volver a consultar la API.
-- [ ] **TropiPay**: URL del sandbox (`tropipay-dev.herokuapp.com`), endpoint del token
-      (`/api/v2/access/token`) y que los importes van **en céntimos**.
-- [ ] **TropiPay – firma de la notificación**: el plugin calcula
-      `sha256(bankOrderCode + client_id + client_secret + originalCurrencyAmount)`. Si TropiPay firma de
-      otra forma, los pagos **no** se confirmarán solos (aparecerá una nota "firma no válida" en el
-      pedido). Es un fallo seguro: nunca da por pagado algo sin verificar. Se ajusta en
-      `Idital_Pagos_Tropipay_Client::firma_valida()`.
+- [ ] **Qonto**: formato del cuerpo del webhook. El plugin acepta cualquier formato porque solo usa el
+      aviso para volver a consultar la API.
+- [ ] **TropiPay**: la documentación oficial tiene ejemplos contradictorios en dos detalles: si
+      `originalCurrencyAmount` llega en céntimos y el formato de `expirationDate`. Si algo no cuadra,
+      el pedido **no** se marca como pagado: queda una nota para revisarlo a mano.
 
 ## Seguridad
 
@@ -238,3 +250,25 @@ Se han hecho siguiendo la documentación y SDKs disponibles, pero hay que confir
   y `wp-content/mu-plugins/idital-blindaje.php`, y define en `wp-config.php` las constantes de
   `config/wp-config-idital.php`. Lo ideal es leerlas de un fichero fuera de `public_html`.
   Las reglas de `config/apache/seguridad.conf` sirven como `.htaccess` adaptándolas.
+
+## Seguridad en producción (lista de comprobación)
+
+El plugin y el código ya hacen su parte. Lo siguiente depende de la configuración de la cuenta y del
+servidor, y sin ello ningún código basta:
+
+- [ ] **Doble factor (2FA) para todos los administradores** de WordPress (plugin *Two Factor* o
+      *WordPress Toolkit → Seguridad*), y también en Plesk, Qonto y TropiPay.
+- [ ] **Mínimos administradores**: cada persona con su usuario; nadie comparte cuentas. Revisa
+      *Usuarios* y quita los que sobren.
+- [ ] **Credenciales mínimas**: en TropiPay, permisos mínimos y restricción por IP del servidor.
+      Regenera cualquier clave que haya pasado por email, WhatsApp o chat.
+- [ ] **`private/idital-pagos-config.php` con permisos 600** y fuera de `httpdocs`.
+- [ ] **HTTPS forzado** (Let's Encrypt en Plesk + "Redirección permanente SEO de HTTP a HTTPS").
+- [ ] **Cortafuegos de aplicaciones web** (Plesk → *Web Application Firewall / ModSecurity*, modo
+      "Activado") y **Fail2Ban** activos. Imunify360, si el proveedor lo ofrece.
+- [ ] **Actualizaciones**: WordPress, plugins y PHP al día (WordPress Toolkit permite automatizarlas).
+      Quita los plugins y temas que no se usen.
+- [ ] **Copias de seguridad automáticas** diarias, guardadas fuera del servidor.
+- [ ] **Avisos**: el email de administrador de WordPress debe ser uno que se lea. Ahí llegan los avisos
+      de pagos anómalos (importe distinto, pago duplicado, firma no válida).
+- [ ] Revisa de vez en cuando *WooCommerce → Estado → Registros* (fuente `idital-pagos`).

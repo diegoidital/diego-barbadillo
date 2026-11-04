@@ -41,6 +41,7 @@ final class Idital_Pagos_Plugin {
 
 		// Botón "Probar conexión con Qonto".
 		add_action( 'admin_post_idital_probar_qonto', array( __CLASS__, 'probar_qonto' ) );
+		add_action( 'admin_post_idital_probar_tropipay', array( __CLASS__, 'probar_tropipay' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'aviso_diagnostico' ) );
 
 		// Checkout por bloques.
@@ -113,25 +114,39 @@ final class Idital_Pagos_Plugin {
 		$resultado = Idital_Pagos_Config::qonto_configurado()
 			? ( new Idital_Pagos_Qonto_Client() )->diagnostico()
 			: array( array( 'error', 'Faltan las credenciales de Qonto en la configuración.' ) );
-		set_transient( 'idital_diag_' . get_current_user_id(), $resultado, 5 * MINUTE_IN_SECONDS );
+		set_transient( 'idital_diag_' . get_current_user_id(), array( 'titulo' => 'Qonto', 'lineas' => $resultado ), 5 * MINUTE_IN_SECONDS );
 		wp_safe_redirect( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=idital_qonto' ) );
+		exit;
+	}
+
+	public static function probar_tropipay(): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'No tienes permiso para hacer esto.', 'idital-pagos' ), 403 );
+		}
+		check_admin_referer( 'idital_probar_tropipay' );
+		$resultado = Idital_Pagos_Config::tropipay_configurado()
+			? ( new Idital_Pagos_Tropipay_Client() )->diagnostico()
+			: array( array( 'error', 'Faltan las credenciales de TropiPay en la configuración.' ) );
+		set_transient( 'idital_diag_' . get_current_user_id(), array( 'titulo' => 'TropiPay', 'lineas' => $resultado ), 5 * MINUTE_IN_SECONDS );
+		wp_safe_redirect( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=idital_tropipay' ) );
 		exit;
 	}
 
 	public static function aviso_diagnostico(): void {
 		$clave     = 'idital_diag_' . get_current_user_id();
-		$resultado = get_transient( $clave );
-		if ( ! is_array( $resultado ) || ! current_user_can( 'manage_woocommerce' ) ) {
+		$datos = get_transient( $clave );
+		if ( ! is_array( $datos ) || ! isset( $datos['lineas'] ) || ! current_user_can( 'manage_woocommerce' ) ) {
 			return;
 		}
 		delete_transient( $clave );
+		$resultado = (array) $datos['lineas'];
 		$iconos = array(
 			'ok'    => '✅',
 			'aviso' => '⚠️',
 			'error' => '❌',
 		);
 		$tipo   = in_array( 'error', array_column( $resultado, 0 ), true ) ? 'error' : ( in_array( 'aviso', array_column( $resultado, 0 ), true ) ? 'warning' : 'success' );
-		echo '<div class="notice notice-' . esc_attr( $tipo ) . '"><p><strong>Prueba de conexión con Qonto</strong></p><ul>';
+		echo '<div class="notice notice-' . esc_attr( $tipo ) . '"><p><strong>Prueba de conexión con ' . esc_html( (string) $datos['titulo'] ) . '</strong></p><ul>';
 		foreach ( $resultado as $linea ) {
 			echo '<li>' . esc_html( ( $iconos[ $linea[0] ] ?? '' ) . ' ' . $linea[1] ) . '</li>';
 		}

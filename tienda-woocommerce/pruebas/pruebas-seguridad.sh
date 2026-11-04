@@ -34,14 +34,16 @@ echo "== Notificación de TropiPay"
 REF=$(wpe eval "echo array_key_last((array) wc_get_order($P)->get_meta('_idital_tropipay_refs'));")
 TOK=$(wpe eval "echo Idital_Pagos_Gateway_Tropipay::token_notificacion(wc_get_order($P));")
 ID=$(cat secretos/tropipay_client_id.txt); SEC=$(cat secretos/tropipay_client_secret.txt)
-firma() { printf '%s' "$1$ID$SEC$2" | sha256sum | cut -d' ' -f1; }
-cuerpo() { echo "{\"status\":\"OK\",\"data\":{\"reference\":\"$1\",\"bankOrderCode\":\"$2\",\"originalCurrencyAmount\":$3,\"originalCurrency\":\"EUR\",\"signature\":\"$4\"}}"; }
+SEC_SHA1=$(printf '%s' "$SEC" | sha1sum | cut -d' ' -f1)
+firma() { printf '%s' "$1$ID$SEC_SHA1$2" | sha256sum | cut -d' ' -f1; }
+cuerpo() { echo "{\"status\":\"OK\",\"data\":{\"reference\":\"$1\",\"bankOrderCode\":\"$2\",\"originalCurrencyAmount\":\"$3\",\"currency\":\"EUR\",\"signaturev3\":\"$4\"}}"; }
 comprobar "URL con firma de pedido falsa → 404" 404 "$(codigo -X POST "$API/tropipay/notificacion/$P/$(printf 'x%.0s' {1..64} | sha256sum | cut -d' ' -f1)" -H 'Content-Type: application/json' -d "$(cuerpo "$REF" B1 30000 "$(firma B1 30000)")")"
 comprobar "referencia inventada → 400" 400 "$(codigo -X POST "$API/tropipay/notificacion/$P/$TOK" -H 'Content-Type: application/json' -d "$(cuerpo INVENTADA B1 30000 "$(firma B1 30000)")")"
 comprobar "firma de TropiPay falsa → 401" 401 "$(codigo -X POST "$API/tropipay/notificacion/$P/$TOK" -H 'Content-Type: application/json' -d "$(cuerpo "$REF" B1 30000 "$(printf '0%.0s' {1..64})")")"
 comprobar "…el pedido sigue pendiente" pending "$(estado_pedido "$P")"
 comprobar "importe manipulado (1 €) con firma correcta → aceptado pero NO pagado" 200 "$(codigo -X POST "$API/tropipay/notificacion/$P/$TOK" -H 'Content-Type: application/json' -d "$(cuerpo "$REF" B2 100 "$(firma B2 100)")")"
 comprobar "…el pedido queda en espera para revisión manual" on-hold "$(estado_pedido "$P")"
+comprobar "firma calculada con la fórmula antigua (sin sha1) → 401" 401 "$(codigo -X POST "$API/tropipay/notificacion/$P/$TOK" -H 'Content-Type: application/json' -d "$(cuerpo "$REF" B5 30000 "$(printf '%s' "B5$ID$SEC""30000" | sha256sum | cut -d' ' -f1)")")"
 comprobar "importe correcto → pagado" 200 "$(codigo -X POST "$API/tropipay/notificacion/$P/$TOK" -H 'Content-Type: application/json' -d "$(cuerpo "$REF" B3 30000 "$(firma B3 30000)")")"
 comprobar "…pedido pagado" completed "$(estado_pedido "$P")"
 comprobar "notificación repetida (otro cobro) → no rompe nada" 200 "$(codigo -X POST "$API/tropipay/notificacion/$P/$TOK" -H 'Content-Type: application/json' -d "$(cuerpo "$REF" B4 30000 "$(firma B4 30000)")")"

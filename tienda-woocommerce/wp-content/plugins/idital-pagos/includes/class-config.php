@@ -13,11 +13,11 @@ defined( 'ABSPATH' ) || exit;
 
 final class Idital_Pagos_Config {
 
-	/** Hosts base por defecto. Revisar con la documentación oficial al recibir las credenciales. */
+	/** Hosts base (Qonto: docs.qonto.com · TropiPay: doc.tropipay.com). */
 	const QONTO_BASE_PRODUCCION    = 'https://thirdparty.qonto.com';
 	const QONTO_BASE_SANDBOX       = 'https://thirdparty-sandbox.staging.qonto.co';
 	const TROPIPAY_BASE_PRODUCCION = 'https://www.tropipay.com';
-	const TROPIPAY_BASE_SANDBOX    = 'https://tropipay-dev.herokuapp.com';
+	const TROPIPAY_BASE_SANDBOX    = 'https://sandbox.tropipay.me';
 
 	public static function get( string $nombre ): string {
 		return defined( $nombre ) ? trim( (string) constant( $nombre ) ) : '';

@@ -176,8 +176,17 @@ final class Idital_Pagos_Rest {
 			return self::respuesta( array( 'ok' => true ) );
 		}
 
-		$importe = isset( $datos['originalCurrencyAmount'] ) ? (int) $datos['originalCurrencyAmount'] : -1;
-		$moneda  = (string) ( $datos['originalCurrency'] ?? $datos['currency'] ?? '' );
+		// El cobro tiene que corresponder al link que creamos para esta referencia.
+		$link_id = (string) ( $refs[ $referencia ]['id'] ?? '' );
+		$card_id = (string) ( $datos['paymentcardId'] ?? $datos['paymentcard']['id'] ?? '' );
+		if ( '' !== $link_id && '' !== $card_id && ! hash_equals( $link_id, $card_id ) ) {
+			Idital_Pagos_Log::aviso( 'Notificación de TropiPay de un link distinto al del pedido', array( 'pedido' => $pedido->get_id() ) );
+			return self::respuesta( array( 'ok' => false ), 400 );
+		}
+
+		$importe_txt = (string) ( $datos['originalCurrencyAmount'] ?? '' );
+		$importe     = preg_match( '/^\d+$/', $importe_txt ) ? (int) $importe_txt : -1; // Céntimos.
+		$moneda      = (string) ( $datos['currency'] ?? $datos['originalCurrency'] ?? '' );
 
 		Idital_Pagos_Confirmacion::confirmar(
 			$pedido,

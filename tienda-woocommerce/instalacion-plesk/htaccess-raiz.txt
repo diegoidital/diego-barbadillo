@@ -1,0 +1,27 @@
+# BEGIN Idital Blindaje
+# Pegar al PRINCIPIO del .htaccess de httpdocs (antes de "# BEGIN WordPress" y de las reglas de LiteSpeed).
+
+Options -Indexes
+
+# Ficheros que nunca deben servirse.
+<FilesMatch "^(wp-config\.php|wp-config-sample\.php|readme\.html|license\.txt|licencia\.txt|xmlrpc\.php|\.htaccess|\.htpasswd|\.user\.ini|php\.ini|error_log|debug\.log)$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "\.(log|sql|sqlite|bak|old|orig|swp|dist|sh|ini|env)$">
+    Require all denied
+</FilesMatch>
+
+# Control de versiones, versiones de plugins (readme.txt) y código interno del plugin de pagos.
+RedirectMatch 403 /\.(git|svn|hg)(/|$)
+RedirectMatch 403 ^/wp-content/(plugins|themes)/[^/]+/(readme|changelog)\.(txt|md)$
+RedirectMatch 403 ^/wp-content/plugins/idital-pagos/(includes|uninstall\.php)
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Header always unset X-Powered-By
+    Header unset X-Powered-By
+</IfModule>
+# END Idital Blindaje
