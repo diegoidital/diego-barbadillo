@@ -164,8 +164,16 @@ final class Idital_Pagos_Tropipay_Client {
 		$permisos  = preg_split( '/\s+/', trim( (string) ( $respuesta['datos']['scope'] ?? '' ) ) );
 		$resultado = array( array( 'ok', 'Credenciales válidas (' . ( Idital_Pagos_Config::tropipay_sandbox() ? 'sandbox' : 'producción' ) . ').' ) );
 		$resultado[] = array( 'ok', 'Permisos de la credencial: ' . ( implode( ', ', array_map( 'sanitize_text_field', array_filter( $permisos ) ) ) ?: 'no indicados' ) );
-		if ( count( array_filter( $permisos ) ) > 6 ) {
-			$resultado[] = array( 'aviso', 'La credencial tiene muchos permisos. Por seguridad, deja solo los necesarios para crear links de pago y recibir cobros.' );
+		// Mínimo para crear links de pago y cobrarlos (principio de mínimo privilegio).
+		$necesarios = array( 'ALLOW_CREATE_PAYMENTCARD', 'ALLOW_PAYMENT_IN', 'ALLOW_EXTERNAL_CHARGE' );
+		$permisos   = array_filter( $permisos );
+		$faltan     = array_diff( $necesarios, $permisos );
+		$sobran     = array_diff( $permisos, $necesarios );
+		if ( $faltan ) {
+			$resultado[] = array( 'error', 'Faltan permisos imprescindibles: ' . implode( ', ', array_map( 'sanitize_text_field', $faltan ) ) . '.' );
+		}
+		if ( $sobran ) {
+			$resultado[] = array( 'aviso', 'Permisos que el plugin no usa y conviene quitar de la credencial: ' . implode( ', ', array_map( 'sanitize_text_field', $sobran ) ) . '. Después, vuelve a probar la conexión y haz un pago de prueba.' );
 		}
 		return $resultado;
 	}

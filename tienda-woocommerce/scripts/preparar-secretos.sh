@@ -28,6 +28,8 @@ crear db_root_password     "$(aleatorio 40)"
 crear pagos_clave_hmac     "$(aleatorio 64)"
 crear qonto_webhook_token  "$(aleatorio 40)"
 # Pendientes de recibir (vacíos = pasarela desactivada automáticamente):
+crear qonto_oauth_client_id     ""
+crear qonto_oauth_client_secret ""
 crear qonto_login            ""
 crear qonto_secret_key       ""
 crear qonto_staging_token    ""

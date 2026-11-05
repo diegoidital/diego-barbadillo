@@ -17,11 +17,12 @@ final class Idital_Pagos_Http {
 	 * @param string     $metodo   GET, POST, PATCH...
 	 * @param string     $url      URL completa.
 	 * @param array      $cabeceras Cabeceras adicionales.
-	 * @param array|null $cuerpo   Cuerpo a enviar como JSON.
+	 * @param array|null $cuerpo   Cuerpo a enviar (JSON por defecto).
+	 * @param bool       $formulario Enviar el cuerpo como application/x-www-form-urlencoded.
 	 * @return array{codigo:int, datos:array}
 	 * @throws Idital_Pagos_Exception Si la conexión falla o la URL no es segura.
 	 */
-	public static function json( string $metodo, string $url, array $cabeceras = array(), ?array $cuerpo = null ): array {
+	public static function json( string $metodo, string $url, array $cabeceras = array(), ?array $cuerpo = null, bool $formulario = false ): array {
 		$local   = Idital_Pagos_Config::entorno_local();
 		$esquema = wp_parse_url( $url, PHP_URL_SCHEME );
 		if ( 'https' !== $esquema && ! ( $local && 'http' === $esquema ) ) {
@@ -38,7 +39,10 @@ final class Idital_Pagos_Http {
 			'user-agent'         => 'IditalPagos/' . IDITAL_PAGOS_VERSION . '; WordPress',
 			'headers'            => array_merge( array( 'Accept' => 'application/json' ), $cabeceras ),
 		);
-		if ( null !== $cuerpo ) {
+		if ( null !== $cuerpo && $formulario ) {
+			$args['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
+			$args['body']                    = http_build_query( $cuerpo, '', '&' );
+		} elseif ( null !== $cuerpo ) {
 			$args['headers']['Content-Type'] = 'application/json';
 			$args['body']                    = wp_json_encode( $cuerpo );
 		}

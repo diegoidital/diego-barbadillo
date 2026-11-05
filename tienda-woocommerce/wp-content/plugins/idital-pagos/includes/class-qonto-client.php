@@ -13,15 +13,32 @@ final class Idital_Pagos_Qonto_Client {
 
 	const DOMINIOS_LINK = array( 'qonto.com', 'qonto.co' );
 
+	/**
+	 * @throws Idital_Pagos_Exception Si la tienda no está conectada con Qonto.
+	 */
 	private function cabeceras(): array {
 		$cabeceras = array(
-			// Autenticación por clave de API: "slug-organizacion:clave-secreta".
-			'Authorization' => Idital_Pagos_Config::get( 'IDITAL_QONTO_LOGIN' ) . ':' . Idital_Pagos_Config::get( 'IDITAL_QONTO_SECRET_KEY' ),
+			// Los links de pago exigen OAuth 2.0 (la clave API solo permite lectura).
+			'Authorization' => 'Bearer ' . Idital_Pagos_Qonto_Oauth::token(),
 		);
 		if ( Idital_Pagos_Config::qonto_sandbox() && '' !== Idital_Pagos_Config::get( 'IDITAL_QONTO_STAGING_TOKEN' ) ) {
 			$cabeceras['X-Qonto-Staging-Token'] = Idital_Pagos_Config::get( 'IDITAL_QONTO_STAGING_TOKEN' );
 		}
 		return $cabeceras;
+	}
+
+	/**
+	 * Petición autenticada. Si Qonto rechaza el token (401), lo renueva y reintenta una vez.
+	 *
+	 * @throws Idital_Pagos_Exception Si no hay conexión o no se puede renovar.
+	 */
+	private function pedir( string $metodo, string $url, ?array $cuerpo = null ): array {
+		$respuesta = Idital_Pagos_Http::json( $metodo, $url, $this->cabeceras(), $cuerpo );
+		if ( 401 === $respuesta['codigo'] ) {
+			Idital_Pagos_Qonto_Oauth::renovar( true );
+			$respuesta = Idital_Pagos_Http::json( $metodo, $url, $this->cabeceras(), $cuerpo );
+		}
+		return $respuesta;
 	}
 
 	private static function id_valido( string $id ): bool {
@@ -61,7 +78,7 @@ final class Idital_Pagos_Qonto_Client {
 			),
 		);
 
-		$respuesta = Idital_Pagos_Http::json( 'POST', Idital_Pagos_Config::qonto_base() . '/v2/payment_links', $this->cabeceras(), $cuerpo );
+		$respuesta = $this->pedir( 'POST', Idital_Pagos_Config::qonto_base() . '/v2/payment_links', $cuerpo );
 		$link      = $respuesta['datos']['payment_link'] ?? null;
 
 		if ( ! in_array( $respuesta['codigo'], array( 200, 201 ), true ) || ! is_array( $link ) ) {
@@ -97,7 +114,7 @@ final class Idital_Pagos_Qonto_Client {
 		if ( ! self::id_valido( $id ) ) {
 			throw new Idital_Pagos_Exception( 'ID de link no válido.' );
 		}
-		$respuesta = Idital_Pagos_Http::json( 'GET', Idital_Pagos_Config::qonto_base() . '/v2/payment_links/' . rawurlencode( $id ), $this->cabeceras() );
+		$respuesta = $this->pedir( 'GET', Idital_Pagos_Config::qonto_base() . '/v2/payment_links/' . rawurlencode( $id ) );
 		if ( 200 !== $respuesta['codigo'] || ! is_array( $respuesta['datos']['payment_link'] ?? null ) ) {
 			throw new Idital_Pagos_Exception( 'No se ha podido consultar el link en Qonto (HTTP ' . $respuesta['codigo'] . ').' );
 		}
@@ -112,18 +129,25 @@ final class Idital_Pagos_Qonto_Client {
 	public function diagnostico(): array {
 		$base      = Idital_Pagos_Config::qonto_base();
 		$resultado = array();
+		$estado    = Idital_Pagos_Qonto_Oauth::estado();
+		if ( ! $estado['conectado'] ) {
+			return array( array( 'error', $estado['roto'] ? 'Qonto ha retirado el acceso de la tienda: vuelve a pulsar "Conectar con Qonto".' : 'La tienda aún no está conectada: pulsa "Conectar con Qonto".' ) );
+		}
+		$resultado[] = array( 'ok', 'Tienda conectada por OAuth' . ( $estado['alcance'] ? ' (permisos: ' . sanitize_text_field( $estado['alcance'] ) . ')' : '' ) . '.' );
 		try {
-			$r = Idital_Pagos_Http::json( 'GET', $base . '/v2/organization', $this->cabeceras() );
+			$r = $this->pedir( 'GET', $base . '/v2/organization' );
 			if ( 200 === $r['codigo'] ) {
 				$org         = $r['datos']['organization'] ?? array();
-				$resultado[] = array( 'ok', 'Clave válida. Organización: ' . sanitize_text_field( (string) ( $org['legal_name'] ?? $org['slug'] ?? '?' ) ) );
-			} elseif ( 401 === $r['codigo'] ) {
-				return array( array( 'error', 'Qonto rechaza la clave (401). Revisa el identificador, la clave secreta y el entorno (' . ( Idital_Pagos_Config::qonto_sandbox() ? 'sandbox' : 'producción' ) . ').' ) );
+				$resultado[] = array( 'ok', 'Acceso válido. Organización: ' . sanitize_text_field( (string) ( $org['legal_name'] ?? $org['slug'] ?? '?' ) ) );
+			} elseif ( in_array( $r['codigo'], array( 401, 403 ), true ) ) {
+				$resultado[] = array( 'error', 'Qonto rechaza el acceso (HTTP ' . $r['codigo'] . '). Vuelve a conectar y revisa el entorno (' . ( Idital_Pagos_Config::qonto_sandbox() ? 'sandbox' : 'producción' ) . ').' );
+				return $resultado;
 			} else {
-				return array( array( 'error', 'Respuesta inesperada de Qonto (HTTP ' . $r['codigo'] . ').' ) );
+				$resultado[] = array( 'error', 'Respuesta inesperada de Qonto (HTTP ' . $r['codigo'] . ').' );
+				return $resultado;
 			}
 
-			$r = Idital_Pagos_Http::json( 'GET', $base . '/v2/payment_links/connections', $this->cabeceras() );
+			$r = $this->pedir( 'GET', $base . '/v2/payment_links/connections' );
 			$c = $r['datos']['connection'] ?? $r['datos'];
 			$e = is_array( $c ) ? strtolower( (string) ( $c['status'] ?? $c['connection_status'] ?? '' ) ) : '';
 			if ( 200 === $r['codigo'] && in_array( $e, array( 'enabled', 'active', 'connected' ), true ) ) {
@@ -134,7 +158,7 @@ final class Idital_Pagos_Qonto_Client {
 				$resultado[] = array( 'error', 'No se pudo consultar la conexión con Mollie (HTTP ' . $r['codigo'] . '). ¿La clave tiene permiso para links de pago?' );
 			}
 
-			$r = Idital_Pagos_Http::json( 'GET', $base . '/v2/payment_links/payment_methods', $this->cabeceras() );
+			$r = $this->pedir( 'GET', $base . '/v2/payment_links/payment_methods' );
 			if ( 200 === $r['codigo'] ) {
 				$metodos = $r['datos']['payment_methods'] ?? ( array_is_list( $r['datos'] ) ? $r['datos'] : array() );
 				$nombres = array();
@@ -154,7 +178,7 @@ final class Idital_Pagos_Qonto_Client {
 			return false;
 		}
 		try {
-			$respuesta = Idital_Pagos_Http::json( 'PATCH', Idital_Pagos_Config::qonto_base() . '/v2/payment_links/' . rawurlencode( $id ) . '/deactivate', $this->cabeceras() );
+			$respuesta = $this->pedir( 'PATCH', Idital_Pagos_Config::qonto_base() . '/v2/payment_links/' . rawurlencode( $id ) . '/deactivate' );
 			return $respuesta['codigo'] >= 200 && $respuesta['codigo'] < 300;
 		} catch ( Idital_Pagos_Exception $e ) {
 			Idital_Pagos_Log::aviso( 'No se pudo desactivar un link de Qonto', array( 'error' => $e->getMessage() ) );

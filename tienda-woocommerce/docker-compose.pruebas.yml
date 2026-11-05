@@ -7,6 +7,8 @@ services:
       WP_ENVIRONMENT_TYPE: local
       IDITAL_QONTO_API_BASE: http://simulador:8090
       IDITAL_TROPIPAY_API_BASE: http://simulador:8090
+      IDITAL_QONTO_OAUTH_BASE: http://simulador:8090
+      IDITAL_QONTO_OAUTH_BASE_PUBLICA: http://localhost:8090
   wpcli:
     volumes:
       - ./pruebas:/pruebas:ro
@@ -14,6 +16,8 @@ services:
       WP_ENVIRONMENT_TYPE: local
       IDITAL_QONTO_API_BASE: http://simulador:8090
       IDITAL_TROPIPAY_API_BASE: http://simulador:8090
+      IDITAL_QONTO_OAUTH_BASE: http://simulador:8090
+      IDITAL_QONTO_OAUTH_BASE_PUBLICA: http://localhost:8090
 
   simulador:
     image: wordpress:7-php8.3-apache
@@ -23,7 +27,7 @@ services:
       WP_INTERNO: http://wordpress
       WP_PUBLICO: http://localhost:${WP_PUERTO:-8080}
       SIM_PUBLICO: http://localhost:8090
-    secrets: [qonto_login, qonto_secret_key, qonto_webhook_token, tropipay_client_id, tropipay_client_secret]
+    secrets: [qonto_oauth_client_id, qonto_oauth_client_secret, qonto_login, qonto_secret_key, qonto_webhook_token, tropipay_client_id, tropipay_client_secret]
     volumes:
       - ./pruebas/simulador:/simulador:ro
     ports:

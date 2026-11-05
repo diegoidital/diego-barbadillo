@@ -36,13 +36,24 @@ final class Idital_Pagos_Gateway_Qonto extends Idital_Pagos_Gateway {
 
 	public function init_form_fields() {
 		$webhook = add_query_arg( 'token', Idital_Pagos_Config::qonto_webhook_token(), rest_url( 'idital-pagos/v1/qonto/webhook' ) );
-		$extra   = array( 'URL del webhook para Qonto: <code>' . esc_html( $webhook ) . '</code>' );
-		if ( $this->configurado() ) {
-			$extra[] = '<a class="button" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=idital_probar_qonto' ), 'idital_probar_qonto' ) ) . '">Probar conexión con Qonto</a> <span class="description">(solo lectura: no crea ni cobra nada)</span>';
+		$boton   = static fn( string $accion, string $texto, string $clase = 'button' ) => '<a class="' . esc_attr( $clase ) . '" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=' . $accion ), $accion ) ) . '">' . esc_html( $texto ) . '</a>';
+		$oauth   = Idital_Pagos_Qonto_Oauth::estado();
+		$extra   = array();
+
+		if ( ! Idital_Pagos_Qonto_Oauth::cliente_configurado() ) {
+			$extra[] = '❌ Falta la aplicación OAuth de Qonto: define <code>IDITAL_QONTO_OAUTH_CLIENT_ID</code> e <code>IDITAL_QONTO_OAUTH_CLIENT_SECRET</code> en el fichero de configuración.';
+		} elseif ( $oauth['conectado'] ) {
+			$extra[] = '✅ Tienda conectada con Qonto desde el ' . esc_html( wp_date( 'j/m/Y H:i', $oauth['conectado_el'] ?: time() ) ) . '. El acceso se renueva solo.';
+			$extra[] = $boton( 'idital_probar_qonto', 'Probar conexión con Qonto' ) . ' <span class="description">(solo lectura: no crea ni cobra nada)</span> &nbsp; ' . $boton( 'idital_qonto_desconectar', 'Desconectar', 'button-link-delete' );
+		} else {
+			$extra[] = ( $oauth['roto'] ? '❌ Qonto ha retirado el acceso de la tienda. ' : '⚠️ ' ) . 'Falta autorizar a la tienda en Qonto. Debe hacerlo alguien con acceso de administrador a la cuenta Qonto de la empresa:';
+			$extra[] = $boton( 'idital_qonto_conectar', 'Conectar con Qonto', 'button button-primary' );
 		}
+		$extra[] = 'URL de redirección para la aplicación OAuth de Qonto: <code>' . esc_html( Idital_Pagos_Qonto_Oauth::redirect_uri() ) . '</code>';
+		$extra[] = 'URL del webhook para Qonto: <code>' . esc_html( $webhook ) . '</code>';
 
 		$this->form_fields = array(
-			'estado'      => $this->campo_estado(
+			'estado'      => $this->campo_estado_qonto(
 				Idital_Pagos_Config::qonto_sandbox() ? 'Sandbox (pruebas)' : 'PRODUCCIÓN',
 				$extra
 			),
@@ -90,6 +101,15 @@ final class Idital_Pagos_Gateway_Qonto extends Idital_Pagos_Gateway {
 				'type'    => 'text',
 				'default' => '',
 			),
+		);
+	}
+
+	/** Bloque de estado propio: Qonto se conecta por OAuth, no basta con credenciales. */
+	private function campo_estado_qonto( string $entorno, array $extra ): array {
+		return array(
+			'title'       => __( 'Estado de la conexión', 'idital-pagos' ),
+			'type'        => 'title',
+			'description' => implode( '<br>', array_merge( array( 'Entorno: <strong>' . esc_html( $entorno ) . '</strong>' ), $extra ) ),
 		);
 	}
 

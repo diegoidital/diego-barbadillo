@@ -44,8 +44,12 @@ final class Idital_Pagos_Config {
 		return self::base( 'IDITAL_QONTO_API_BASE', self::qonto_sandbox() ? self::QONTO_BASE_SANDBOX : self::QONTO_BASE_PRODUCCION );
 	}
 
+	/**
+	 * Qonto solo permite crear links de pago con OAuth 2.0: hace falta la aplicación OAuth
+	 * (client id/secret en la configuración) y que un gestor haya pulsado "Conectar con Qonto".
+	 */
 	public static function qonto_configurado(): bool {
-		if ( '' === self::get( 'IDITAL_QONTO_LOGIN' ) || '' === self::get( 'IDITAL_QONTO_SECRET_KEY' ) ) {
+		if ( ! Idital_Pagos_Qonto_Oauth::cliente_configurado() || ! Idital_Pagos_Qonto_Oauth::conectado() ) {
 			return false;
 		}
 		// El sandbox de Qonto exige además el token de staging (salvo simulador local).

@@ -11,6 +11,7 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 delete_option( 'woocommerce_idital_qonto_settings' );
 delete_option( 'woocommerce_idital_tropipay_settings' );
 delete_transient( 'idital_tpp_token' );
+delete_option( 'idital_qonto_oauth' );
 
 global $wpdb;
 $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'idital\\_lock\\_%'" ); // phpcs:ignore

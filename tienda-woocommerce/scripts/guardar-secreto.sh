@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PERMITIDOS="qonto_login qonto_secret_key qonto_staging_token qonto_webhook_token tropipay_client_id tropipay_client_secret"
+PERMITIDOS="qonto_oauth_client_id qonto_oauth_client_secret qonto_login qonto_secret_key qonto_staging_token qonto_webhook_token tropipay_client_id tropipay_client_secret"
 nombre="${1:-}"
 if [[ -z "$nombre" || " $PERMITIDOS " != *" $nombre "* ]]; then
   echo "Uso: $0 <nombre>   (uno de: $PERMITIDOS)"; exit 1

@@ -33,7 +33,7 @@ comprobar "pago en Qonto + webhook → pedido correcto pagado" completed "$(esta
 
 echo "== Cambio de pasarela: el link de Qonto se desactiva"
 wpe eval "\$p=wc_get_order($P); \$g=WC()->payment_gateways()->payment_gateways()['idital_tropipay']; \$p->set_payment_method(\$g); \$p->save(); \$g->process_payment($P);" >/dev/null
-ESTADO_LINK=$(curl -s -H "Authorization: $(cat secretos/qonto_login.txt):$(cat secretos/qonto_secret_key.txt)" "http://localhost:8090/v2/payment_links/$LINK" | python3 -c 'import json,sys;print(json.load(sys.stdin)["payment_link"]["status"])')
+ESTADO_LINK=$(wpe eval "echo (new Idital_Pagos_Qonto_Client())->obtener_link('$LINK')['status'];")
 comprobar "link de Qonto anterior cancelado" canceled "$ESTADO_LINK"
 
 R="T$(date +%s)"   # códigos de operación únicos en cada ejecución
@@ -85,6 +85,12 @@ SANDBOX=$("${C[@]}" run --rm -T -e WP_ENVIRONMENT_TYPE=production wpcli wp eval 
 " 2>/dev/null | tail -1)
 comprobar "pasarela en sandbox oculta a los clientes y su cobro NO se da por bueno" "oculta no-pagado" "$SANDBOX"
 comprobar "…el pedido sigue pendiente" pending "$(estado_pedido "$P2")"
+
+echo "== Conexión OAuth con Qonto"
+comprobar "vuelta de OAuth con state inventado → redirige sin conectar nada" 302 "$(codigo "$API/qonto/oauth?code=robado&state=$(printf 'c%.0s' {1..64})")"
+comprobar "…la conexión existente no cambia" true "$(wpe eval 'echo var_export(Idital_Pagos_Qonto_Oauth::conectado(), true);')"
+comprobar "los tokens no se guardan en claro en la base de datos" false "$(wpe eval 'echo var_export(str_contains((string) get_option("idital_qonto_oauth"), "ref_"), true);')"
+comprobar "botón Conectar sin sesión/nonce → rechazado" 1 "$(curl -s -o /dev/null -w '%{http_code}' "$WP/wp-admin/admin-post.php?action=idital_qonto_conectar" | grep -c '^302$\|^403$\|^400$')"
 
 echo "== Consulta de estado"
 comprobar "clave de pedido incorrecta → 404" 404 "$(codigo "$API/estado?pedido=$P&clave=wc_order_falsa")"

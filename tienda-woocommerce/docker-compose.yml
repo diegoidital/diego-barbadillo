@@ -8,6 +8,8 @@ name: tienda
 
 x-secretos-wp: &secretos-wp
   - db_password
+  - qonto_oauth_client_id
+  - qonto_oauth_client_secret
   - qonto_login
   - qonto_secret_key
   - qonto_staging_token
@@ -31,6 +33,8 @@ x-entorno-wp: &entorno-wp
   IDITAL_TROPIPAY_ENTORNO: ${IDITAL_TROPIPAY_ENTORNO:-sandbox}
   IDITAL_QONTO_API_BASE: ${IDITAL_QONTO_API_BASE:-}
   IDITAL_TROPIPAY_API_BASE: ${IDITAL_TROPIPAY_API_BASE:-}
+  IDITAL_QONTO_OAUTH_BASE: ${IDITAL_QONTO_OAUTH_BASE:-}
+  IDITAL_QONTO_OAUTH_BASE_PUBLICA: ${IDITAL_QONTO_OAUTH_BASE_PUBLICA:-}
 
 x-volumenes-wp: &volumenes-wp
   - wp_datos:/var/www/html
@@ -97,6 +101,8 @@ services:
 secrets:
   db_password:            { file: ./secretos/db_password.txt }
   db_root_password:       { file: ./secretos/db_root_password.txt }
+  qonto_oauth_client_id:  { file: ./secretos/qonto_oauth_client_id.txt }
+  qonto_oauth_client_secret: { file: ./secretos/qonto_oauth_client_secret.txt }
   qonto_login:            { file: ./secretos/qonto_login.txt }
   qonto_secret_key:       { file: ./secretos/qonto_secret_key.txt }
   qonto_staging_token:    { file: ./secretos/qonto_staging_token.txt }

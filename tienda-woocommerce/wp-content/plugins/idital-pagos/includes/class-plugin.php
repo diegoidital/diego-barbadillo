@@ -11,6 +11,7 @@ final class Idital_Pagos_Plugin {
 
 	const IDS             = array( 'idital_qonto', 'idital_tropipay' );
 	const HOOK_REVISION   = 'idital_pagos_revisar_qonto';
+	const HOOK_TOKEN      = 'idital_pagos_qonto_token';
 	const DIAS_RESERVA    = 7;
 
 	public static function init(): void {
@@ -42,6 +43,11 @@ final class Idital_Pagos_Plugin {
 		// Botón "Probar conexión con Qonto".
 		add_action( 'admin_post_idital_probar_qonto', array( __CLASS__, 'probar_qonto' ) );
 		add_action( 'admin_post_idital_probar_tropipay', array( __CLASS__, 'probar_tropipay' ) );
+		add_action( 'admin_post_idital_qonto_conectar', array( __CLASS__, 'qonto_conectar' ) );
+		add_action( 'admin_post_idital_qonto_desconectar', array( __CLASS__, 'qonto_desconectar' ) );
+
+		// Mantiene viva la conexión OAuth con Qonto aunque no haya ventas.
+		add_action( self::HOOK_TOKEN, array( 'Idital_Pagos_Qonto_Oauth', 'mantener' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'aviso_diagnostico' ) );
 
 		// Checkout por bloques.
@@ -80,9 +86,45 @@ final class Idital_Pagos_Plugin {
 	}
 
 	public static function programar_revision(): void {
-		if ( function_exists( 'as_has_scheduled_action' ) && ! as_has_scheduled_action( self::HOOK_REVISION ) ) {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			return;
+		}
+		if ( ! as_has_scheduled_action( self::HOOK_REVISION ) ) {
 			as_schedule_recurring_action( time() + 300, 10 * MINUTE_IN_SECONDS, self::HOOK_REVISION, array(), 'idital-pagos' );
 		}
+		if ( ! as_has_scheduled_action( self::HOOK_TOKEN ) ) {
+			as_schedule_recurring_action( time() + 600, DAY_IN_SECONDS, self::HOOK_TOKEN, array(), 'idital-pagos' );
+		}
+	}
+
+	private static function exigir_gestor( string $accion ): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'No tienes permiso para hacer esto.', 'idital-pagos' ), 403 );
+		}
+		check_admin_referer( $accion );
+	}
+
+	private static function volver_a_qonto(): void {
+		wp_safe_redirect( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=idital_qonto' ) );
+		exit;
+	}
+
+	public static function qonto_conectar(): void {
+		self::exigir_gestor( 'idital_qonto_conectar' );
+		if ( ! Idital_Pagos_Qonto_Oauth::cliente_configurado() ) {
+			set_transient( 'idital_diag_' . get_current_user_id(), array( 'titulo' => 'Qonto', 'lineas' => array( array( 'error', 'Falta la aplicación OAuth de Qonto en el fichero de configuración.' ) ) ), 5 * MINUTE_IN_SECONDS );
+			self::volver_a_qonto();
+		}
+		// Redirección externa a Qonto (dominio fijo, no controlado por el usuario).
+		wp_redirect( Idital_Pagos_Qonto_Oauth::url_autorizacion() ); // phpcs:ignore WordPress.Security.SafeRedirect
+		exit;
+	}
+
+	public static function qonto_desconectar(): void {
+		self::exigir_gestor( 'idital_qonto_desconectar' );
+		Idital_Pagos_Qonto_Oauth::desconectar();
+		set_transient( 'idital_diag_' . get_current_user_id(), array( 'titulo' => 'Qonto', 'lineas' => array( array( 'aviso', 'Tienda desconectada de Qonto. El pago con Qonto ya no se muestra a los clientes.' ) ) ), 5 * MINUTE_IN_SECONDS );
+		self::volver_a_qonto();
 	}
 
 	public static function revisar_pendientes_qonto(): void {
@@ -116,9 +158,9 @@ final class Idital_Pagos_Plugin {
 			wp_die( esc_html__( 'No tienes permiso para hacer esto.', 'idital-pagos' ), 403 );
 		}
 		check_admin_referer( 'idital_probar_qonto' );
-		$resultado = Idital_Pagos_Config::qonto_configurado()
+		$resultado = Idital_Pagos_Qonto_Oauth::cliente_configurado()
 			? ( new Idital_Pagos_Qonto_Client() )->diagnostico()
-			: array( array( 'error', 'Faltan las credenciales de Qonto en la configuración.' ) );
+			: array( array( 'error', 'Falta la aplicación OAuth de Qonto en el fichero de configuración.' ) );
 		set_transient( 'idital_diag_' . get_current_user_id(), array( 'titulo' => 'Qonto', 'lineas' => $resultado ), 5 * MINUTE_IN_SECONDS );
 		wp_safe_redirect( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=idital_qonto' ) );
 		exit;

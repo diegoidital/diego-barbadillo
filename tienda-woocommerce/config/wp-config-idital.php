@@ -40,6 +40,9 @@ define( 'IDITAL_PROXY_CONFIANZA', (string) getenv( 'IDITAL_PROXY_CONFIANZA' ) );
 
 // ------------------------------------------------------------------ Pagos: Qonto
 define( 'IDITAL_QONTO_ENTORNO', getenv( 'IDITAL_QONTO_ENTORNO' ) ?: 'sandbox' ); // sandbox | produccion
+// Aplicación OAuth (obligatoria para crear links de pago). La clave API es opcional (solo lectura).
+define( 'IDITAL_QONTO_OAUTH_CLIENT_ID', idital_secreto( 'qonto_oauth_client_id' ) );
+define( 'IDITAL_QONTO_OAUTH_CLIENT_SECRET', idital_secreto( 'qonto_oauth_client_secret' ) );
 define( 'IDITAL_QONTO_LOGIN', idital_secreto( 'qonto_login' ) );
 define( 'IDITAL_QONTO_SECRET_KEY', idital_secreto( 'qonto_secret_key' ) );
 define( 'IDITAL_QONTO_STAGING_TOKEN', idital_secreto( 'qonto_staging_token' ) );
@@ -55,4 +58,6 @@ define( 'IDITAL_PAGOS_CLAVE_HMAC', idital_secreto( 'pagos_clave_hmac' ) );
 
 // Solo para pruebas locales con el simulador (el plugin las ignora fuera de local/development).
 define( 'IDITAL_QONTO_API_BASE', getenv( 'IDITAL_QONTO_API_BASE' ) ?: '' );
+define( 'IDITAL_QONTO_OAUTH_BASE', getenv( 'IDITAL_QONTO_OAUTH_BASE' ) ?: '' );
+define( 'IDITAL_QONTO_OAUTH_BASE_PUBLICA', getenv( 'IDITAL_QONTO_OAUTH_BASE_PUBLICA' ) ?: '' );
 define( 'IDITAL_TROPIPAY_API_BASE', getenv( 'IDITAL_TROPIPAY_API_BASE' ) ?: '' );

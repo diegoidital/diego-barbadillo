@@ -111,9 +111,17 @@ Es el caso de una web WordPress que ya existe (por ejemplo con LiteSpeed, Elemen
    Si el fichero no existe, la web sigue funcionando y las pasarelas simplemente no aparecen.
 4. **Plugin**: *Plugins → Añadir nuevo → Subir plugin* con `idital-pagos.zip` (la carpeta
    `wp-content/plugins/idital-pagos` comprimida) y actívalo.
-5. *WooCommerce → Ajustes → Pagos → Qonto* → **Probar conexión con Qonto**. Comprueba la clave, la conexión
-   con Mollie y los métodos disponibles, sin crear ni cobrar nada. Copia la **URL del webhook** que aparece
-   ahí para darla de alta en Qonto.
+5. **Qonto (OAuth)**: Qonto solo permite crear links de pago con OAuth 2.0; la clave API normal solo
+   sirve para leer. Pasos:
+   1. En el portal de desarrolladores de Qonto (https://developers.qonto.com) crea una **aplicación OAuth**
+      con los permisos `offline_access`, `organization.read`, `payment_link.read` y `payment_link.write`, y
+      con la URL de redirección **exacta** que muestra *WooCommerce → Ajustes → Pagos → Qonto*
+      (`https://<dominio>/wp-json/idital-pagos/v1/qonto/oauth`).
+   2. Copia su Client ID y Client Secret en `IDITAL_QONTO_OAUTH_CLIENT_ID` / `IDITAL_QONTO_OAUTH_CLIENT_SECRET`.
+   3. En *WooCommerce → Ajustes → Pagos → Qonto* pulsa **Conectar con Qonto**: alguien con acceso de
+      administrador a la cuenta Qonto de la empresa autoriza una vez. El acceso se renueva solo; si Qonto
+      lo retirara, la pasarela se oculta y llega un email para reconectar.
+   4. **Probar conexión con Qonto** (solo lectura) y da de alta la **URL del webhook** que aparece ahí.
 6. *WooCommerce → Ajustes → Pagos → TropiPay* → **Probar conexión con TropiPay** (pide un token y muestra
    los permisos de la credencial, sin crear ni cobrar nada).
 7. Activa las pasarelas y haz un pedido de prueba de 1 € con cada una.
@@ -206,6 +214,10 @@ de YITH crea ese pedido automáticamente cuando el cliente acepta; el plugin es 
 ## Seguridad
 
 **Credenciales**
+- Qonto por OAuth: los tokens se guardan **cifrados** con una clave que solo está en el fichero de
+  configuración (fuera de la web); una copia de la base de datos no basta para usarlos. La vuelta de
+  la autorización exige un `state` aleatorio de un solo uso ligado al gestor que la inició. Los refresh
+  tokens (de un solo uso en Qonto) se renuevan bajo bloqueo para que dos procesos no rompan la conexión.
 - Viven en `secretos/` (fuera de git, carpeta 700) y se montan como *Docker secrets* en `/run/secrets`.
 - No están en la base de datos, ni en variables de entorno, ni en el panel. El panel solo muestra "✅ detectadas".
 - El token de TropiPay se guarda en caché **cifrado** (libsodium).

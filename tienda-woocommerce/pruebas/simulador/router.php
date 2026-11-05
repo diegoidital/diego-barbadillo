@@ -75,9 +75,69 @@ $cuerpo = json_decode( (string) file_get_contents( 'php://input' ), true ) ?: ar
 $auth   = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
 $e      = estado();
 
+/* ============================================================= QONTO OAUTH */
+if ( '/oauth2/auth' === $ruta ) {
+	$q = $_GET;
+	if ( ( $q['client_id'] ?? '' ) !== secreto( 'qonto_oauth_client_id' ) ) {
+		pagina( 'Qonto', '<h1>client_id desconocido</h1>' );
+	}
+	if ( 'POST' === $metodo ) {
+		$codigo                        = bin2hex( random_bytes( 16 ) );
+		$e['qonto_codigos'][ $codigo ] = array( 'redirect_uri' => $q['redirect_uri'], 'scope' => $q['scope'] ?? '' );
+		guardar( $e );
+		header( 'Location: ' . $q['redirect_uri'] . '?' . http_build_query( array( 'code' => $codigo, 'state' => $q['state'] ?? '' ) ), true, 302 );
+		exit;
+	}
+	pagina( 'Qonto', '<h1>Autorizar a la tienda</h1><p>Permisos: ' . htmlspecialchars( $q['scope'] ?? '' ) . '</p><form method="post"><button id="autorizar" style="font-size:1.2em;padding:10px 24px">Autorizar</button></form>' );
+}
+
+if ( '/oauth2/token' === $ruta && 'POST' === $metodo ) {
+	$f = $_POST;
+	if ( ( $f['client_id'] ?? '' ) !== secreto( 'qonto_oauth_client_id' ) || ( $f['client_secret'] ?? '' ) !== secreto( 'qonto_oauth_client_secret' ) ) {
+		json_out( 401, array( 'error' => 'invalid_client' ) );
+	}
+	if ( 'authorization_code' === ( $f['grant_type'] ?? '' ) ) {
+		$c = $e['qonto_codigos'][ $f['code'] ?? '' ] ?? null;
+		unset( $e['qonto_codigos'][ $f['code'] ?? '' ] ); // Un solo uso.
+		if ( ! $c || $c['redirect_uri'] !== ( $f['redirect_uri'] ?? '' ) ) {
+			guardar( $e );
+			json_out( 400, array( 'error' => 'invalid_grant' ) );
+		}
+		$scope = $c['scope'];
+	} elseif ( 'refresh_token' === ( $f['grant_type'] ?? '' ) ) {
+		$r = $f['refresh_token'] ?? '';
+		if ( empty( $e['qonto_refresh'][ $r ] ) ) {
+			json_out( 400, array( 'error' => 'invalid_grant' ) );
+		}
+		$scope = $e['qonto_refresh'][ $r ];
+		unset( $e['qonto_refresh'][ $r ] ); // Rotación: el refresh token usado deja de valer.
+		$e['qonto_refrescos'] = ( $e['qonto_refrescos'] ?? 0 ) + 1;
+	} else {
+		json_out( 400, array( 'error' => 'unsupported_grant_type' ) );
+	}
+	$access                         = 'acc_' . bin2hex( random_bytes( 16 ) );
+	$refresh                        = 'ref_' . bin2hex( random_bytes( 16 ) );
+	$e['qonto_access'][ $access ]   = time() + 3600;
+	$e['qonto_refresh'][ $refresh ] = $scope;
+	guardar( $e );
+	json_out( 200, array( 'access_token' => $access, 'refresh_token' => $refresh, 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => $scope ) );
+}
+
+if ( '/_sim/qonto/expirar' === $ruta ) { // Solo pruebas: caducan todos los access tokens.
+	foreach ( array_keys( $e['qonto_access'] ?? array() ) as $t ) {
+		$e['qonto_access'][ $t ] = 0;
+	}
+	guardar( $e );
+	json_out( 200, array( 'refrescos' => $e['qonto_refrescos'] ?? 0 ) );
+}
+
 /* =============================================================== QONTO API */
 if ( str_starts_with( $ruta, '/v2/payment_links' ) || '/v2/organization' === $ruta ) {
-	if ( $auth !== secreto( 'qonto_login' ) . ':' . secreto( 'qonto_secret_key' ) ) {
+	$bearer   = str_starts_with( $auth, 'Bearer ' ) ? substr( $auth, 7 ) : '';
+	$oauth_ok = '' !== $bearer && ( $e['qonto_access'][ $bearer ] ?? 0 ) > time();
+	$clave_ok = $auth === secreto( 'qonto_login' ) . ':' . secreto( 'qonto_secret_key' );
+	// Como Qonto: la clave API solo sirve para leer la organización; los links exigen OAuth.
+	if ( ! $oauth_ok && ! ( $clave_ok && '/v2/organization' === $ruta ) ) {
 		json_out( 401, array( 'errors' => array( array( 'code' => 'authorization_token_invalid' ) ) ) );
 	}
 	if ( '/v2/organization' === $ruta ) {

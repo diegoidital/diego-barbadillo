@@ -20,10 +20,14 @@ if ( ! defined( 'DB_NAME' ) ) {
 }
 
 // ---------------------------------------------------------------- Qonto
-// Clave API de la app de Qonto (Ajustes → Integraciones y conexiones → Clave API).
-define( 'IDITAL_QONTO_ENTORNO', 'produccion' );          // 'produccion' para claves de la app; 'sandbox' para el portal de desarrolladores
-define( 'IDITAL_QONTO_LOGIN', '' );                      // identificador de la organización, p. ej. empresa-sl-1234
-define( 'IDITAL_QONTO_SECRET_KEY', '' );                 // clave secreta
+// Qonto solo permite crear links de pago con OAuth 2.0. Hace falta una aplicación OAuth creada en el
+// portal de desarrolladores de Qonto (https://developers.qonto.com) con los permisos
+// offline_access, organization.read, payment_link.read y payment_link.write, y con esta URL de redirección:
+//   https://<dominio>/wp-json/idital-pagos/v1/qonto/oauth
+// Después, en WooCommerce → Ajustes → Pagos → Qonto, pulsar "Conectar con Qonto".
+define( 'IDITAL_QONTO_ENTORNO', 'produccion' );          // 'produccion' o 'sandbox'
+define( 'IDITAL_QONTO_OAUTH_CLIENT_ID', '' );            // Client ID de la aplicación OAuth
+define( 'IDITAL_QONTO_OAUTH_CLIENT_SECRET', '' );        // Client Secret de la aplicación OAuth
 define( 'IDITAL_QONTO_STAGING_TOKEN', '' );              // solo sandbox
 
 // ------------------------------------------------------------- TropiPay

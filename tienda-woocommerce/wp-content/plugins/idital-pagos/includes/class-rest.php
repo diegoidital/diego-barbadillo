@@ -42,6 +42,16 @@ final class Idital_Pagos_Rest {
 
 		register_rest_route(
 			self::NS,
+			'/qonto/oauth',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'qonto_oauth' ),
+				'permission_callback' => '__return_true', // La autorización la da el "state" de un solo uso.
+			)
+		);
+
+		register_rest_route(
+			self::NS,
 			'/estado',
 			array(
 				'methods'             => 'GET',
@@ -120,6 +130,45 @@ final class Idital_Pagos_Rest {
 			}
 		}
 		return array_values( array_unique( $ids ) );
+	}
+
+	/**
+	 * Vuelta desde la autorización de Qonto. Siempre termina redirigiendo al panel.
+	 */
+	public static function qonto_oauth( WP_REST_Request $peticion ): WP_REST_Response {
+		$state = (string) $peticion->get_param( 'state' );
+		if ( '' !== (string) $peticion->get_param( 'error' ) ) {
+			$usuario = 0;
+			$error   = 'Qonto no ha concedido el acceso (' . sanitize_key( (string) $peticion->get_param( 'error' ) ) . ').';
+			// Se consume el state para que no pueda reutilizarse.
+			if ( preg_match( '/^[a-f0-9]{64}$/', $state ) ) {
+				$clave   = 'idital_qonto_state_' . hash( 'sha256', $state );
+				$usuario = (int) get_transient( $clave );
+				delete_transient( $clave );
+			}
+		} else {
+			if ( ! Idital_Pagos_Limite::permitir( 'qonto_oauth', 10, 300 ) ) {
+				return self::respuesta( array( 'ok' => false ), 429 );
+			}
+			[ $usuario, $error ] = Idital_Pagos_Qonto_Oauth::completar( (string) $peticion->get_param( 'code' ), $state );
+		}
+
+		if ( $usuario > 0 ) {
+			set_transient(
+				'idital_diag_' . $usuario,
+				array(
+					'titulo' => 'Qonto',
+					'lineas' => array( '' === $error ? array( 'ok', 'Tienda conectada con Qonto. Pulsa "Probar conexión con Qonto" para comprobarlo.' ) : array( 'error', $error ) ),
+				),
+				10 * MINUTE_IN_SECONDS
+			);
+		} else {
+			Idital_Pagos_Log::aviso( 'Vuelta de OAuth de Qonto rechazada', array( 'ip' => Idital_Pagos_Limite::ip() ) );
+		}
+
+		$r = self::respuesta( array( 'ok' => '' === $error ), 302 );
+		$r->header( 'Location', admin_url( 'admin.php?page=wc-settings&tab=checkout&section=idital_qonto' ) );
+		return $r;
 	}
 
 	/* ------------------------------------------------------------ TropiPay */
