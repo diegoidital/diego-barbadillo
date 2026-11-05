@@ -34,11 +34,19 @@ echo; echo "## Usuarios creados en 90 dias"
 WP db query "SELECT ID,user_login,user_email,user_registered FROM ${PFX}users WHERE user_registered > NOW() - INTERVAL 90 DAY"
 echo; echo "## Opciones con codigo"
 WP db query "SELECT option_id,option_name,LENGTH(option_value) len FROM ${PFX}options WHERE option_value REGEXP 'eval[(]|fromCharCode|atob[(]' ORDER BY len DESC LIMIT 20"
+echo; echo "## Usuarios con *_user_level 10 (administrador)"
+WP db query "SELECT user_id, meta_key FROM ${PFX}usermeta WHERE meta_key LIKE '%user_level' AND meta_value='10'"
+echo; echo "## Cron (revisar hooks desconocidos)"; WP cron event list --fields=hook,recurrence | sort -u
+echo; echo "## WP Activity Log (si esta instalado; 1000 login, 4000/4001 alta de usuario, 5000/5001 plugin instalado/activado; columnas segun version)"
+WP db query "SHOW TABLES LIKE '${PFX}wsal_occurrences'" | grep -q wsal && \
+  WP db query "SELECT FROM_UNIXTIME(created_on), alert_id, client_ip, username FROM ${PFX}wsal_occurrences WHERE alert_id IN (1000,4000,4001,5000,5001) ORDER BY created_on DESC LIMIT 20"
 echo; echo "## Plugins"; WP plugin list --fields=name,status,version,update_version
 echo; echo "## Subidas por FTP del usuario (ultimas 15)"
 cat /var/log/plesk/xferlog* 2>/dev/null | awk -v u="$U" '$14==u && $12=="i" {print $1,$2,$3,$4,$5,$7,$9}' | tail -15
 echo; echo "## Logins correctos en wp-login (ultimos 15)"
 zcat -f "$LOGS"/access*log* 2>/dev/null | awk '$6=="\"POST" && $7 ~ /wp-login\.php/ && $9==302 {print $1, $4}' | tail -15
+echo; echo "## Subidas de plugins o temas desde el panel"
+zcat -f "$LOGS"/access*log* 2>/dev/null | awk '$7 ~ /update\.php\?action=upload-(plugin|theme)/ {print $1, $4, $9}' | tail -15
 echo; echo "## POST con exito a PHP no estandar (top 15)"
 zcat -f "$LOGS"/access*log* 2>/dev/null | awk '$6=="\"POST" && $9==200 && $7 ~ /\.php/ && $7 !~ /(wp-login|admin-ajax|wp-cron|xmlrpc|wp-comments-post|guest\.vary)\.php/ {split($7,a,"?"); print a[1]}' | sort | uniq -c | sort -rn | head -15
 echo "=== FIN ==="

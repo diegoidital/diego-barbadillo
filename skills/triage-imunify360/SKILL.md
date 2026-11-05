@@ -52,7 +52,17 @@ Veredicto **falso positivo** solo si: el fichero que intentaba crear el exploit 
    ls -la --time-style=long-iso /var/www/vhosts/*/httpdocs/wp-content/mu-plugins /var/www/vhosts/*/*/wp-content/mu-plugins /var/www/vhosts/*/domains/*/public_html/wp-content/mu-plugins 2>/dev/null | grep -E '^/|\.php$'
    ```
 
-Antes de calificar algo de malicioso, contrasta con `references/hallazgos-conocidos.md` (falsos positivos habituales, mu-plugins legítimos y herramientas internas ya identificadas).
+Antes de calificar algo de malicioso, contrasta con `references/hallazgos-conocidos.md` (falsos positivos habituales, mu-plugins legítimos, herramientas internas e indicadores de los incidentes reales ya resueltos).
+
+**Señales de compromiso real** (se repiten en los incidentes de dspga, lavahome, kaironparticular y phonetronic):
+- Detección en un **plugin recién instalado** con nombre inocente ("WP Secure Backup", "Locale Performance Cache", versión 1.5.0) o en un **PHP con nombre hexadecimal en `wp-content/`** (p. ej. `a15b80c58f.php`). Imunify suele detectarlo minutos después de la instalación.
+- **Administradores fraudulentos**: busca por fecha de alta y por email en *todo* el servidor con `scripts/admins-servidor.sh`; en dspga la cuenta llevaba más de un año creada y en lavahome había tres, creadas una cada mes.
+- **Login correcto** (POST a `wp-login.php` con 302) seguido de **subida de plugin** (`update.php?action=upload-plugin`) en los logs; si hay un login al primer intento, sospecha de credenciales robadas o reutilizadas.
+- Si el sitio tiene **WP Activity Log** (tabla `*_wsal_occurrences`), úsalo: da la cadena completa de quién creó qué cuenta e instaló qué plugin y desde qué IP.
+- **Persistencia**: opciones en la BD, ficheros ocultos, post-meta, eventos de cron desconocidos (p. ej. `backup_manager_reconcile`), cuentas que se recrean solas tras borrarlas, `*_user_level` elevado a 10.
+- **Dos instalaciones de WordPress en la misma suscripción** (p. ej. `httpdocs/` y `httpdocs/public_html/`): confirma cuál es la activa (la que sirve la URL afectada) y revisa también la otra.
+
+**Plugins pirateados (nulled):** si la detección está en un plugin premium descargado de un redistribuidor (p. ej. gplcoffee) y el código marcado falsea la comprobación de licencia (`pre_http_request`), no es un ataque, pero tampoco es inocuo. La limpieza de Imunify quita ese bloque: el plugin pierde la "licencia" y pueden dejar de funcionar sus funciones Pro (en WP Mail SMTP Pro, el envío de correo). Comprueba que el fichero limpiado sigue siendo PHP válido (`php -l`) y que la funcionalidad crítica sigue en marcha, y recomienda sustituirlo por la versión oficial o la gratuita.
 
 ### 4. Veredicto y acciones
 Para cada detección:
@@ -60,13 +70,27 @@ Para cada detección:
 | Fichero | Firma | Veredicto | Evidencia | Acción |
 |---|---|---|---|---|
 
-Veredictos posibles: **Infección real**, **Falso positivo**, **Herramienta interna**, **Pendiente** (indica qué falta).
+Veredictos posibles: **Infección real**, **Falso positivo**, **Herramienta interna**, **Plugin pirateado**, **Pendiente** (indica qué falta).
 
 Acciones típicas, siempre después del veredicto y avisando de lo que modifican:
 - Log con falso positivo que se repite en cada escaneo: archivarlo y vaciarlo sin cambiar propietario ni permisos (`gzip -c $F > /root/<nombre>-$(date +%F).gz && : > $F`), y revisar la rotación de logs del dominio en Plesk. Alternativa: lista de ignorados (`imunify360-agent malware ignore --help` para confirmar sintaxis).
 - IP atacante persistente: `imunify360-agent blacklist ip add <IP> --comment "..."`.
 - Herramienta interna: avisar a su responsable de que Imunify la seguirá borrando y de que la máquina que la despliega guarda credenciales de clientes.
-- Infección real: contención (bloquear IP, cambiar credenciales FTP/WP/BD, regenerar claves con `wp config shuffle-salts`), limpieza, actualización y, una vez resuelto, el informe al cliente con la skill `informe-incidente-seguridad`.
+- Infección real: sigue el apartado 5.
+
+### 5. Infección real: contención, limpieza y cierre
+Orden recomendado; explica al usuario qué modifica cada paso antes de pedírselo.
+1. **Cuarentena, no borrado:** mueve los ficheros maliciosos fuera de la web (`mkdir -p /root/quarantine_<dominio>_$(date +%F) && mv <ruta> <esa carpeta>/`). Así se conservan como prueba y para el informe.
+2. **Cuentas:** elimina los administradores fraudulentos con `wp user delete <ID> --reassign=<ID legítimo> --yes` y comprueba al día siguiente que no se han recreado. Busca la misma cuenta o el mismo email en el resto del servidor (`scripts/admins-servidor.sh`) y avisa de que las copias de seguridad antiguas pueden contener la cuenta falsa.
+3. **Persistencia:** limpia las opciones, el cron, los post-meta y los ficheros ocultos que dejó el malware, y vuelve a verificar el núcleo y los plugins con checksums.
+4. **Credenciales:** cambia las contraseñas de los administradores legítimos, de la base de datos (y actualiza `wp-config.php`), del FTP y de Plesk. **Si se entró con una cuenta que se reutiliza en otros sitios** (por ejemplo, una cuenta de la agencia), cámbiala en todos y activa 2FA.
+5. **Sesiones:** regenera las claves (`wp config shuffle-salts`). Si wp-cli no arranca, hazlo a mano: copia de seguridad de `wp-config.php`, descarga claves nuevas de `https://api.wordpress.org/secret-key/1.1/salt/`, sustituye las 8 líneas `define` y escribe con `cat nuevo > wp-config.php` (no `mv`) para conservar propietario y permisos; comprueba con `grep -c` (8) y `php -l`.
+6. **Vía de entrada:** corrige la causa, no solo el síntoma. Actualiza o retira el plugin vulnerable (en kaironparticular, Tutor LMS) o el núcleo. Bloquear IPs es solo un parche, porque las botnets cambian de IP.
+7. **Bloqueo de IPs:** solo las del atacante (`imunify360-agent blacklist ip add` o firewall de Plesk). **Antes de bloquear, descarta las propias:** IPs residenciales españolas que entraron justo después de la detección suelen ser del equipo o del cliente investigando, y la red del propio proveedor (31.170.x.x) puede ser vuestra.
+8. **Endurecimiento temporal:** `define('DISALLOW_FILE_MODS', true);` en `wp-config.php` durante unas 48 horas sin incidencias (impide instalar plugins), 2FA para los administradores y comprobar que fail2ban está activo.
+9. **Seguimiento:** al día siguiente, revisa usuarios y ficheros nuevos; a las 48 horas sin incidencias, retira `DISALLOW_FILE_MODS`.
+10. **Datos personales:** si hubo extracción de datos de clientes, indícalo para valorar la notificación a la AEPD (RGPD, 72 horas).
+11. **Informe al cliente:** cuando esté resuelto, pasa a la skill `informe-incidente-seguridad`. En el informe no van IPs, nombres de usuario, credenciales ni a quién pertenecía la cuenta con la que se entró (en particular, nunca atribuirla a Idital); el acceso se describe como "acceso no autorizado al panel de administración".
 
 ## Cómo pedir comandos (el usuario pega en una consola SSH o web)
 
