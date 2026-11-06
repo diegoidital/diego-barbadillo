@@ -313,3 +313,8 @@ Las detectó el vigilante o se reportaron en el uso diario. Todas se hicieron di
   - Esta versión lee los destinatarios de `MA_MERCHANT_ORDER_EMAILS` (y de `MA_RETURN_SLIP_EMAILS` para las devoluciones), no de `MA_MERCHANT_MAILS`, y esa clave no existía tras la actualización.
   - El 04/11 se rellenaron ambas en Módulos → Alertas por email; hay que pulsar Enter en el campo de etiqueta antes de guardar.
   - Quedaron sin aviso los pedidos 1505, 1506, 1507 y 1508.
+- **Factura PDF desde "Historial de compras" daba error 500 (06/11, pedido 1508):**
+  - El error era `Smarty: Plugin tag 'displayPrice' already registered`.
+  - megaproduct registraba `displayPrice` → `Tools::displayPrice`. Al generar el PDF, `classes/pdf/PDF.php` comprueba si ya existe el registro con `Tools::displayPriceSmarty`, no lo encuentra con ese nombre e intenta registrarla otra vez.
+  - Se cambió a `displayPriceSmarty` en `megaproduct.php:6254` y `controllers/front/ajaxmegaproduct.php:35`. Copias previas: `*.bak-20261106`.
+  - Comprobado: ficha de producto → 200 y configurador → OK.
