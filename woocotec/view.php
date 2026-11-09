@@ -99,6 +99,46 @@
 
     <hr>
 
+    <h2>Stock de Cecotec</h2>
+    <?php
+        $ceco_zone       = get_option('ceco_selected_zone', 'Español');
+        $ceco_custom_url = get_option(CecoStockFeed::URL_OPTION, '');
+        $ceco_next_sync  = wp_next_scheduled('ceco_sync_stock_event');
+    ?>
+    <p>
+        El stock se lee del feed de dropshipping de Cecotec de la zona seleccionada
+        (<strong><?= esc_html($ceco_zone); ?></strong>):<br>
+        <code><?= esc_html(CecoStockFeed::feed_url()); ?></code>
+    </p>
+    <ul style="list-style-type:disc; margin-left: 20px;">
+        <li>Se cruza el <code>public_id</code> del feed con el SKU del producto.</li>
+        <li>Cada hora se actualiza el stock de los productos de la tienda que aparecen en el feed. Se activa la gestión de inventario y se desactivan las reservas: un producto sin stock queda <em>Agotado</em> y no se puede comprar.</li>
+        <li>El CSV de productos incluye también las columnas <code>Stock</code>, <code>Estado stock</code> y <code>EAN</code>.</li>
+        <li>Para que tampoco se muestren los agotados: WooCommerce › Ajustes › Productos › Inventario › «Ocultar en el catálogo los artículos agotados».</li>
+    </ul>
+    <p><strong>Última sincronización:</strong> <span id="stock-last-sync"><?= esc_html(CecoStockFeed::describe(get_option(CecoStockFeed::LAST_SYNC, []))); ?></span></p>
+    <?php if ($ceco_next_sync) : ?>
+        <p><strong>Próxima sincronización automática:</strong> <?= esc_html(get_date_from_gmt(gmdate('Y-m-d H:i:s', $ceco_next_sync), 'd/m/Y H:i')); ?></p>
+    <?php endif; ?>
+    <p><button id="start-stock-sync" class="button button-secondary">Sincronizar stock ahora</button></p>
+
+    <form method="post" action="<?= admin_url('admin-post.php'); ?>">
+        <input type="hidden" name="action" value="save_stock_settings">
+        <?php wp_nonce_field('ceco_save_stock_settings'); ?>
+        <table class="form-table">
+            <tr valign="top">
+                <th scope="row">URL del feed de stock (opcional)</th>
+                <td>
+                    <input type="url" name="ceco_stock_feed_url" class="large-text" value="<?= esc_attr($ceco_custom_url); ?>" placeholder="<?= esc_attr(CecoStockFeed::default_url($ceco_zone)); ?>" />
+                    <p class="description">Déjalo vacío para usar la URL de la zona seleccionada. Rellénalo solo si Cecotec vuelve a cambiar la dirección.</p>
+                </td>
+            </tr>
+        </table>
+        <?php submit_button('Guardar URL de stock', 'secondary'); ?>
+    </form>
+
+    <hr>
+
     <h2>Crea el csv con los productos de Cecotec</h2>
     <table>
         <tr >

@@ -97,7 +97,8 @@ class CecoPublisherToWooCommerce {
             }
     }
     // Primera llamada a las tarifas según el idioma seleccionado. Importa los productos disponibles y con precio. Los guarda en un archivo CSV.
-    private function create_file($products_to_import, $selected_zone) {
+    private function create_file($products_to_import, $selected_zone, $stock_map = []) {
+                $messages = [];
                 //$route_file = plugin_dir_path(__FILE__) . 'products.csv';
                 $upload_dir = wp_upload_dir();
                 $route_file = $upload_dir['basedir'] . '/wpallimport/files/products.csv';
@@ -131,6 +132,9 @@ class CecoPublisherToWooCommerce {
                     "img2",
                     "img3",
                     "img4",
+                    "Stock",
+                    "Estado stock",
+                    "EAN",
                 ];
                 fputcsv($file, $column_names);
             
@@ -147,15 +151,13 @@ class CecoPublisherToWooCommerce {
                             $pvpr = $product['PVP ESP']; // Ejemplo para Español
                             // Verificar si se encontró un PVPR válido
                             if ($pvpr === null || !is_numeric($pvpr)) {
-                                $message[] =  "❌ $sku: No disponible<br>";
+                                $messages[] =  "❌ $sku: No disponible<br>";
                                 continue; // Saltar al siguiente producto
                             } else {
-                                $message[] =  "✅ Producto guardado en csv: $sku<br>";
+                                $messages[] =  "✅ Producto guardado en csv: $sku<br>";
                             }  
                             // Escribir datos del producto en el CSV
-                                $row = [
-                                    $sku, '', $pvpr, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '  
-                                ];
+                                $row = $this->build_row($sku, $pvpr, $stock_map, count($column_names));
                             fputcsv($file, $row);
                         }
                     }  else {
@@ -199,15 +201,13 @@ class CecoPublisherToWooCommerce {
                                 }           
                                 // Verificar si se encontró un PVPR válido
                                 if ($pvpr === null || !is_numeric($pvpr)) {
-                                    $message[] = "❌ $sku: No disponible<br>";
+                                    $messages[] = "❌ $sku: No disponible<br>";
                                     continue; // Saltar al siguiente producto
                                 } else {
-                                    $message[] = "✅ Producto guardado en csv: $sku<br>";
+                                    $messages[] = "✅ Producto guardado en csv: $sku<br>";
                                 }    
                             // Escribir datos del producto en el CSV
-                                $row = [
-                                    $sku, '', $pvpr,  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '   
-                                ];
+                                $row = $this->build_row($sku, $pvpr, $stock_map, count($column_names));
                             fputcsv($file, $row);           
                         }                  
                     }
@@ -215,6 +215,19 @@ class CecoPublisherToWooCommerce {
                 error_log('Archivo CSV creado correctamente en: ' . $route_file);
             
                 return ['file_path' => $route_file, 'messages' => $messages];        
+    }
+    // Fila inicial del CSV: SKU, precio y stock del feed de Cecotec. El resto lo rellena complement_csv_with_catalogs().
+    private function build_row($sku, $pvpr, $stock_map, $num_columns) {
+                $row = array_fill(0, $num_columns, ' ');
+                $row[0] = $sku;
+                $row[1] = '';
+                $row[2] = $pvpr;
+
+                $stock = CecoStockFeed::stock_for($stock_map, $sku);
+                $row[19] = $stock;                                   // Stock
+                $row[20] = ($stock > 0) ? 'instock' : 'outofstock';  // Estado stock
+                $row[21] = CecoStockFeed::ean_for($stock_map, $sku); // EAN
+                return $row;
     }
     // Segunda llamada a la API de catálogos. Complementa el CSV con los datos de los catálogos.
     private function complement_csv_with_catalogs($csv_file_path, $selected_zone) {
@@ -366,8 +379,16 @@ class CecoPublisherToWooCommerce {
                         wp_send_json_error(['message' => 'No se encontraron productos para importar en este lote.']);
                     }
 
+                    // Stock de la zona desde el feed de dropshipping de Cecotec.
+                    // Si no se puede leer se para: un CSV sin stock dejaría todos los productos agotados.
+                    $stock_map = CecoStockFeed::get_stock_map($selected_zone, true);
+                    if (is_wp_error($stock_map)) {
+                        ob_end_clean();
+                        wp_send_json_error(['message' => 'No se pudo leer el stock de Cecotec: ' . $stock_map->get_error_message()]);
+                    }
+
                     // Crear el archivo CSV con los datos recuperados
-                    $csv_file_result = $this->create_file($products_to_import, $selected_zone);
+                    $csv_file_result = $this->create_file($products_to_import, $selected_zone, $stock_map);
                     if (!$csv_file_result || empty($csv_file_result['file_path'])) {
                         ob_end_clean();
                         wp_send_json_error(['message' => 'Error al crear el archivo CSV.']);
@@ -392,7 +413,7 @@ class CecoPublisherToWooCommerce {
                     wp_send_json_success([
                         'has_more' => $has_more,
                         'next_offset' => $offset + $limit, // Enviar el próximo offset
-                        'message' => 'Lote procesado correctamente. ID del catalogo: ' . $rate_id,
+                        'message' => 'Lote procesado correctamente. ID del catalogo: ' . $rate_id . '. Stock leído de: ' . CecoStockFeed::feed_url($selected_zone),
                         'log' => $log_messages, // Incluir los mensajes en la respuesta
                         'csv_file' => $csv_file_path // Ruta del archivo CSV generado
                     ]);
@@ -502,6 +523,11 @@ class CecoPublisherToWooCommerce {
                     $product->set_name($product_data['Nombre del producto']);
                     $product->set_sku($sku);
                     $product->set_regular_price(!empty($product_data['PVPR']) ? $product_data['PVPR'] : '0');
+                    if (isset($product_data['Stock']) && is_numeric($product_data['Stock'])) {
+                        $product->set_manage_stock(true);
+                        $product->set_backorders('no');
+                        $product->set_stock_quantity((int) $product_data['Stock']);
+                    }
                     $product->set_weight(!empty($product_data['Peso']) ? $product_data['Peso'] : '');
                     $product->set_length(!empty($product_data['Largo']) ? $product_data['Largo'] : '');
                     $product->set_width(!empty($product_data['Ancho']) ? $product_data['Ancho'] : '');
