@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Importador de productos Cecotec.
  * Description: Importa y crea un CSV con los productos de Cecotec.
- * Version: 1.0.2
+ * Version: 1.1.0
  * Author: Idital
  * Author URI: https://idital.com
  * License: GPL2
@@ -17,6 +17,7 @@
  ******************************************************************************/
     
     include plugin_dir_path(__FILE__) . '/inc/ceco-api.php';
+    include plugin_dir_path(__FILE__) . '/inc/ceco-stock.php';
     
     if (is_admin()) {
         function enqueue_admin_styles() {
@@ -35,7 +36,8 @@
     
     function enqueue_import_script() {
             if (is_admin()) {
-                wp_enqueue_script('import-products', plugin_dir_url(__FILE__) . 'js/ceco-api.js', ['jquery'], null, true);
+                wp_enqueue_script('import-products', plugin_dir_url(__FILE__) . 'js/ceco-api.js', ['jquery'], '1.1.0', true);
+                wp_localize_script('import-products', 'cecoStock', ['nonce' => wp_create_nonce('ceco_sync_stock')]);
                 //wp_localize_script('import-products', 'ajaxurl', admin_url('admin-ajax.php'));
             }
         }
@@ -157,6 +159,7 @@
         if (isset($_POST['selected_zone'])) {
             $selected_zone = sanitize_text_field($_POST['selected_zone']);
             update_option('ceco_selected_zone', $selected_zone); // Guardar en la base de datos
+            delete_transient('ceco_stock_feed_cache'); // La zona cambia el feed de stock
             wp_redirect(admin_url('admin.php?page=import-cecopublisher')); // Redirigir de vuelta a la página
             exit;
         }
@@ -179,3 +182,11 @@
     }
     add_action('wp_ajax_import_products', 'ajax_import_products');
 
+
+/*******************************************************************************
+ *  Al desactivar el plugin se quita el cron de stock
+ ******************************************************************************/
+    function ceco_clear_stock_cron() {
+        wp_clear_scheduled_hook('ceco_sync_stock_event');
+    }
+    register_deactivation_hook(__FILE__, 'ceco_clear_stock_cron');

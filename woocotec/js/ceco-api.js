@@ -55,3 +55,32 @@ jQuery(document).ready(function ($) {
             }*/
     });
 });
+
+// Sincronización manual del stock con el feed de Cecotec
+jQuery(document).ready(function ($) {
+    $('#start-stock-sync').on('click', function (e) {
+        e.preventDefault();
+        var $btn = $(this);
+        $btn.prop('disabled', true);
+        $('#stock-last-sync').text('Sincronizando stock, puede tardar unos minutos...');
+
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'ceco_sync_stock',
+                nonce: (window.cecoStock && cecoStock.nonce) || ''
+            },
+            success: function (response) {
+                var msg = (response && response.data && response.data.message) || 'Respuesta inesperada.';
+                $('#stock-last-sync').text(response.success ? msg : '❌ ' + msg);
+            },
+            error: function (xhr, status, error) {
+                $('#stock-last-sync').text('❌ Error en la solicitud AJAX: ' + error);
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+});
