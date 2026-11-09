@@ -1,0 +1,27 @@
+#woocotec table.zones{
+        border-spacing: 1rem;
+        margin: 0.8rem;
+        border: 1px solid #e5e5e5;
+        box-shadow: 0 1px 2px rgba(0,0,0,.1);
+        border-radius: 3px;
+        text-align: center;
+}
+
+.flexotec {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 2.5rem 4rem;
+        margin: 1rem 0rem;
+}
+
+@media (max-width: 768px) {
+        .flexotec{
+            flex-direction: column;
+        }
+}
+@media (min-width: 768) {
+        .flexotec{
+            flex-direction: row;
+        }
+}

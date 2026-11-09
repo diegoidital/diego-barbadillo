@@ -1,0 +1,151 @@
+<?php
+/**
+ * Plugin Name: CECOTEC PUBLISHER API
+ * Description: Plugin para la integración de la API de CECOTEC PUBLISHER
+ * Version: 1.0
+ * Author: Idital
+ * Author URI: https://idital.com
+ * License: GPL2
+ * Text Domain: woocotec
+ */
+
+// Exit if accessed directly
+    if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+/*******************************************************************************
+ *  add plugin files
+ ******************************************************************************/
+    
+    include plugin_dir_path(__FILE__) . '/inc/ceco-api.php';
+
+/*******************************************************************************
+ *  enqueue js files
+ ******************************************************************************/
+    
+    function enqueue_import_script() {
+            if (is_admin()) {
+                wp_enqueue_script('import-products', plugin_dir_url(__FILE__) . 'js/ceco-api.js', ['jquery'], null, true);
+                //wp_localize_script('import-products', 'ajaxurl', admin_url('admin-ajax.php'));
+            }
+        }
+        add_action('admin_enqueue_scripts', 'enqueue_import_script');
+
+/*******************************************************************************
+ *  create admin menu
+ ******************************************************************************/
+    
+    function add_admin_menu() {
+            add_menu_page(
+                'Importar Productos CecoPublisher',
+                'Importar Productos',
+                'manage_options',
+                'import-cecopublisher',
+                'render_import_page'
+            );
+        }
+        add_action('admin_menu', 'add_admin_menu');
+    
+/*******************************************************************************
+ *  render import page
+ ******************************************************************************/
+    
+    function render_import_page() {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['ceco_email']) && isset($_POST['ceco_password'])) {
+            $email = sanitize_email($_POST['ceco_email']);
+            $password = sanitize_text_field($_POST['ceco_password']);
+
+            // Guardar las credenciales en las opciones de WordPress
+            update_option('ceco_email', $email);
+            update_option('ceco_password', $password);
+            update_option('ceco_token', ''); // Resetear el token
+
+            echo '<div class="updated"><p>Credenciales guardadas.</p></div>';
+            
+        } else {
+            // Obtener las credenciales almacenadas en las opciones de WordPress
+            $email = get_option('ceco_email', '');
+            $password = get_option('ceco_password', '');
+        }
+
+        require plugin_dir_path(__FILE__) . 'view.php';
+    }
+
+/*******************************************************************************
+ *  register settings
+ ******************************************************************************/
+    
+    /*function ceco_register_settings() {
+        register_setting('ceco_settings_group', 'ceco_email');
+        register_setting('ceco_settings_group', 'ceco_password');
+        //register_setting('ceco_settings_group', 'ceco_token');
+    }
+    add_action('admin_init', 'ceco_register_settings');*/
+
+function handle_save_credentials() {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ceco_email']) && isset($_POST['ceco_password'])) {
+        // Guardar las credenciales en la base de datos
+        $email = sanitize_email($_POST['ceco_email']);
+        $password = sanitize_text_field($_POST['ceco_password']);
+        update_option('ceco_email', $email);
+        update_option('ceco_password', $password);
+
+        // Instanciar la clase y generar el token
+        $ceco = new CecoPublisherToWooCommerce();
+        $ceco->login(); // Generar y guardar el token
+
+        // Redirigir al usuario de vuelta a la página de configuración
+        wp_redirect(admin_url('admin.php?page=import-cecopublisher'));
+        exit;
+    }
+}
+add_action('admin_post_save_credentials', 'handle_save_credentials');
+
+
+
+
+/*******************************************************************************
+ *  save selected zone
+ ******************************************************************************/
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['country'])) {
+        $selected_zone = sanitize_text_field($_POST['country']);
+        update_option('ceco_selected_zone', $selected_zone);
+    }
+
+/*******************************************************************************
+ *  register cron event
+ ******************************************************************************/
+    
+    function ceco_register_cron_event() {
+        if (!wp_next_scheduled('ceco_import_products_event')) {
+            wp_schedule_event(time(), 'daily', 'ceco_import_products_event');
+        }
+    }
+    add_action('wp', 'ceco_register_cron_event');       
+
+/*******************************************************************************
+ *  excepciones de borrado de productos
+ ******************************************************************************/
+
+function handle_save_import_settings() {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['excluded_categories'])) {
+        // Sanitizar y guardar las categorías seleccionadas
+        $excluded_categories = array_map('sanitize_text_field', $_POST['excluded_categories']);
+        update_option('ceco_excluded_categories', $excluded_categories);
+
+        // Redirigir al usuario de vuelta a la página de configuración
+        wp_redirect(admin_url('admin.php?page=import-cecopublisher&settings_saved=true'));
+        exit;
+    }
+}
+add_action('admin_post_save_import_settings', 'handle_save_import_settings');
+
+
+
+
+
+    /*******************************************************************************
+ *  import products
+ ******************************************************************************/
+ 
+    add_action('ceco_import_products_event', [new CecoPublisherToWooCommerce(), 'import_products']);
