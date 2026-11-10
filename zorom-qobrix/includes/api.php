@@ -497,7 +497,7 @@ function zq_is_api_url( $url ) {
  * lleva las credenciales, pero la redirección al almacenamiento de ficheros no (para no
  * enviar la clave a otro servidor).
  */
-function zq_sideload( $url, $post_id, $title, $auth = false ) {
+function zq_sideload( $url, $post_id, $title, $auth = false, $pdf = false ) {
 	require_once ABSPATH . 'wp-admin/includes/file.php';
 	require_once ABSPATH . 'wp-admin/includes/media.php';
 	require_once ABSPATH . 'wp-admin/includes/image.php';
@@ -531,6 +531,10 @@ function zq_sideload( $url, $post_id, $title, $auth = false ) {
 
 	$mime = wp_get_image_mime( $tmp );
 	$ext  = array( 'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif' );
+	if ( $pdf && ! isset( $ext[ $mime ] ) && '%PDF' === (string) file_get_contents( $tmp, false, null, 0, 4 ) ) { // phpcs:ignore
+		$mime = 'application/pdf';
+		$ext[ $mime ] = 'pdf';
+	}
 	if ( ! isset( $ext[ $mime ] ) ) {
 		$GLOBALS['zq_last_dl'] = ( isset( $GLOBALS['zq_last_dl'] ) ? $GLOBALS['zq_last_dl'] : '' ) . ' (no es imagen)';
 		wp_delete_file( $tmp );
@@ -569,25 +573,32 @@ function zq_sync_planos_folleto( $post_id, array $items, $name ) {
 		if ( empty( $m['id'] ) ) {
 			continue;
 		}
-		$kind = zq_media_kind( $m );
-		$href = isset( $m['file']['href'] ) && is_string( $m['file']['href'] ) ? $m['file']['href'] : '';
-		if ( ! $folleto && $href && preg_match( '/pdf|brochure|folleto|document/', $kind ) ) {
-			$folleto = preg_match( '#^https?://#', $href ) ? $href : $base . '/' . ltrim( $href, '/' );
-			continue;
-		}
-		if ( count( $planos ) < 6 && preg_match( '/floor|plan|plano/', $kind ) && false !== strpos( $kind, 'image' ) ) {
-			$mid = (string) $m['id'];
-			$att = isset( $known[ $mid ] ) && get_post( $known[ $mid ] ) ? (int) $known[ $mid ] : 0;
-			foreach ( $att || zq_out_of_time() ? array() : zq_media_candidates( $m ) as $url ) {
-				$att = zq_sideload( $url, $post_id, $name . ' plano', zq_is_api_url( $url ) );
-				if ( $att ) {
-					break;
+		$kind   = zq_media_kind( $m );
+		$href   = isset( $m['file']['href'] ) && is_string( $m['file']['href'] ) ? $m['file']['href'] : '';
+		$fname  = isset( $m['file']['name'] ) && is_string( $m['file']['name'] ) ? $m['file']['name'] : ( isset( $m['title'] ) && is_string( $m['title'] ) ? $m['title'] : '' );
+		$es_pdf = false !== strpos( $kind, 'pdf' ) || preg_match( '/\.pdf$/i', $fname . ' ' . $href );
+		// Planos: categoría Siteplans / Floor plans (imagen o PDF).
+		if ( count( $planos ) < 30 && preg_match( '/site ?plan|floor|plan|plano/', $kind ) ) {
+			$mid   = (string) $m['id'];
+			$att   = isset( $known[ $mid ] ) && get_post( $known[ $mid ] ) ? (int) $known[ $mid ] : 0;
+			$titul = $fname ? preg_replace( '/\.[a-z0-9]+$/i', '', $fname ) : $name . ' plano';
+			if ( ! $att && ! zq_out_of_time() ) {
+				$urls = $es_pdf ? array( preg_match( '#^https?://#', $href ) ? $href : $base . '/' . ltrim( $href, '/' ) ) : zq_media_candidates( $m );
+				foreach ( $urls as $url ) {
+					$att = zq_sideload( $url, $post_id, $titul, zq_is_api_url( $url ), $es_pdf );
+					if ( $att ) {
+						break;
+					}
 				}
 			}
 			if ( $att ) {
 				$map[ $mid ] = $att;
 				$planos[]    = $att;
 			}
+			continue;
+		}
+		if ( ! $folleto && $href && preg_match( '/pdf|brochure|folleto|document/', $kind ) ) {
+			$folleto = preg_match( '#^https?://#', $href ) ? $href : $base . '/' . ltrim( $href, '/' );
 		}
 	}
 	update_post_meta( $post_id, '_zq_planos_map', $map + $known );
