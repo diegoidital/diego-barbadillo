@@ -388,7 +388,7 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 	$a = shortcode_atts( array(
 		'proyecto' => '',
 		// campo:Etiqueta:formato. Varios nombres posibles separados por «|» (se usa el primero con dato).
-		'columnas' => 'ref:Referencia,floor_number|floor|floor_level|level:Piso,bedrooms:Dormitorios,bathrooms:Baños,plot_area_amount|land_area_amount:Área parcela:m2,internal_area_amount|living_area_amount|covered_area_amount|net_area_amount:Área interna:m2,list_selling_price_amount|selling_price_amount:Precio:precio,status:Estado:estado',
+		'columnas' => 'ref:Referencia,bedrooms:Dorm. · Baños:dormbanos,internal_area_amount|living_area_amount|net_area_amount:Sup. interior:m2,uncovered_veranda_amount|uncovered_verandas_amount|uncovered_terrace_amount|open_terrace_amount|uncovered_area_amount:Terraza descubierta:m2,covered_veranda_amount|covered_verandas_amount|covered_terrace_amount|veranda_area_amount|terrace_area_amount:Terraza cubierta:m2,total_area_amount|built_area_amount|gross_area_amount|covered_area_amount:Sup. total:m2,list_selling_price_amount|selling_price_amount|price_amount:Precio:precio,_plano:Plano:plano',
 		'ocultar'  => 'withdrawn',
 		'vacio'    => '',
 		'reservadas' => 'Ver propiedades reservadas',
@@ -460,9 +460,19 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 						break;
 					}
 				}
+				$clase = '';
 				switch ( $c[2] ) {
 					case 'precio':
-						$v = is_numeric( $v ) ? number_format( (float) $v, 0, ',', '.' ) . ' €' : $v;
+						// Reservadas y vendidas: el estado en lugar del precio.
+						if ( preg_match( '/sold|vendid/', $status ) ) {
+							$v     = 'Vendido';
+							$clase = 'zq-precio-estado zq-precio-estado--vendido';
+						} elseif ( preg_match( '/reserv|offer|hold|option|pending/', $status ) ) {
+							$v     = 'Reservado';
+							$clase = 'zq-precio-estado';
+						} else {
+							$v = is_numeric( $v ) ? number_format( (float) $v, 0, ',', '.' ) . ' €' : $v;
+						}
 						break;
 					case 'm2':
 						$v = is_numeric( $v ) ? number_format( (float) $v, 0, ',', '.' ) . ' m²' : $v;
@@ -470,11 +480,25 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 					case 'estado':
 						$v = zq_humanize( $status );
 						break;
+					case 'dormbanos':
+						$d   = isset( $u['bedrooms'] ) && '' !== (string) $u['bedrooms'] ? (string) $u['bedrooms'] : '—';
+						$b   = isset( $u['bathrooms'] ) && '' !== (string) $u['bathrooms'] ? (string) $u['bathrooms'] : '—';
+						$txt = '<span class="zq-dormbanos"><span title="Dormitorios">' . zq_viv_icono( 'cama' ) . esc_html( $d ) . '</span><span title="Baños">' . zq_viv_icono( 'bano' ) . esc_html( $b ) . '</span></span>';
+						break;
+					case 'plano':
+						$pl  = ! empty( $u['_post'] ) ? array_values( array_filter( (array) get_post_meta( (int) $u['_post'], '_zq_planos', true ) ) ) : array();
+						$pu  = $pl ? wp_get_attachment_image_url( (int) $pl[0], 'full' ) : '';
+						$txt = $pu ? '<a class="zq-ver-plano" href="' . esc_url( $pu ) . '" target="_blank" rel="noopener">' . zq_viv_icono( 'plano' ) . 'Ver plano</a>' : '<span class="zq-vacio">—</span>';
+						break;
 					default:
 						$v = zq_humanize( $v );
 				}
-				$txt   = esc_html( (string) $v );
-				$txt   = ( 0 === $i && $url ) ? '<a href="' . esc_url( $url ) . '">' . $txt . '</a>' : $txt;
+				if ( ! in_array( $c[2], array( 'dormbanos', 'plano' ), true ) ) {
+					$v   = '' === (string) $v ? '—' : $v;
+					$txt = esc_html( (string) $v );
+					$txt = ( 0 === $i && $url ) ? '<a href="' . esc_url( $url ) . '">' . $txt . '</a>' : $txt;
+					$txt = $clase ? '<b class="' . esc_attr( $clase ) . '">' . $txt . '</b>' : $txt;
+				}
 				$html .= '<td data-label="' . esc_attr( $c[1] ) . '"><span>' . $txt . '</span></td>';
 			}
 			if ( $ver ) {

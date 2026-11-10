@@ -342,14 +342,14 @@ body:has(.zq-f) {
 
 /* Columnas centradas sobre las posiciones del Figma. */
 /* Anchos en % para que la tabla ocupe siempre el 100 % sin cortarse (portátil incluido). */
-.zq-f .zq-propiedades th:nth-child(1) { width: 11%; }
-.zq-f .zq-propiedades th:nth-child(2) { width: 8%; }
-.zq-f .zq-propiedades th:nth-child(3) { width: 11%; }
-.zq-f .zq-propiedades th:nth-child(4) { width: 8%; }
-.zq-f .zq-propiedades th:nth-child(5) { width: 12%; }
-.zq-f .zq-propiedades th:nth-child(6) { width: 12%; }
+.zq-f .zq-propiedades th:nth-child(1) { width: 9%; }
+.zq-f .zq-propiedades th:nth-child(2) { width: 13%; }
+.zq-f .zq-propiedades th:nth-child(3) { width: 10%; }
+.zq-f .zq-propiedades th:nth-child(4) { width: 11%; }
+.zq-f .zq-propiedades th:nth-child(5) { width: 11%; }
+.zq-f .zq-propiedades th:nth-child(6) { width: 10%; }
 .zq-f .zq-propiedades th:nth-child(7) { width: 12%; }
-.zq-f .zq-propiedades th:nth-child(8) { width: 12%; }
+.zq-f .zq-propiedades th:nth-child(8) { width: 10%; }
 .zq-f .zq-propiedades th.zq-col-ver { width: 14%; }
 
 .zq-f .zq-propiedades th {
@@ -1635,4 +1635,67 @@ body > .elementor-location-footer,
 body > footer,
 body > #colophon {
 	margin-top: auto;
+}
+
+/* Tabla de propiedades: dormitorios/baños con iconos, plano y estado en la columna del precio. */
+.zq-propiedades th {
+	line-height: 1.15;
+}
+
+.zq-dormbanos {
+	display: inline-flex;
+	align-items: center;
+	gap: 18px;
+}
+
+.zq-dormbanos > span {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+}
+
+.zq-propiedades .zq-v-ico {
+	width: 24px;
+	height: 24px;
+	color: #000;
+}
+
+.zq-propiedades .zq-ver-plano {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: #000 !important;
+	font-size: 15px;
+	font-weight: 500;
+	text-decoration: underline !important;
+	text-underline-offset: 3px;
+}
+
+.zq-propiedades .zq-ver-plano .zq-v-ico {
+	width: 20px;
+	height: 20px;
+}
+
+.zq-propiedades .zq-vacio {
+	color: #b3b3b3;
+	font-weight: 500;
+}
+
+.zq-propiedades .zq-precio-estado {
+	font-weight: inherit;
+}
+
+.zq-f .zq-propiedades .zq-estado-sold td:last-child span {
+	color: inherit;
+	text-decoration: none;
+}
+
+.zq-propiedades .zq-precio-estado--vendido {
+	color: var(--zq-rojo, #c00);
+	text-decoration: line-through;
+}
+
+.zq-propiedades--vendidas .zq-dormbanos .zq-v-ico,
+.zq-propiedades--vendidas .zq-ver-plano {
+	opacity: .6;
 }
