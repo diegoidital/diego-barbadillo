@@ -365,7 +365,11 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 										<?php if ( wp_attachment_is_image( $id ) ) : ?>
 											<a href="<?php echo esc_url( wp_get_attachment_image_url( $id, 'full' ) ); ?>" data-zq-lb="<?php echo esc_attr( $lb ); ?>-planos"><?php echo wp_get_attachment_image( $id, 'large', false, array( 'loading' => 'lazy' ) ); ?></a>
 										<?php else : ?>
-											<a class="zq-v-plano-pdf" href="<?php echo esc_url( wp_get_attachment_url( $id ) ); ?>" target="_blank" rel="noopener"><?php echo zq_viv_icono( 'plano' ); // phpcs:ignore ?><span><?php $pt = zq_plano_titulo( $id, $post_id ); echo esc_html( 'Plano' === $pt ? 'Plano ' . ( array_search( $id, $planos, true ) + 1 ) : $pt ); ?></span><small>PDF</small></a>
+											<a class="zq-v-plano-pdf" href="<?php echo esc_url( wp_get_attachment_url( $id ) ); ?>" target="_blank" rel="noopener"><?php echo zq_viv_icono( 'plano' ); // phpcs:ignore ?><span><?php
+											$pt = zq_plano_titulo( $id, $post_id );
+											$pt = 'Plano' === $pt ? 'Plano ' . ( array_search( $id, $planos, true ) + 1 ) : $pt;
+											echo esc_html( preg_match( '/^planta\b/i', $pt ) ? 'La ' . lcfirst( $pt ) : $pt ); // «La planta baja»
+											?></span></a>
 										<?php endif; ?>
 									<?php endforeach; ?>
 								</div>
