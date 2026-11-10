@@ -90,4 +90,4 @@ Los nombres de los campos se pueden cambiar en Ajustes y en las opciones de los 
 - Medidas, tipografías (Geist e Inter), iconos y bloques negros salen del Figma (lienzo de 1440 px).
 - Localización: los seis elementos son fijos (aeropuerto, playa, centro, hospital, escuela, tiendas);
   el número sale de Qobrix (`distance_from_*_amount`) o del campo manual de la promoción.
-- Formulario: Qobrix → Ajustes → «Formulario de contacto» (incluye la plantilla de Contact Form 7).
+- Formulario: Qobrix → Ajustes → «Formulario (Elementor)». Por defecto, el global «Form_contacto».
