@@ -173,7 +173,16 @@
                 </td>
             </tr>
             <tr valign="top">
-                <th scope="row">Imágenes</th>
+                <th scope="row">Origen de las imágenes</th>
+                <td>
+                    <?php $ceco_image_source = CecoCatalogFeed::image_source(); ?>
+                    <label><input type="radio" name="ceco_image_source" value="feed" <?php checked($ceco_image_source, 'feed'); ?>> Feed de Cecotec (media.cecotec.cloud): hasta 3 fotos de 2048 px (~0,5 MB). <strong>Recomendado</strong></label><br>
+                    <label><input type="radio" name="ceco_image_source" value="plytix" <?php checked($ceco_image_source, 'plytix'); ?>> Plytix: más fotos, pero originales de 4.600-5.100 px y 7-10 MB (~35 s por foto al importar)</label>
+                    <p class="description">Si el producto no tiene fotos en el origen elegido, se usan las del otro.</p>
+                </td>
+            </tr>
+            <tr valign="top">
+                <th scope="row">Fotos de Plytix</th>
                 <td>
                     <label><input type="radio" name="ceco_catalog_gallery_mode" value="master_gallery" <?php checked($ceco_gallery_mode, 'master_gallery'); ?>> Fotos máster (fondo blanco) + fotos «Gallery 1:1» (producto en uso)</label><br>
                     <label><input type="radio" name="ceco_catalog_gallery_mode" value="master" <?php checked($ceco_gallery_mode, 'master'); ?>> Solo fotos máster (fondo blanco)</label>
