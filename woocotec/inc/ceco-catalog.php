@@ -265,8 +265,9 @@ class CecoCatalogFeed {
                     continue 2;
                 }
             }
-            // Algunas URLs de Plytix llevan espacios ("..._1 copia.jpg"): WP All Import no las descarga bien.
-            $urls[] = str_replace( ' ', '%20', $value );
+            // Algunas URLs de Plytix llevan espacios ("..._1 copia.jpg") o comas ("..._14,8_V_...png").
+            // Se codifican: WP All Import separa las imágenes por comas y no descarga bien los espacios.
+            $urls[] = str_replace( [ ' ', ',' ], [ '%20', '%2C' ], $value );
         }
         return array_values( array_unique( $urls ) );
     }
