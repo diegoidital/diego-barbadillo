@@ -365,7 +365,7 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 										<?php if ( wp_attachment_is_image( $id ) ) : ?>
 											<a href="<?php echo esc_url( wp_get_attachment_image_url( $id, 'full' ) ); ?>" data-zq-lb="<?php echo esc_attr( $lb ); ?>-planos"><?php echo wp_get_attachment_image( $id, 'large', false, array( 'loading' => 'lazy' ) ); ?></a>
 										<?php else : ?>
-											<a class="zq-v-plano-pdf" href="<?php echo esc_url( wp_get_attachment_url( $id ) ); ?>" target="_blank" rel="noopener"><?php echo zq_viv_icono( 'plano' ); // phpcs:ignore ?><span><?php echo esc_html( zq_plano_titulo( $id, $post_id ) ); ?></span><small>PDF</small></a>
+											<a class="zq-v-plano-pdf" href="<?php echo esc_url( wp_get_attachment_url( $id ) ); ?>" target="_blank" rel="noopener"><?php echo zq_viv_icono( 'plano' ); // phpcs:ignore ?><span><?php $pt = zq_plano_titulo( $id, $post_id ); echo esc_html( 'Plano' === $pt ? 'Plano ' . ( array_search( $id, $planos, true ) + 1 ) : $pt ); ?></span><small>PDF</small></a>
 										<?php endif; ?>
 									<?php endforeach; ?>
 								</div>
@@ -437,7 +437,9 @@ function zq_viv_portada( $post_id, $n = 0 ) {
 function zq_planos_de_unidad( $post_id ) {
 	$validos = function ( $ids ) {
 		return array_values( array_filter( array_map( 'intval', (array) $ids ), function ( $id ) {
-			return $id && wp_get_attachment_url( $id );
+			// Fuera documentos largos (la «Memoria» de calidades): un plano es un PDF de 1-3 páginas.
+			return $id && wp_get_attachment_url( $id ) && zq_pdf_paginas( $id ) <= 3
+				&& ! preg_match( '/memoria/i', (string) get_post_meta( $id, '_zq_nombre_original', true ) );
 		} ) );
 	};
 	$propios = $validos( get_post_meta( $post_id, '_zq_planos', true ) );
@@ -470,6 +472,25 @@ function zq_planos_de_unidad( $post_id ) {
 		}
 		return false;
 	} ) ) );
+}
+
+/** Páginas de un PDF adjunto (0 si no es PDF). Se calcula una vez y se guarda. */
+function zq_pdf_paginas( $id ) {
+	$n = get_post_meta( $id, '_zq_paginas', true );
+	if ( '' !== $n ) {
+		return (int) $n;
+	}
+	$n    = 0;
+	$file = get_attached_file( $id );
+	if ( $file && 'application/pdf' === get_post_mime_type( $id ) && is_readable( $file ) ) {
+		$pdf = (string) file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		$n   = preg_match_all( '#/Type\s*/Page[^s]#', $pdf );
+		if ( ! $n && preg_match_all( '#/Count\s+(\d+)#', $pdf, $m ) ) {
+			$n = max( array_map( 'intval', $m[1] ) );
+		}
+	}
+	update_post_meta( $id, '_zq_paginas', (int) $n );
+	return (int) $n;
 }
 
 /** Nombre legible de un plano a partir del archivo de Qobrix: «Planta baja», «Planta sótano», «Superficies»… */
