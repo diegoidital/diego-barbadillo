@@ -65,19 +65,27 @@ En la importación «Productos Cecotec»:
 
 - [ ] **Coincidencia de productos:** por SKU (`{sku[1]}`).
 - [ ] **Precio:** precio normal = `{pvpr[1]}`, con el margen de la Fase 0 si se aplica.
-- [ ] **Inventario:**
-  - Manage stock = Yes;
-  - Stock qty = `{stock[1]}`;
-  - Backorders = No.
-- [ ] **Imágenes:**
-  - imagen destacada `{imagendestacada[1]}` y galería `{galera[1]}` con separador `|`;
-  - activar «Search through the Media Library for existing images»;
-  - en productos existentes, «Update images» solo si se decidió sustituir las fotos.
+- [ ] **Inventario** (pestaña «inventario» de los datos del producto):
+  - «Manejo de valores?» (gestionar inventario) = **Sí**. Al marcarlo aparece el campo «Cantidad de stock»: poner `{stock[1]}`;
+  - «El estado de la existencia» = **Automáticamente** (WooCommerce lo calcula a partir de la cantidad);
+  - «Permitir pedidos pendientes?» = **No permitir**.
+- [ ] **Imágenes** («Descargar imágenes alojadas en otros lugares»). Elegir una de las dos opciones:
+  - mantener la configuración actual (separador `,` y `{imagendestacada[1]},{img1[1]},{img2[1]},{img3[1]},{img4[1]}`): hasta 5 fotos por producto;
+  - o poner el separador `|` y `{imagendestacada[1]}|{galera[1]}`: todas las fotos (hasta 20).
+
+  En ambos casos:
+  - dejar marcado «Buscar en la Biblioteca de Medios… / Coincidir por nombre de archivo» (en Plytix no hay dos fotos distintas con el mismo nombre);
+  - dejar marcado «Establecer la primera imagen como la Imagen Destacada»;
+  - en «Opciones de importación › actualizar», marcar las imágenes solo si se decidió sustituir las fotos antiguas.
 - [ ] **Categorías:**
   - activar «Enable mapping for categories» y asignar las de Plytix a las actuales;
   - o no actualizar categorías en los productos existentes.
 - [ ] **EAN:** campo personalizado `_global_unique_id` = `{ean[1]}` (GTIN de WooCommerce).
-- [ ] **Marca:** taxonomía `product_brand` = `{marca[1]}`.
+- [ ] **Marca:** en el bloque «Taxonomías, Categorías, Etiquetas» (debajo de «Imágenes»):
+  - marcar **Marcas** (taxonomía de WooCommerce `product_brand`);
+  - elegir «Cada producto tiene solo una» y poner `{marca[1]}`.
+
+  Valores: CECOTEC, EVVO, CECOLCHON. Si «Marcas» no aparece en la lista, activar las marcas de WooCommerce (WooCommerce 9.6 o superior) o usar un atributo «Marca» en «Atributos».
 - [ ] **Slug:** no actualizar el slug de los productos existentes, por SEO.
 - [ ] **Identificador único** (paso 4, «Record Matching»): comprobar que es `{sku[1]}`. Si se construye con el nombre (`{nombredelproducto[1]}`), cambiarlo a SKU **antes** de ejecutar: los nombres de Plytix pueden cambiar y se crearían duplicados.
 - [ ] **Productos que no están en el fichero:** la importación actual los pasa a **borrador** (aviso «serán marcados como draft»).

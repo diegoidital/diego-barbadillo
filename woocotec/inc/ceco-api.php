@@ -311,6 +311,7 @@ class CecoPublisherToWooCommerce {
             if (empty($images) && $feed) {
                 // Sin fotos en Plytix: se usan las del feed de España (si las hay).
                 $images = array_values(array_filter([$feed['imagen'] ?? '', $feed['imagen2'] ?? '', $feed['imagen3'] ?? '']));
+                $images = str_replace([' ', ','], ['%20', '%2C'], $images);
             }
 
             $row = [
