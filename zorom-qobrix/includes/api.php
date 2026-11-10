@@ -585,13 +585,28 @@ function zq_media_nombre( array $m ) {
 			}
 		}
 	}
-	foreach ( array( isset( $m['file']['href'] ) ? $m['file']['href'] : '', isset( $m['file']['path'] ) ? $m['file']['path'] : '' ) as $u ) {
-		$b = is_string( $u ) ? rawurldecode( basename( (string) wp_parse_url( $u, PHP_URL_PATH ) ) ) : '';
-		if ( $b && preg_match( '/\.[a-z0-9]{2,4}$/i', $b ) ) {
-			return $b;
+	// Cualquier texto del medio que sea un nombre de archivo («… 13b.pdf»), esté donde esté.
+	$hallado = '';
+	$walk    = function ( $v, $depth ) use ( &$walk, &$hallado ) {
+		if ( $hallado || $depth > 4 ) {
+			return;
 		}
-	}
-	return '';
+		if ( is_array( $v ) ) {
+			foreach ( $v as $vv ) {
+				$walk( $vv, $depth + 1 );
+			}
+			return;
+		}
+		if ( ! is_string( $v ) ) {
+			return;
+		}
+		$b = rawurldecode( basename( (string) ( preg_match( '#^https?://|^/#', $v ) ? wp_parse_url( $v, PHP_URL_PATH ) : $v ) ) );
+		if ( preg_match( '/\.(pdf|jpe?g|png|webp|gif|dwg)$/i', $b ) && preg_match( '/[a-z]{3}/i', preg_replace( '/\.[a-z]+$/i', '', $b ) ) && ! preg_match( '/^[a-f0-9\-]{20,}\./i', $b ) ) {
+			$hallado = $b;
+		}
+	};
+	$walk( $m, 0 );
+	return $hallado;
 }
 
 /** Categoría del medio en Qobrix, normalizada: «siteplans», «floorplans», «brochure», «flyers», «photos»… */
@@ -671,7 +686,9 @@ function zq_sync_planos_folleto( $post_id, array $items, $name, $model = 'Projec
 		if ( 'plano' === $tipo && preg_match( '/memoria/', $kind ) ) {
 			$tipo = 'otro';
 		}
-		$diag[] = ( $fname ? $fname : $mid_txt ) . ' → ' . $tipo . ' [categoría: ' . zq_media_categoria( $m ) . ']';
+		$crudo  = $m;
+		unset( $crudo['file']['thumbnails'] );
+		$diag[] = ( $fname ? $fname : $mid_txt ) . ' → ' . $tipo . ' [categoría: ' . zq_media_categoria( $m ) . ']' . ( 'foto' !== $tipo ? '  ' . mb_substr( wp_json_encode( $crudo, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ), 0, 700 ) : '' );
 		if ( count( $planos ) < 30 && 'plano' === $tipo ) {
 			$mid   = (string) $m['id'];
 			$att   = isset( $known[ $mid ] ) && get_post( $known[ $mid ] ) ? (int) $known[ $mid ] : 0;
