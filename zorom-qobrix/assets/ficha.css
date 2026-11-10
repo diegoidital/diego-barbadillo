@@ -1759,3 +1759,28 @@ body > #colophon {
 	flex-direction: column;
 	gap: 12px;
 }
+
+/* Tarjetas de planos: compactas, una debajo de otra. */
+.zq-v-planos__grid {
+	align-items: flex-start;
+}
+
+.zq-v .zq-v-plano-pdf {
+	width: 230px;
+	max-width: 100%;
+	box-sizing: border-box;
+	gap: 14px;
+	padding: 18px 20px;
+	border-radius: 12px;
+	background: #fff;
+}
+
+.zq-v .zq-v-plano-pdf .zq-v-ico {
+	width: 24px;
+	height: 24px;
+}
+
+.zq-v .zq-v-plano-pdf span {
+	font-size: 15px;
+	font-weight: 500;
+}
