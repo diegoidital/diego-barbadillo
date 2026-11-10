@@ -124,26 +124,15 @@ function zq_settings_page() {
 							<option value="<?php echo (int) $t->ID; ?>" <?php selected( (int) $o['form_tpl'], $t->ID ); ?>><?php echo esc_html( $t->post_title . ' (#' . $t->ID . ')' ); ?></option>
 						<?php endforeach; ?>
 					</select>
-					<p class="description">Global o plantilla de Elementor con el formulario de la sección «Contacta». Actual: <?php echo zq_form_template_id() ? esc_html( get_the_title( zq_form_template_id() ) ) : 'ninguno encontrado'; ?>.</p></td></tr>
+					<p class="description">Formulario de Elementor (global o plantilla guardada) que se muestra en la sección «Contacta» de las promociones y de cada inmueble. Actual: <?php echo zq_form_template_id() ? esc_html( get_the_title( zq_form_template_id() ) ) : 'ninguno encontrado'; ?>.</p></td></tr>
 				<tr><th><label for="zq-escala">Escala del diseño</label></th>
 					<td><input id="zq-escala" class="small-text" type="number" min="50" max="150" name="<?php echo esc_attr( $name ); ?>[escala]" value="<?php echo (int) $o['escala']; ?>"> %
 						<p class="description">100 % = medidas exactas del Figma (lienzo de 1440 px). Bájalo para reducir toda la página de promoción en proporción.</p></td></tr>
 				<tr><th><label for="zq-menu">Menú sobre la portada</label></th>
 					<td><input id="zq-menu" class="small-text" type="number" min="0" max="300" name="<?php echo esc_attr( $name ); ?>[menu_height]" value="<?php echo (int) $o['menu_height']; ?>"> px de alto del menú (la portada sube esa medida para quedar debajo)<br>
 					<label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[menu_transparente]" value="1" <?php checked( $o['menu_transparente'] ); ?>> Fondo del menú transparente en las páginas de promoción</label></td></tr>
-				<tr><th><label for="zq-form">Formulario de contacto (shortcode)</label></th>
-					<td><input id="zq-form" class="regular-text code" type="text" name="<?php echo esc_attr( $name ); ?>[form_shortcode]" value="<?php echo esc_attr( $o['form_shortcode'] ); ?>" placeholder='[contact-form-7 id="123"]'>
-						<p class="description">Shortcode del formulario que se muestra en la sección «Contacta» de cada promoción (Contact Form 7, Elementor Pro…). Se le aplica el estilo del diseño.</p>
-						<details><summary>Formulario de Contact Form 7 con la maqueta del diseño (copiar en el formulario)</summary>
-<pre style="white-space:pre-wrap;background:#f6f7f7;padding:10px">&lt;div class="zq-campos"&gt;
-[text* nombre placeholder "Nombre *"]
-[text* apellidos placeholder "Apellidos *"]
-[email* email placeholder "Email *"]
-[tel telefono placeholder "Teléfono"]
-&lt;div class="zq-campo--ancho"&gt;[textarea mensaje placeholder "Mensaje"]&lt;/div&gt;
-&lt;/div&gt;
-[hidden promocion default:get]
-[submit "Enviar"]</pre></details></td></tr>
+				<?php // El formulario sale del global de Elementor (arriba). El shortcode antiguo se conserva oculto. ?>
+				<input type="hidden" name="<?php echo esc_attr( $name ); ?>[form_shortcode]" value="<?php echo esc_attr( $o['form_shortcode'] ); ?>">
 				<tr><th>Tipografías</th>
 					<td><label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[load_fonts]" value="1" <?php checked( $o['load_fonts'] ); ?>> Cargar Geist e Inter (Google Fonts) en las páginas de promoción</label>
 						<p class="description">Desmárcalo si el tema ya las carga.</p></td></tr>
