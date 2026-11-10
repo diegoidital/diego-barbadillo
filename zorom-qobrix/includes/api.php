@@ -388,7 +388,7 @@ function zq_sync_gallery( $post_id, $qobrix_id, $name, $model = 'Projects' ) {
 		return $res->get_error_message();
 	}
 	$items = isset( $res['data'] ) ? (array) $res['data'] : array();
-	zq_sync_planos_folleto( $post_id, $items, $name );
+	zq_sync_planos_folleto( $post_id, $items, $name, $model );
 
 	// Solo fotos: fuera documentos, folletos, planos y vídeos.
 	$items = array_values( array_filter( $items, function ( $m ) {
@@ -399,7 +399,7 @@ function zq_sync_gallery( $post_id, $qobrix_id, $name, $model = 'Projects' ) {
 			return false;
 		}
 		$type = isset( $m['media_type'] ) && is_string( $m['media_type'] ) ? $m['media_type'] : '';
-		return ! preg_match( '/document|brochure|pdf|floor|plan|video/', strtolower( $type . ' ' . $cat ) ) && ! zq_media_es_plano( zq_media_kind( $m ) );
+		return ! preg_match( '/document|brochure|pdf|floor|plan|video/', strtolower( $type . ' ' . $cat ) ) && 'foto' === zq_media_tipo( $m, 'Properties' ) && 'foto' === zq_media_tipo( $m, 'Projects' );
 	} ) );
 	usort( $items, function ( $a, $b ) {
 		return (int) ( isset( $a['display_order'] ) ? $a['display_order'] : 0 ) - (int) ( isset( $b['display_order'] ) ? $b['display_order'] : 0 );
@@ -575,6 +575,52 @@ function zq_media_kind( array $m ) {
 	return strtolower( remove_accents( implode( ' ', $txt ) ) );
 }
 
+/** Categoría del medio en Qobrix, normalizada: «siteplans», «floorplans», «brochure», «flyers», «photos»… */
+function zq_media_categoria( array $m ) {
+	$txt = array();
+	foreach ( $m as $k => $v ) {
+		if ( false === stripos( (string) $k, 'categor' ) ) {
+			continue;
+		}
+		if ( is_array( $v ) ) {
+			foreach ( array( 'name', 'key', 'slug', 'label', 'title', 'value' ) as $kk ) {
+				if ( isset( $v[ $kk ] ) && is_string( $v[ $kk ] ) ) {
+					$txt[] = $v[ $kk ];
+					break;
+				}
+			}
+		} elseif ( is_string( $v ) ) {
+			$txt[] = $v;
+		}
+	}
+	return preg_replace( '/[^a-z]/', '', strtolower( implode( '', $txt ) ) );
+}
+
+/**
+ * Qué es cada medio según su categoría en Qobrix, sin mezclar:
+ *   Promoción → planos «Siteplans», folleto «Brochure».
+ *   Inmueble  → planos «Floor Plans», folleto «Flyers».
+ */
+function zq_media_tipo( array $m, $model ) {
+	$cat = zq_media_categoria( $m );
+	if ( 'Properties' === $model ) {
+		if ( false !== strpos( $cat, 'floorplan' ) ) {
+			return 'plano';
+		}
+		if ( false !== strpos( $cat, 'flyer' ) ) {
+			return 'folleto';
+		}
+	} else {
+		if ( false !== strpos( $cat, 'siteplan' ) ) {
+			return 'plano';
+		}
+		if ( false !== strpos( $cat, 'brochure' ) ) {
+			return 'folleto';
+		}
+	}
+	return '' === $cat || false !== strpos( $cat, 'photo' ) ? 'foto' : 'otro';
+}
+
 /** ¿Es un plano? (categoría Siteplans / Floor plans, o el archivo se llama «plano…», «planta…»). */
 function zq_media_es_plano( $kind ) {
 	return (bool) preg_match( '/site ?plans?|floor ?plans?|\\bplan(o|os|s)?\\b|\\bplanta|\\bsotano|\\bblueprint/', $kind );
@@ -584,7 +630,7 @@ function zq_media_es_plano( $kind ) {
  * Planos (imágenes de categoría plano) y folleto (PDF) del proyecto o inmueble.
  * Planos: se descargan (máx. 6) a «_zq_planos». Folleto: se guarda su URL en «_zq_folleto».
  */
-function zq_sync_planos_folleto( $post_id, array $items, $name ) {
+function zq_sync_planos_folleto( $post_id, array $items, $name, $model = 'Projects' ) {
 	$base   = rtrim( zq_options()['api_url'], '/' );
 	$known  = (array) get_post_meta( $post_id, '_zq_planos_map', true );
 	$map    = array();
@@ -601,13 +647,12 @@ function zq_sync_planos_folleto( $post_id, array $items, $name ) {
 		$fname  = isset( $m['file']['name'] ) && is_string( $m['file']['name'] ) ? $m['file']['name'] : ( isset( $m['title'] ) && is_string( $m['title'] ) ? $m['title'] : '' );
 		$es_pdf = false !== strpos( $kind, 'pdf' ) || preg_match( '/\.pdf$/i', $fname . ' ' . $href );
 		// Planos: categoría Siteplans / Floor plans (imagen o PDF).
-		$tipo = 'foto';
-		if ( zq_media_es_plano( $kind ) ) {
-			$tipo = 'plano';
-		} elseif ( $href && preg_match( '/pdf|brochure|folleto|document|presentation/', $kind ) ) {
-			$tipo = 'folleto';
+		$tipo = zq_media_tipo( $m, $model );
+		// La «Memoria» de calidades no es un plano aunque esté entre los planos.
+		if ( 'plano' === $tipo && preg_match( '/memoria/', $kind ) ) {
+			$tipo = 'otro';
 		}
-		$diag[] = ( $fname ? $fname : $mid_txt ) . ' → ' . $tipo . ' [' . mb_substr( $kind, 0, 120 ) . ']';
+		$diag[] = ( $fname ? $fname : $mid_txt ) . ' → ' . $tipo . ' [categoría: ' . zq_media_categoria( $m ) . ']';
 		if ( count( $planos ) < 30 && 'plano' === $tipo ) {
 			$mid   = (string) $m['id'];
 			$att   = isset( $known[ $mid ] ) && get_post( $known[ $mid ] ) ? (int) $known[ $mid ] : 0;
