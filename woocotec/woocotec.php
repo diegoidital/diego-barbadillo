@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Importador de productos Cecotec.
- * Description: Importa y crea un CSV con los productos de Cecotec.
- * Version: 1.1.0
+ * Description: Crea el CSV de productos de Cecotec para WP All Import: catálogo de Plytix, precios y stock de los feeds de dropshipping (España) o de Cecopublisher (resto de zonas), y sincroniza el stock cada hora.
+ * Version: 2.0.0
  * Author: Idital
  * Author URI: https://idital.com
  * License: GPL2
@@ -18,6 +18,7 @@
     
     include plugin_dir_path(__FILE__) . '/inc/ceco-api.php';
     include plugin_dir_path(__FILE__) . '/inc/ceco-stock.php';
+    include plugin_dir_path(__FILE__) . '/inc/ceco-catalog.php';
     
     if (is_admin()) {
         function enqueue_admin_styles() {
@@ -36,7 +37,7 @@
     
     function enqueue_import_script() {
             if (is_admin()) {
-                wp_enqueue_script('import-products', plugin_dir_url(__FILE__) . 'js/ceco-api.js', ['jquery'], '1.1.0', true);
+                wp_enqueue_script('import-products', plugin_dir_url(__FILE__) . 'js/ceco-api.js', ['jquery'], '2.0.0', true);
                 wp_localize_script('import-products', 'cecoStock', ['nonce' => wp_create_nonce('ceco_sync_stock')]);
                 //wp_localize_script('import-products', 'ajaxurl', admin_url('admin-ajax.php'));
             }
@@ -96,8 +97,9 @@
             update_option('ceco_password', $password);
 
             // Instanciar la clase y generar el token
+            update_option('ceco_token', '');
             $ceco = new CecoPublisherToWooCommerce();
-            $ceco->login(); // Generar y guardar el token
+            $ceco->login(); // Generar y guardar el token (solo se usa fuera de España)
 
             // Redirigir al usuario de vuelta a la página de configuración
             wp_redirect(admin_url('admin.php?page=import-cecopublisher'));
@@ -124,7 +126,7 @@
  ******************************************************************************/
 
     // Register hook para el cron
-    add_action('ceco_import_products_event', [new CecoPublisherToWooCommerce(),'ajax_import_products']);
+    add_action('ceco_import_products_event', [new CecoPublisherToWooCommerce(),'cron_build_csv']);
 
 
     function ceco_register_cron_event() {
@@ -170,17 +172,7 @@
 /*******************************************************************************
  *  Controlador de ajax para importar productos
  ******************************************************************************/
-    function ajax_import_products() {
-        $csv_file_path = $_POST['csv_file_path'];
-        $offset = intval($_POST['offset']);
-        $batch_size = 5;
-
-        $importer = new Your_Importer_Class(); // Reemplaza con tu clase
-        $result = $importer->import_products_in_batches($csv_file_path, $batch_size, $offset);
-
-        wp_send_json($result);
-    }
-    add_action('wp_ajax_import_products', 'ajax_import_products');
+    // La acción AJAX import_products la registra CecoPublisherToWooCommerce::__construct().
 
 
 /*******************************************************************************
@@ -188,5 +180,6 @@
  ******************************************************************************/
     function ceco_clear_stock_cron() {
         wp_clear_scheduled_hook('ceco_sync_stock_event');
+        wp_clear_scheduled_hook('ceco_download_catalog_event');
     }
     register_deactivation_hook(__FILE__, 'ceco_clear_stock_cron');

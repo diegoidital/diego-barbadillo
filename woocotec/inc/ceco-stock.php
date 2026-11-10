@@ -144,6 +144,14 @@ class CecoStockFeed {
         if ( $col_ean === false ) {
             $col_ean = array_search( 'barcode_ean_13', $header, true );
         }
+        // Solo en el feed de España (DROPES): precios y datos básicos de la ficha.
+        $extra_cols = [];
+        foreach ( [ 'precio', 'pvpr', 'titulo', 'titulo extendido', 'imagen', 'imagen2', 'imagen3', 'title', 'manual' ] as $name ) {
+            $idx = array_search( $name, $header, true );
+            if ( $idx !== false ) {
+                $extra_cols[ $name ] = $idx;
+            }
+        }
 
         if ( $col_id === false || $col_stock === false ) {
             fclose( $handle );
@@ -161,15 +169,52 @@ class CecoStockFeed {
                 continue;
             }
             $stock = (int) preg_replace( '/[^0-9\-]/', '', $row[ $col_stock ] );
-            $map[ self::normalize_sku( $sku ) ] = [
+            $item  = [
                 'sku'   => $sku,
                 'stock' => max( 0, $stock ),
                 'ean'   => ( $col_ean !== false && isset( $row[ $col_ean ] ) ) ? trim( $row[ $col_ean ] ) : '',
             ];
+            foreach ( $extra_cols as $name => $idx ) {
+                $value = isset( $row[ $idx ] ) ? self::to_utf8( trim( $row[ $idx ] ) ) : '';
+                if ( $name === 'precio' || $name === 'pvpr' ) {
+                    $value = self::parse_decimal( $value );
+                }
+                $item[ $name ] = $value;
+            }
+            $map[ self::normalize_sku( $sku ) ] = $item;
         }
         fclose( $handle );
 
         return $map;
+    }
+
+    /**
+     * Los feeds mezclan UTF-8 y Windows-1252 según la fila: se pasa todo a UTF-8.
+     */
+    public static function to_utf8( $value ) {
+        if ( $value === '' || ( function_exists( 'mb_check_encoding' ) && mb_check_encoding( $value, 'UTF-8' ) ) ) {
+            return $value;
+        }
+        if ( function_exists( 'mb_convert_encoding' ) ) {
+            return mb_convert_encoding( $value, 'UTF-8', 'Windows-1252' );
+        }
+        $converted = @iconv( 'Windows-1252', 'UTF-8//IGNORE', $value );
+        return $converted !== false ? $converted : $value;
+    }
+
+    /**
+     * "1.019,00" / "199,00" / "199.00" => "1019.00" / "199.00". Vacío si no es un número.
+     */
+    public static function parse_decimal( $value ) {
+        $value = trim( str_replace( [ '€', ' ' ], '', (string) $value ) );
+        if ( $value === '' ) {
+            return '';
+        }
+        if ( strpos( $value, ',' ) !== false ) {
+            $value = str_replace( '.', '', $value );   // separador de miles
+            $value = str_replace( ',', '.', $value );  // decimal
+        }
+        return is_numeric( $value ) ? number_format( (float) $value, 2, '.', '' ) : '';
     }
 
     /**

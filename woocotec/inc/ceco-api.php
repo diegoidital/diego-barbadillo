@@ -33,7 +33,7 @@ class CecoPublisherToWooCommerce {
  ******************************************************************************/
     
     // Función para realizar solicitudes a la API
-    private function request($endpoint, $data = [], $isPost = true) {
+    private function request($endpoint, $data = [], $isPost = true, $retry = true) {
             $url = "{$this->apiUrl}/{$endpoint}";
             $headers = [
                 "Content-Type: multipart/form-data",
@@ -64,10 +64,15 @@ class CecoPublisherToWooCommerce {
                 return null;
             }
 
-            if ($http_code === 401) { // Token inválido o expirado
+            if ($http_code === 401 && $endpoint !== 'login') { // Token inválido o expirado
+                if (!$retry) {
+                    return null;
+                }
                 error_log("Token inválido o expirado. Generando un nuevo token...");
-                $this->login(); // Generar un nuevo token
-                return $this->request($endpoint, $data, $isPost); // Reintentar la solicitud
+                if (!$this->login()) {
+                    return null;
+                }
+                return $this->request($endpoint, $data, $isPost, false); // Reintentar una sola vez
             }
 
             if ($http_code !== 200) {
@@ -89,339 +94,311 @@ class CecoPublisherToWooCommerce {
             if (isset($response['token'])) {
                 $this->token = $response['token'];
                 update_option('ceco_token', $this->token); // Guardar el token en la base de datos
-                error_log('Nuevo token generado y guardado: ' . $this->token);
-            } else {
-                // Manejar el error si no se obtiene un token
-                error_log('Error al obtener el token: ' . json_encode($response));
-                wp_die('No se pudo obtener el token. Verifica tus credenciales.');
+                error_log('Nuevo token de Cecopublisher generado y guardado.');
+                return true;
             }
+            // Sin wp_die(): cortaría el cron y la respuesta AJAX.
+            error_log('Error al obtener el token de Cecopublisher: ' . json_encode($response));
+            return false;
     }
-    // Primera llamada a las tarifas según el idioma seleccionado. Importa los productos disponibles y con precio. Los guarda en un archivo CSV.
-    private function create_file($products_to_import, $selected_zone, $stock_map = []) {
-                $messages = [];
-                //$route_file = plugin_dir_path(__FILE__) . 'products.csv';
-                $upload_dir = wp_upload_dir();
-                $route_file = $upload_dir['basedir'] . '/wpallimport/files/products.csv';
+/*******************************************************************************
+ *  Generación del CSV para WP All Import (datos nuevos de Cecotec)
+ *
+ *  - Catálogo (nombre, descripciones, familias, imágenes, medidas): Plytix XML.
+ *  - España:        precio (pvpr) + stock  -> feed DROPES (getstockfeedb2cNew.php).
+ *  - Resto de zonas: precio -> Cecopublisher (tarifa DROP INTER),
+ *                    stock  -> feed de la zona (DROPPT/IT/DE/FR/Z1/Z2/Z3).
+ *  - Cruce: SKU del catálogo = public_id del feed = SKU/REFERENCIA de Cecopublisher.
+ *
+ *  Las columnas del CSV son las mismas que antes (más algunas nuevas al final),
+ *  así la importación "Productos Cecotec" de WP All Import sigue funcionando.
+ ******************************************************************************/
 
-                error_log('Intentando crear el archivo CSV en: ' . $route_file);
-            
-                $file = fopen($route_file, 'w+');
-                if ($file === false) {
-                    error_log('No se pudo abrir el archivo CSV para escritura.');
-                    return false;
+    public static function csv_columns() {
+        return [
+            "SKU",
+            "Nombre del producto",
+            "PVPR",
+            "Categoría principal",
+            "Categorias secundaria",
+            "Categoría terciaria",
+            "Descripción corta",
+            "Descripción larga",
+            "Peso",
+            "Largo",
+            "Ancho",
+            "Alto",
+            "Voltaje",
+            "Voltaje y capacidad de la batería",
+            "Imagen destacada",
+            "img1",
+            "img2",
+            "img3",
+            "img4",
+            // Columnas nuevas
+            "Stock",
+            "Estado stock",
+            "EAN",
+            "Estado Cecotec",
+            "Marca",
+            "Precio coste",
+            "Galería",
+        ];
+    }
+
+    public static function csv_path() {
+        $upload_dir = wp_upload_dir();
+        return $upload_dir['basedir'] . '/wpallimport/files/products.csv';
+    }
+
+    // Precios de Cecopublisher para zonas fuera de España (tarifa DROP INTER). SKU normalizado => precio
+    private function get_inter_prices($selected_zone) {
+        $columns = [
+            'Portugues' => 'PVP PORTUGAL',
+            'Italiano'  => 'PVP ITALY',
+            'Francés'   => 'PVP FRANCE',
+            'Alemán'    => 'PVP GERMANY',
+            'Holandes'  => 'PVP ZONE 1',
+            'Zona 1'    => 'PVP ZONE 1',
+            'Zona 2'    => 'PVP ZONE 2',
+            'Zona 3'    => 'PVP ZONE 3',
+        ];
+        if (!isset($columns[$selected_zone])) {
+            return new WP_Error('ceco_zone', "Zona desconocida: $selected_zone");
+        }
+
+        $rates = $this->request("rates", [], true);
+        if (empty($rates) || empty($rates['data'])) {
+            return new WP_Error('ceco_rates', 'Cecopublisher no ha devuelto tarifas. Revisa las credenciales y que la tarifa DROP INTER esté asignada.');
+        }
+
+        $rate_id = null;
+        foreach ($rates['data'] as $rate) {
+            if (strpos($rate['name'], 'INTER') !== false) {
+                $rate_id = $rate['id'];
+                break;
+            }
+        }
+        if ($rate_id === null) {
+            return new WP_Error('ceco_rates', 'No se ha encontrado la tarifa DROP INTER en Cecopublisher.');
+        }
+
+        $rate = $this->request("rate/{$rate_id}", [], true);
+        if (empty($rate) || empty($rate['data'])) {
+            return new WP_Error('ceco_rates', 'La tarifa DROP INTER de Cecopublisher está vacía.');
+        }
+
+        $prices = [];
+        foreach ($rate['data'] as $product) {
+            $sku = $product['SKU'] ?? ($product['REFERENCIA'] ?? '');
+            $pvp = $product[$columns[$selected_zone]] ?? null;
+            if ($sku === '' || $pvp === null) {
+                continue;
+            }
+            $pvp = CecoStockFeed::parse_decimal((string) $pvp);
+            if ($pvp !== '' && (float) $pvp > 0) {
+                $prices[CecoStockFeed::normalize_sku($sku)] = $pvp;
+            }
+        }
+        return $prices;
+    }
+
+    // SKU tal y como ya existe en WooCommerce (p. ej. "0121" en lugar de "00121") para no duplicar productos.
+    private function existing_skus() {
+        global $wpdb;
+        $skus = [];
+        $rows = $wpdb->get_col("SELECT pm.meta_value FROM {$wpdb->postmeta} pm
+                                INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+                                WHERE pm.meta_key = '_sku' AND pm.meta_value <> ''
+                                AND p.post_type IN ('product','product_variation') AND p.post_status <> 'trash'");
+        foreach ((array) $rows as $sku) {
+            $skus[CecoStockFeed::normalize_sku($sku)] = $sku;
+        }
+        return $skus;
+    }
+
+    /**
+     * Genera el CSV. Devuelve un resumen o WP_Error.
+     */
+    public function build_csv() {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(1200);
+        }
+        $selected_zone = get_option('ceco_selected_zone', 'Español');
+        $lang          = CecoCatalogFeed::zone_lang($selected_zone);
+
+        // 1. Stock (y en España también precios) desde el feed de dropshipping.
+        $stock_map = CecoStockFeed::get_stock_map($selected_zone, true);
+        if (is_wp_error($stock_map)) {
+            return new WP_Error('ceco_stock', 'No se pudo leer el feed de stock/precios: ' . $stock_map->get_error_message());
+        }
+
+        // 2. Precios.
+        if ($selected_zone === 'Español') {
+            $prices = [];
+            foreach ($stock_map as $key => $item) {
+                if (!empty($item['pvpr']) && (float) $item['pvpr'] > 0) {
+                    $prices[$key] = $item['pvpr'];
                 }
-            
-                // Escribir encabezados
-                $column_names = [
-                    "SKU",
-                    "Nombre del producto",
-                    "PVPR",
-                    "Categoría principal",
-                    "Categorias secundaria",
-                    "Categoría terciaria",
-                    "Descripción corta",
-                    "Descripción larga",
-                    "Peso",
-                    "Largo",
-                    "Ancho",
-                    "Alto",
-                    "Voltaje",
-                    "Voltaje y capacidad de la batería",
-                    "Imagen destacada",
-                    "img1",
-                    "img2",
-                    "img3",
-                    "img4",
-                    "Stock",
-                    "Estado stock",
-                    "EAN",
+            }
+            $price_source = 'feed DROPES (pvpr)';
+        } else {
+            $prices = $this->get_inter_prices($selected_zone);
+            if (is_wp_error($prices)) {
+                return $prices;
+            }
+            $price_source = 'Cecopublisher (DROP INTER)';
+        }
+        if (empty($prices)) {
+            return new WP_Error('ceco_prices', 'No se han encontrado precios para la zona ' . $selected_zone . '.');
+        }
+
+        // 3. Catálogo de Plytix (solo los productos con precio).
+        $download = CecoCatalogFeed::download(false);
+        if (is_wp_error($download)) {
+            return $download;
+        }
+        $catalog = CecoCatalogFeed::get_products(array_fill_keys(array_keys($prices), true), $lang);
+        if (is_wp_error($catalog)) {
+            return $catalog;
+        }
+
+        // 4. Escribir el CSV.
+        $route_file = self::csv_path();
+        wp_mkdir_p(dirname($route_file));
+        $tmp_file = $route_file . '.tmp';
+        $file = fopen($tmp_file, 'w');
+        if ($file === false) {
+            return new WP_Error('ceco_csv', "No se pudo crear el CSV en $route_file.");
+        }
+
+        $columns  = self::csv_columns();
+        $existing = $this->existing_skus();
+        fputcsv($file, $columns);
+
+        $stats = ['rows' => 0, 'instock' => 0, 'no_catalog' => 0, 'skipped_discontinued' => 0, 'fallback_feed' => 0];
+
+        foreach ($prices as $key => $pvpr) {
+            $feed    = $stock_map[$key] ?? null;
+            $product = $catalog[$key] ?? null;
+            $stock   = $feed ? (int) $feed['stock'] : 0;
+            $status  = $product['status'] ?? '';
+
+            // Descatalogados/discontinuos: se venden hasta agotar stock y no se reponen.
+            // Sin stock no se crean ni se actualizan (la sincronización horaria los deja agotados).
+            if ($stock <= 0 && in_array($status, CecoCatalogFeed::DISCONTINUED, true)) {
+                $stats['skipped_discontinued']++;
+                continue;
+            }
+
+            if (!$product) {
+                // No está en Plytix: se usan los datos básicos del feed de España si los hay.
+                if (!$feed || empty($feed['titulo'] ?? $feed['title'] ?? '')) {
+                    $stats['no_catalog']++;
+                    continue;
+                }
+                $stats['fallback_feed']++;
+                $product = [
+                    'name' => $feed['titulo'] ?? $feed['title'], 'short' => '', 'long' => esc_html($feed['titulo extendido'] ?? ''),
+                    'cat1' => '', 'cat2' => '', 'cat3' => '', 'weight' => '', 'length' => '', 'width' => '', 'height' => '',
+                    'voltage' => '', 'battery' => '', 'ean' => $feed['ean'], 'status' => '', 'brand' => '',
+                    'images' => array_values(array_filter([$feed['imagen'] ?? '', $feed['imagen2'] ?? '', $feed['imagen3'] ?? ''])),
                 ];
-                fputcsv($file, $column_names);
-            
-                    if ($selected_zone === 'Español') {
-                        foreach ($products_to_import as $product) {
-                            error_log("Producto: " . json_encode($product)); // Log para depuración
-                            // Recuperar el SKU y el nombre del producto
-                            $sku = $product['REFERENCIA'];
-                            error_log("SKU: $sku"); // Log para depuración
-                                if (strlen($sku) < 5 && ctype_digit((string)$sku)) {
-                                    $sku = '0' . $sku;
-                                }
-                            // Determinar el PVPR según el idioma seleccionado
-                            $pvpr = $product['PVP ESP']; // Ejemplo para Español
-                            // Verificar si se encontró un PVPR válido
-                            if ($pvpr === null || !is_numeric($pvpr)) {
-                                $messages[] =  "❌ $sku: No disponible<br>";
-                                continue; // Saltar al siguiente producto
-                            } else {
-                                $messages[] =  "✅ Producto guardado en csv: $sku<br>";
-                            }  
-                            // Escribir datos del producto en el CSV
-                                $row = $this->build_row($sku, $pvpr, $stock_map, count($column_names));
-                            fputcsv($file, $row);
-                        }
-                    }  else {
-                        foreach ($products_to_import as $product) {
-                            error_log("Producto: " . json_encode($product)); // Log para depuración
-                            // Recuperar el SKU y el nombre del producto
-                                $sku = $product['SKU'];
-                                    if (strlen($sku) < 5 && ctype_digit((string)$sku)) {
-                                        $sku = '0' . $sku;
-                                    }
-                            // Determinar el PVPR según el idioma seleccionado
-                                $pvpr = null;
-                                switch ($selected_zone) {              
-                                    case 'Portugues':
-                                        $pvpr = $product['PVP PORTUGAL']; // Ejemplo para Español
-                                        break;
-                                    case 'Italiano':
-                                        $pvpr = $product['PVP ITALY'];
-                                        break;
-                                    case 'Francés':
-                                        $pvpr = $product['PVP FRANCE'];
-                                        break;
-                                    case 'Alemán':
-                                        $pvpr = $product['PVP GERMANY'];
-                                        break;
-                                    case 'Holandes':
-                                        $pvpr = $product['PVP ZONE 1'];
-                                        break;    
-                                    case 'Zona 1':
-                                        $pvpr = $product['PVP ZONE 1'];
-                                        break;
-                                    case 'Zona 2':
-                                        $pvpr = $product['PVP ZONE 2'];
-                                        break;
-                                    case 'Zona 3':
-                                        $pvpr = $product['PVP ZONE 3'];
-                                        break;
-                                    default:
-                                        $pvpr = null; // Si no hay un caso definido
-                                        break;
-                                }           
-                                // Verificar si se encontró un PVPR válido
-                                if ($pvpr === null || !is_numeric($pvpr)) {
-                                    $messages[] = "❌ $sku: No disponible<br>";
-                                    continue; // Saltar al siguiente producto
-                                } else {
-                                    $messages[] = "✅ Producto guardado en csv: $sku<br>";
-                                }    
-                            // Escribir datos del producto en el CSV
-                                $row = $this->build_row($sku, $pvpr, $stock_map, count($column_names));
-                            fputcsv($file, $row);           
-                        }                  
-                    }
-                fclose($file);
-                error_log('Archivo CSV creado correctamente en: ' . $route_file);
-            
-                return ['file_path' => $route_file, 'messages' => $messages];        
-    }
-    // Fila inicial del CSV: SKU, precio y stock del feed de Cecotec. El resto lo rellena complement_csv_with_catalogs().
-    private function build_row($sku, $pvpr, $stock_map, $num_columns) {
-                $row = array_fill(0, $num_columns, ' ');
-                $row[0] = $sku;
-                $row[1] = '';
-                $row[2] = $pvpr;
+            }
 
-                $stock = CecoStockFeed::stock_for($stock_map, $sku);
-                $row[19] = $stock;                                   // Stock
-                $row[20] = ($stock > 0) ? 'instock' : 'outofstock';  // Estado stock
-                $row[21] = CecoStockFeed::ean_for($stock_map, $sku); // EAN
-                return $row;
+            $sku    = $existing[$key] ?? ($feed['sku'] ?? $product['sku'] ?? $key);
+            $images = $product['images'];
+            if (empty($images) && $feed) {
+                // Sin fotos en Plytix: se usan las del feed de España (si las hay).
+                $images = array_values(array_filter([$feed['imagen'] ?? '', $feed['imagen2'] ?? '', $feed['imagen3'] ?? '']));
+            }
+
+            $row = [
+                $sku,
+                $product['name'],
+                $pvpr,
+                $product['cat1'],
+                $product['cat2'],
+                $product['cat3'],
+                $product['short'],
+                $product['long'],
+                $product['weight'],
+                $product['length'],
+                $product['width'],
+                $product['height'],
+                $product['voltage'],
+                $product['battery'],
+                $images[0] ?? '',
+                $images[1] ?? '',
+                $images[2] ?? '',
+                $images[3] ?? '',
+                $images[4] ?? '',
+                $stock,
+                $stock > 0 ? 'instock' : 'outofstock',
+                $product['ean'] !== '' ? $product['ean'] : ($feed['ean'] ?? ''),
+                $status,
+                $product['brand'],
+                $feed['precio'] ?? '',
+                implode('|', array_slice($images, 1)), // todas las imágenes de galería, separadas por |
+            ];
+            fputcsv($file, $row);
+
+            $stats['rows']++;
+            if ($stock > 0) {
+                $stats['instock']++;
+            }
+        }
+        fclose($file);
+
+        if ($stats['rows'] === 0) {
+            @unlink($tmp_file);
+            return new WP_Error('ceco_csv', 'No se ha generado ninguna fila: no se sobrescribe el CSV anterior.');
+        }
+        rename($tmp_file, $route_file);
+
+        $stats['zone']         = $selected_zone;
+        $stats['price_source'] = $price_source;
+        $stats['stock_url']    = CecoStockFeed::feed_url($selected_zone);
+        $stats['file']         = $route_file;
+        $stats['time']         = current_time('mysql');
+        update_option('ceco_last_csv', $stats, false);
+        error_log('✅ CSV Cecotec generado: ' . wp_json_encode($stats));
+
+        return $stats;
     }
-    // Segunda llamada a la API de catálogos. Complementa el CSV con los datos de los catálogos.
-    private function complement_csv_with_catalogs($csv_file_path, $selected_zone) {
-            // Obtener los catálogos desde la API
-            $catalogs = $this->request("catalogs", [], true);
-        
-            if (empty($catalogs) || empty($catalogs['data'])) {
-                error_log('❌ No se encontraron catálogos para complementar el CSV.');
-                return false;
-            }
-        
-            $all_data = $catalogs['data'];
-            $additional_data = [];
-        
-            if($selected_zone === "Zona 1" || $selected_zone === "Zona 2" || $selected_zone === "Zona 3") {
-                $selected_zone = "Ingles";
-            }        
-            // Buscar el catálogo en el idioma seleccionado
-            foreach ($all_data as $data) {
-                if ($data['language'] === $selected_zone) {
-                    $catalog = $this->request("catalog/{$data['id']}", [], true);
-        
-                    if (empty($catalog) || empty($catalog['data'])) {
-                        error_log('❌ No se encontraron productos en el catálogo seleccionado.');
-                        return false;
-                    }
-        
-                    $additional_data = $catalog['data'];
-                    break;
-                }
-            }
-        
-            if (empty($additional_data)) {
-                error_log('❌ No se encontraron datos adicionales para complementar el CSV.');
-                return false;
-            }
-        
-            // Leer el archivo CSV existente
-            $rows = [];
-            if (($handle = fopen($csv_file_path, 'r')) !== false) {
-                while (($row = fgetcsv($handle, 0, ',')) !== false) {
-                    $rows[] = $row;
-                }
-                fclose($handle);
-            }
-        
-            // Extraer encabezados
-            $headers = array_shift($rows);
-        
-            // Complementar los datos del CSV con los datos adicionales
-            $updated_rows = [];
-            foreach ($rows as $row) {
-                $sku = $row[0]; // Suponiendo que el SKU está en la primera columna
-                foreach ($additional_data as $product) {
-                    if ($product['REFERENCIA'] === $sku) {
-                        // Rellenar las columnas existentes con los datos del catálogo
-                        $row[1] = $product['NOMBRE'] ?? $row[1]; // Nombre del producto
-                        $row[3] = $product['CATEGORÍA PADRE'] ?? $row[3]; // Categoría principal
-                        $row[4] = $product['CATEGORÍA'] ?? $row[4]; // Categoría secundaria
-                        $row[5] = $product['SUBCATEGORÍA'] ?? $row[5]; // Categoría terciaria
-                        $row[6] = $product['DESCRIPCIÓN'] ?? $row[6]; // Descripción corta
-                        $row[7] = $product['DATOS DEL PRODUCTO'] ?? $row[7]; // Descripción larga
-                        $row[8] = $product['PESO PRODUCTO (kg)'] ?? $row[8]; // Peso
-                        $row[9] = $product['LARGO PRODUCTO (cm)'] ?? $row[9]; // Largo
-                        $row[10] = $product['ANCHO PRODUCTO (cm)'] ?? $row[10]; // Ancho
-                        $row[11] = $product['ALTO PRODUCTO (cm)'] ?? $row[11]; // Alto
-                        $row[12] = $product['VOLTAJE'] ?? $row[12]; // Voltaje
-                        $row[13] = $product['VOLTAJE Y CAPACIDAD DE LA BATERÍA'] ?? $row[13]; // Voltaje y capacidad de la batería
-                        $row[14] = $product['IMAGE_1'] ?? $row[14]; // Imagen destacada
-                        $row[15] = $product['IMAGE_2'] ?? $row[15]; // Imagen 1
-                        $row[16] = $product['IMAGE_3'] ?? $row[16]; // Imagen 2
-                        $row[17] = $product['IMAGE_4'] ?? $row[17]; // Imagen 3
-                        $row[18] = $product['IMAGE_5'] ?? $row[18]; // Imagen 4
-                        break;
-                    }
-                }
-                $updated_rows[] = $row;
-            }
-        
-            // Escribir los datos actualizados en el archivo CSV
-            if (($handle = fopen($csv_file_path, 'w')) !== false) {
-                // Escribir encabezados
-                fputcsv($handle, $headers);
-        
-                // Escribir las filas actualizadas
-                foreach ($updated_rows as $row) {
-                    fputcsv($handle, $row);
-                }
-                fclose($handle);
-            }
-        
-            error_log('✅ Archivo CSV complementado correctamente.');
-            return true;
+
+    public static function describe_csv($stats) {
+        if (empty($stats)) {
+            return 'Todavía no se ha generado el CSV con los datos nuevos.';
+        }
+        return sprintf(
+            '✅ %s — Zona %s · %d productos en el CSV (%d con stock) · precios: %s · %d descatalogados sin stock omitidos · %d sin ficha en el catálogo omitidos.',
+            $stats['time'], $stats['zone'], $stats['rows'], $stats['instock'], $stats['price_source'],
+            $stats['skipped_discontinued'], $stats['no_catalog']
+        );
     }
-    // Trigger para empezar la importación de productos
+
+    // Botón "Importación manual" (AJAX).
     public function ajax_import_products() {
-                // Iniciar el buffer de salida
-                ob_start();
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'Sin permisos.']);
+        }
+        $result = $this->build_csv();
+        if (is_wp_error($result)) {
+            wp_send_json_error(['message' => $result->get_error_message()]);
+        }
+        wp_send_json_success([
+            'message'  => self::describe_csv($result),
+            'csv_file' => $result['file'],
+        ]);
+    }
 
-                try {
-
-                    // Obtener las tarifas desde la API
-                    $rates = $this->request("rates", [], true);
-                    error_log("Tarifas: " . json_encode($rates)); // Log para depuración
-                    if (empty($rates) || empty($rates['data'])) {
-                        ob_end_clean(); // Limpiar el buffer si hay un error
-                        wp_send_json_error(['message' => 'No se encontraron tarifas.']);
-                    }
-
-                    // Determinar el ID de la tarifa según el idioma seleccionado
-                    $selected_zone = get_option('ceco_selected_zone', 'Español'); // Valor predeterminado: Español
-                    
-                    //$rate_id = ($selected_zone === 'Español') ? $rates['data'][1]['id'] : $rates['data'][0]['id'];
-                    $rate_id = null;
-
-                    if ($selected_zone != 'Español') {
-                        // Buscar el campo que contenga "INTER"
-                        foreach ($rates['data'] as $rate) {
-                            if (strpos($rate['name'], 'INTER') !== false) {
-                                $rate_id = $rate['id'];
-                                break;
-                            }
-                        }
-                    } else {
-                        // Buscar el campo que NO contenga "INTER"
-                        foreach ($rates['data'] as $rate) {
-                            if (strpos($rate['name'], 'INTER') === false) {
-                                $rate_id = $rate['id'];
-                                break;
-                            }
-                        }
-                    }
-
-
-                    // Obtener los detalles de la tarifa específica
-                    $rate = $this->request("rate/{$rate_id}", [], true);
-                    if (empty($rate) || empty($rate['data'])) {
-                        ob_end_clean(); // Limpiar el buffer si no hay productos
-                        wp_send_json_error(['message' => 'No se encontraron productos en la tarifa seleccionada.']);
-                    }
-                    $offset = 5; // Offset inicial para la paginación
-                    $limit = 10; // Límite de productos por lote
-                    // Obtener el lote actual de productos
-                    $products = $rate['data'];
-                    $products_to_import = array_slice($products, $offset, -1);
-
-                    if (empty($products_to_import)) {
-                        ob_end_clean(); // Limpiar el buffer si no hay productos
-                        wp_send_json_error(['message' => 'No se encontraron productos para importar en este lote.']);
-                    }
-
-                    // Stock de la zona desde el feed de dropshipping de Cecotec.
-                    // Si no se puede leer se para: un CSV sin stock dejaría todos los productos agotados.
-                    $stock_map = CecoStockFeed::get_stock_map($selected_zone, true);
-                    if (is_wp_error($stock_map)) {
-                        ob_end_clean();
-                        wp_send_json_error(['message' => 'No se pudo leer el stock de Cecotec: ' . $stock_map->get_error_message()]);
-                    }
-
-                    // Crear el archivo CSV con los datos recuperados
-                    $csv_file_result = $this->create_file($products_to_import, $selected_zone, $stock_map);
-                    if (!$csv_file_result || empty($csv_file_result['file_path'])) {
-                        ob_end_clean();
-                        wp_send_json_error(['message' => 'Error al crear el archivo CSV.']);
-                    }
-
-                    $csv_file_path = $csv_file_result['file_path'];
-
-                    // Llamar a catalogs para complementar el CSV
-                    $this->complement_csv_with_catalogs($csv_file_path, $selected_zone);
-
-                    // Procesar productos desde el CSV
-                    error_log("Iniciando importación de productos desde el archivo CSV...");
-                
-                    //$this->import_products_in_batches($csv_file_path, $limit);
-
-                    // Capturar los mensajes generados por los `echo`
-                    $log_messages = ob_get_clean();
-
-                    // Verificar si hay más productos por importar
-                    $has_more = count($products_to_import) == $limit;
-
-                    wp_send_json_success([
-                        'has_more' => $has_more,
-                        'next_offset' => $offset + $limit, // Enviar el próximo offset
-                        'message' => 'Lote procesado correctamente. ID del catalogo: ' . $rate_id . '. Stock leído de: ' . CecoStockFeed::feed_url($selected_zone),
-                        'log' => $log_messages, // Incluir los mensajes en la respuesta
-                        'csv_file' => $csv_file_path // Ruta del archivo CSV generado
-                    ]);
-                } catch (Exception $e) {
-                    ob_end_clean(); // Limpiar el buffer en caso de error
-                    error_log("Error en la importación: " . $e->getMessage());
-                    wp_send_json_error(['message' => 'Error en la importación: ' . $e->getMessage()]);
-                }
+    // Cron diario: genera el CSV sin respuesta JSON (wp_send_json cortaría el resto de tareas del cron).
+    public function cron_build_csv() {
+        $result = $this->build_csv();
+        if (is_wp_error($result)) {
+            error_log('❌ CSV Cecotec (cron): ' . $result->get_error_message());
+        }
     }
 
 /*******************************************************************************
