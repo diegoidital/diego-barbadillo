@@ -575,6 +575,25 @@ function zq_media_kind( array $m ) {
 	return strtolower( remove_accents( implode( ' ', $txt ) ) );
 }
 
+/** Nombre del archivo en Qobrix («planta baja 12b.pdf»), venga en el campo que venga. */
+function zq_media_nombre( array $m ) {
+	$sitios = array( isset( $m['file'] ) && is_array( $m['file'] ) ? $m['file'] : array(), $m );
+	foreach ( $sitios as $f ) {
+		foreach ( array( 'original_name', 'original_filename', 'client_name', 'filename', 'file_name', 'name', 'title', 'basename' ) as $k ) {
+			if ( isset( $f[ $k ] ) && is_string( $f[ $k ] ) && '' !== trim( $f[ $k ] ) ) {
+				return trim( $f[ $k ] );
+			}
+		}
+	}
+	foreach ( array( isset( $m['file']['href'] ) ? $m['file']['href'] : '', isset( $m['file']['path'] ) ? $m['file']['path'] : '' ) as $u ) {
+		$b = is_string( $u ) ? rawurldecode( basename( (string) wp_parse_url( $u, PHP_URL_PATH ) ) ) : '';
+		if ( $b && preg_match( '/\.[a-z0-9]{2,4}$/i', $b ) ) {
+			return $b;
+		}
+	}
+	return '';
+}
+
 /** Categoría del medio en Qobrix, normalizada: «siteplans», «floorplans», «brochure», «flyers», «photos»… */
 function zq_media_categoria( array $m ) {
 	$txt = array();
@@ -644,7 +663,7 @@ function zq_sync_planos_folleto( $post_id, array $items, $name, $model = 'Projec
 		$mid_txt = '#' . $m['id'];
 		$kind   = zq_media_kind( $m );
 		$href   = isset( $m['file']['href'] ) && is_string( $m['file']['href'] ) ? $m['file']['href'] : '';
-		$fname  = isset( $m['file']['name'] ) && is_string( $m['file']['name'] ) ? $m['file']['name'] : ( isset( $m['title'] ) && is_string( $m['title'] ) ? $m['title'] : '' );
+		$fname  = zq_media_nombre( $m );
 		$es_pdf = false !== strpos( $kind, 'pdf' ) || preg_match( '/\.pdf$/i', $fname . ' ' . $href );
 		// Planos: categoría Siteplans / Floor plans (imagen o PDF).
 		$tipo = zq_media_tipo( $m, $model );
@@ -669,6 +688,10 @@ function zq_sync_planos_folleto( $post_id, array $items, $name, $model = 'Projec
 			if ( $att ) {
 				$map[ $mid ] = $att;
 				$planos[]    = $att;
+				// Nombre original del archivo («planta baja 12b.pdf»), también en planos ya descargados.
+				if ( $fname ) {
+					update_post_meta( $att, '_zq_nombre_original', $fname );
+				}
 			}
 			continue;
 		}

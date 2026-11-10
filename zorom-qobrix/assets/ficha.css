@@ -1725,8 +1725,16 @@ body > #colophon {
 	transition: background .2s, color .2s;
 }
 
+.zq-v-plano-pdf .zq-v-ico {
+	flex: none;
+	width: 26px;
+	height: 26px;
+}
+
 .zq-v-plano-pdf span {
 	flex: 1;
+	min-width: 0;
+	line-height: 1.25;
 	font-size: 15px;
 	font-weight: 500;
 }

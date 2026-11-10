@@ -365,7 +365,7 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 										<?php if ( wp_attachment_is_image( $id ) ) : ?>
 											<a href="<?php echo esc_url( wp_get_attachment_image_url( $id, 'full' ) ); ?>" data-zq-lb="<?php echo esc_attr( $lb ); ?>-planos"><?php echo wp_get_attachment_image( $id, 'large', false, array( 'loading' => 'lazy' ) ); ?></a>
 										<?php else : ?>
-											<a class="zq-v-plano-pdf" href="<?php echo esc_url( wp_get_attachment_url( $id ) ); ?>" target="_blank" rel="noopener"><?php echo zq_viv_icono( 'plano' ); // phpcs:ignore ?><span><?php echo esc_html( zq_plano_titulo( $id ) ); ?></span><small>PDF</small></a>
+											<a class="zq-v-plano-pdf" href="<?php echo esc_url( wp_get_attachment_url( $id ) ); ?>" target="_blank" rel="noopener"><?php echo zq_viv_icono( 'plano' ); // phpcs:ignore ?><span><?php echo esc_html( zq_plano_titulo( $id, $post_id ) ); ?></span><small>PDF</small></a>
 										<?php endif; ?>
 									<?php endforeach; ?>
 								</div>
@@ -442,7 +442,7 @@ function zq_planos_de_unidad( $post_id ) {
 	};
 	$propios = $validos( get_post_meta( $post_id, '_zq_planos', true ) );
 	if ( $propios ) {
-		return $propios;
+		return zq_planos_ordenar( $propios );
 	}
 	$promo = (int) get_post_meta( $post_id, '_zq_promocion', true );
 	$todos = $promo ? $validos( get_post_meta( $promo, '_zq_planos', true ) ) : array();
@@ -461,21 +461,58 @@ function zq_planos_de_unidad( $post_id ) {
 	if ( ! $claves ) {
 		return array();
 	}
-	return array_values( array_filter( $todos, function ( $id ) use ( $claves, $norm ) {
-		$archivo = $norm( get_the_title( $id ) . ' ' . basename( (string) get_attached_file( $id ) ) );
+	return zq_planos_ordenar( array_values( array_filter( $todos, function ( $id ) use ( $claves, $norm ) {
+		$archivo = $norm( get_post_meta( $id, '_zq_nombre_original', true ) . ' ' . get_the_title( $id ) . ' ' . basename( (string) get_attached_file( $id ) ) );
 		foreach ( $claves as $k ) {
 			if ( false !== strpos( $archivo, ' ' . $k . ' ' ) ) {
 				return true;
 			}
 		}
 		return false;
-	} ) );
+	} ) ) );
 }
 
-/** Nombre legible de un plano: «Planta baja», «Planta sótano»… a partir del archivo. */
-function zq_plano_titulo( $id ) {
-	$t = trim( (string) get_the_title( $id ) );
+/** Nombre legible de un plano a partir del archivo de Qobrix: «Planta baja», «Planta sótano», «Superficies»… */
+function zq_plano_titulo( $id, $post_id = 0 ) {
+	$t = (string) get_post_meta( $id, '_zq_nombre_original', true );
+	if ( '' === $t ) {
+		$t = (string) get_the_title( $id );
+	}
+	$t = preg_replace( '/\.[a-z0-9]{2,4}$/i', '', $t );
+	// Fuera el nombre de la promoción y de la vivienda, y el código («13b», «2L»…).
+	$quitar = array( 'plano' );
+	if ( $post_id ) {
+		$promo    = (int) get_post_meta( $post_id, '_zq_promocion', true );
+		$quitar[] = get_the_title( $post_id );
+		if ( $promo ) {
+			$quitar[] = get_the_title( $promo );
+			$quitar   = array_merge( $quitar, preg_split( '/[\s\-–]+/', get_the_title( $promo ) ) );
+		}
+	}
+	foreach ( array_filter( $quitar, function ( $q ) { return mb_strlen( trim( $q ) ) > 2; } ) as $q ) {
+		$t = preg_replace( '/\b' . preg_quote( trim( $q ), '/' ) . '\b/iu', ' ', $t );
+	}
+	$t = preg_replace( '/\b(villa|vivienda)?\s*\d{1,3}\s*[a-z]?\b/iu', ' ', $t );
+	$t = strtolower( trim( preg_replace( '/[\s_\-]+/', ' ', $t ) ) );
+	$t = str_replace( array( 'sotano', 'tabla superficies' ), array( 'sótano', 'tabla de superficies' ), $t );
 	return '' !== $t ? ucfirst( $t ) : 'Plano';
+}
+
+/** Orden lógico de los planos: sótano, baja, primera, segunda, cubierta… y superficies al final. */
+function zq_planos_ordenar( array $ids ) {
+	$peso = function ( $id ) {
+		$t = strtolower( remove_accents( (string) get_post_meta( $id, '_zq_nombre_original', true ) . ' ' . get_the_title( $id ) ) );
+		foreach ( array( 'sotano' => 1, 'semisotano' => 1, 'baja' => 2, 'primera' => 3, 'segunda' => 4, 'tercera' => 5, 'atico' => 6, 'cubierta' => 7, 'superficie' => 9 ) as $k => $v ) {
+			if ( false !== strpos( $t, $k ) ) {
+				return $v;
+			}
+		}
+		return 8;
+	};
+	usort( $ids, function ( $a, $b ) use ( $peso ) {
+		return $peso( $a ) - $peso( $b );
+	} );
+	return $ids;
 }
 
 /** Iconos de línea para dormitorios, baños y superficie. */
