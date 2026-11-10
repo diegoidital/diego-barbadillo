@@ -59,7 +59,9 @@ Fichero: `wp-content/uploads/wpallimport/files/products.csv`
 
 En la importación «Productos Cecotec»:
 
-> Los nombres entre llaves son orientativos: el nombre exacto de cada columna se arrastra desde el panel derecho de WP All Import, sobre todo los que llevan tilde («Galería»).
+> Nombres de los elementos en WP All Import (quita las tildes): `{sku[1]}`, `{nombredelproducto[1]}`, `{pvpr[1]}`, `{categoraprincipal[1]}`, `{categoriassecundaria[1]}`, `{categoraterciaria[1]}`, `{descripcincorta[1]}`, `{descripcinlarga[1]}`, `{imagendestacada[1]}`, `{img1[1]}`…`{img4[1]}`, `{stock[1]}`, `{estadostock[1]}`, `{ean[1]}`, `{estadocecotec[1]}`, `{marca[1]}`, `{preciocoste[1]}`, `{galera[1]}`.
+>
+> Para que aparezcan las columnas nuevas en «Editar plantilla», primero hay que generar el CSV nuevo (Importación manual) y que WP All Import vuelva a leer el fichero. Mientras la vista previa muestre imágenes de `csv-online.cecotec.cloud`, está enseñando el CSV antiguo.
 
 - [ ] **Coincidencia de productos:** por SKU (`{sku[1]}`).
 - [ ] **Precio:** precio normal = `{pvpr[1]}`, con el margen de la Fase 0 si se aplica.
@@ -68,7 +70,7 @@ En la importación «Productos Cecotec»:
   - Stock qty = `{stock[1]}`;
   - Backorders = No.
 - [ ] **Imágenes:**
-  - imagen destacada `{imagendestacada[1]}` y galería `{galería[1]}` con separador `|`;
+  - imagen destacada `{imagendestacada[1]}` y galería `{galera[1]}` con separador `|`;
   - activar «Search through the Media Library for existing images»;
   - en productos existentes, «Update images» solo si se decidió sustituir las fotos.
 - [ ] **Categorías:**
@@ -77,7 +79,10 @@ En la importación «Productos Cecotec»:
 - [ ] **EAN:** campo personalizado `_global_unique_id` = `{ean[1]}` (GTIN de WooCommerce).
 - [ ] **Marca:** taxonomía `product_brand` = `{marca[1]}`.
 - [ ] **Slug:** no actualizar el slug de los productos existentes, por SEO.
-- [ ] **Productos que no están en el fichero:** no borrarlos.
+- [ ] **Identificador único** (paso 4, «Record Matching»): comprobar que es `{sku[1]}`. Si se construye con el nombre (`{nombredelproducto[1]}`), cambiarlo a SKU **antes** de ejecutar: los nombres de Plytix pueden cambiar y se crearían duplicados.
+- [ ] **Productos que no están en el fichero:** la importación actual los pasa a **borrador** (aviso «serán marcados como draft»).
+  - Mantenerlo así: los descatalogados sin stock ya no vienen en el CSV y quedarán en borrador.
+  - Antes de ejecutar en producción, comparar el número de filas del CSV nuevo (≈ 4.150) con el último (4.240). Si hay mucha diferencia, revisar antes de importar.
 - [ ] Ejecutar la importación y revisar:
   - [ ] que no aparecen productos duplicados;
   - [ ] que los productos tienen precio, stock, fotos y descripción;
