@@ -242,6 +242,73 @@ class CecoPublisherToWooCommerce {
     }
 
     /**
+     * Cecotec mantiene algunos productos con dos códigos (p. ej. "00099" y "A01_EU01_113689",
+     * ambos "Piccolina 200 Beige", con EAN distintos). El código antiguo suele estar sin stock.
+     * Para no crear fichas repetidas, de cada grupo de productos con el mismo nombre:
+     *  - se quedan todos los que tienen stock;
+     *  - los que no tienen stock se descartan si en el grupo hay otro con stock;
+     *  - si ninguno tiene stock, se queda uno solo: el que ya controla WP All Import
+     *    (para no crear nada nuevo) o, si no, el de código nuevo (no numérico).
+     *
+     * @return array SKU normalizado => true para los que se omiten.
+     */
+    private function find_duplicate_codes($prices, $stock_map, $catalog, $existing) {
+        $groups = [];
+        foreach ($prices as $key => $pvpr) {
+            $name = $catalog[$key]['name'] ?? ($stock_map[$key]['titulo'] ?? ($stock_map[$key]['title'] ?? ''));
+            $name = function_exists('mb_strtolower') ? mb_strtolower(trim($name)) : strtolower(trim($name));
+            if ($name === '') {
+                continue;
+            }
+            $groups[$name][] = $key;
+        }
+
+        $skip = [];
+        foreach ($groups as $keys) {
+            if (count($keys) < 2) {
+                continue;
+            }
+            $with_stock = array_filter($keys, function ($k) use ($stock_map) {
+                return (int) ($stock_map[$k]['stock'] ?? 0) > 0;
+            });
+
+            if (!empty($with_stock)) {
+                foreach ($keys as $k) {
+                    if (!in_array($k, $with_stock, true)) {
+                        $skip[$k] = true;
+                    }
+                }
+                continue;
+            }
+
+            // Ninguno con stock: se conserva uno. Preferencia:
+            // 1) ya en WP All Import y código nuevo, 2) ya en WP All Import, 3) código nuevo, 4) el primero.
+            $is_new_code = function ($k) {
+                return !ctype_digit(str_replace('-', '', $k));
+            };
+            $keep = null;
+            foreach ([
+                function ($k) use ($existing, $is_new_code) { return isset($existing[$k]) && $is_new_code($k); },
+                function ($k) use ($existing) { return isset($existing[$k]); },
+                $is_new_code,
+            ] as $rule) {
+                foreach ($keys as $k) {
+                    if ($rule($k)) { $keep = $k; break 2; }
+                }
+            }
+            if ($keep === null) {
+                $keep = $keys[0];
+            }
+            foreach ($keys as $k) {
+                if ($k !== $keep) {
+                    $skip[$k] = true;
+                }
+            }
+        }
+        return $skip;
+    }
+
+    /**
      * Genera el CSV. Devuelve un resumen o WP_Error.
      */
     public function build_csv() {
@@ -300,9 +367,15 @@ class CecoPublisherToWooCommerce {
         $existing = $this->existing_skus();
         fputcsv($file, $columns);
 
-        $stats = ['rows' => 0, 'instock' => 0, 'no_catalog' => 0, 'skipped_discontinued' => 0, 'fallback_feed' => 0];
+        $stats = ['rows' => 0, 'instock' => 0, 'no_catalog' => 0, 'skipped_discontinued' => 0, 'fallback_feed' => 0, 'skipped_duplicates' => 0];
+
+        $duplicates = $this->find_duplicate_codes($prices, $stock_map, $catalog, $existing);
 
         foreach ($prices as $key => $pvpr) {
+            if (isset($duplicates[$key])) {
+                $stats['skipped_duplicates']++;
+                continue;
+            }
             $feed    = $stock_map[$key] ?? null;
             $product = $catalog[$key] ?? null;
             $stock   = $feed ? (int) $feed['stock'] : 0;
@@ -397,9 +470,9 @@ class CecoPublisherToWooCommerce {
             return 'Todavía no se ha generado el CSV con los datos nuevos.';
         }
         return sprintf(
-            '✅ %s — Zona %s · %d productos en el CSV (%d con stock) · precios: %s · %d descatalogados sin stock omitidos · %d sin ficha en el catálogo omitidos.',
+            '✅ %s — Zona %s · %d productos en el CSV (%d con stock) · precios: %s · %d descatalogados sin stock omitidos · %d códigos duplicados sin stock omitidos · %d sin ficha en el catálogo omitidos.',
             $stats['time'], $stats['zone'], $stats['rows'], $stats['instock'], $stats['price_source'],
-            $stats['skipped_discontinued'], $stats['no_catalog']
+            $stats['skipped_discontinued'], $stats['skipped_duplicates'] ?? 0, $stats['no_catalog']
         );
     }
 

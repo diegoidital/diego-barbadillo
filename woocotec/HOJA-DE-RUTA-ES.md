@@ -77,6 +77,7 @@ En la importación «Productos Cecotec»:
   - dejar marcado «Buscar en la Biblioteca de Medios… / Coincidir por nombre de archivo» (en Plytix no hay dos fotos distintas con el mismo nombre);
   - dejar marcado «Establecer la primera imagen como la Imagen Destacada»;
   - en «Opciones de importación › actualizar», marcar las imágenes solo si se decidió sustituir las fotos antiguas.
+  - **Importante:** con las fotos de Plytix, WordPress tarda unos 35 s por foto en generar las miniaturas. Actualizar las fotos de los ~2.900 productos existentes supondría 80–90 h. En la importación completa, **desmarcar «Images»** en «Choose which data to update»: los productos nuevos reciben sus fotos al crearse. El cambio de fotos de los existentes, si se quiere, se hace aparte, por tandas y de noche.
 - [ ] **Categorías:**
   - activar «Enable mapping for categories» y asignar las de Plytix a las actuales;
   - o no actualizar categorías en los productos existentes.
