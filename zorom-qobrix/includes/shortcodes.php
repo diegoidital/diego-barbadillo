@@ -388,7 +388,7 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 	$a = shortcode_atts( array(
 		'proyecto' => '',
 		// campo:Etiqueta:formato. Varios nombres posibles separados por «|» (se usa el primero con dato).
-		'columnas' => 'ref:Referencia,bedrooms:Dorm. · Baños:dormbanos,internal_area_amount|living_area_amount|net_area_amount:Sup. interior:m2,uncovered_veranda_amount|uncovered_verandas_amount|uncovered_terrace_amount|open_terrace_amount|uncovered_area_amount:Terraza descubierta:m2,covered_veranda_amount|covered_verandas_amount|covered_terrace_amount|veranda_area_amount|terrace_area_amount:Terraza cubierta:m2,total_area_amount|built_area_amount|gross_area_amount|covered_area_amount:Sup. total:m2,list_selling_price_amount|selling_price_amount|price_amount:Precio:precio,_plano:Plano:plano',
+		'columnas' => 'ref:Referencia,bedrooms:Dorm. · Baños:dormbanos,total_area_amount|built_area_amount|gross_area_amount|covered_area_amount:Sup. total:m2,internal_area_amount|living_area_amount|net_area_amount:Sup. interior:m2,uncovered_veranda_amount|uncovered_verandas_amount|uncovered_terrace_amount|open_terrace_amount|uncovered_area_amount:Terraza descubierta:m2,covered_veranda_amount|covered_verandas_amount|covered_terrace_amount|veranda_area_amount|terrace_area_amount:Terraza cubierta:m2,list_selling_price_amount|selling_price_amount|price_amount:Precio:precio,_plano:Plano:plano',
 		'ocultar'  => 'withdrawn',
 		'vacio'    => '',
 		'reservadas' => 'Ver propiedades reservadas',
