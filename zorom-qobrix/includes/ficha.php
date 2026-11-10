@@ -161,10 +161,11 @@ function zq_ficha_urbanizacion( $post_id, $a ) {
 /* 04. Galería -------------------------------------------------------------- */
 function zq_ficha_galeria( $post_id, $a ) {
 	$gal = array_values( (array) get_post_meta( $post_id, '_zq_galeria', true ) );
-	$ids = zq_fotos_distintas( $gal, 2, array( isset( $gal[0] ) ? $gal[0] : 0, (int) get_post_thumbnail_id( $post_id ) ) );
+	$ids = zq_fotos_distintas( $gal, 2, array( isset( $gal[0] ) ? $gal[0] : 0, (int) get_post_thumbnail_id( $post_id ) ), $post_id );
 	if ( count( $ids ) < 2 ) {
 		$ids = array_slice( $gal, 0, 2 );
 	}
+	zq_registrar_fotos( $post_id, $ids );
 	if ( ! $ids ) {
 		return '';
 	}
