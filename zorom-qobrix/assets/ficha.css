@@ -1784,3 +1784,168 @@ body > #colophon {
 	font-size: 15px;
 	font-weight: 500;
 }
+
+/* ======================================================================
+ * 2.12 – Tablet y móvil
+ * ==================================================================== */
+
+/* Tablet: la tabla a ancho completo de pantalla, sin cortes. */
+@media (min-width: 768px) and (max-width: 1099px) {
+	.zq-f .zq-propiedades-wrap,
+	.zq-propiedades-wrap {
+		align-self: flex-start;
+		box-sizing: border-box;
+		width: 100vw !important;
+		max-width: 100vw !important;
+		margin-left: calc(50% - 50vw) !important;
+		padding: 0 12px;
+	}
+
+	.zq-f .zq-propiedades th,
+	.zq-propiedades th {
+		padding: 0 4px;
+		font-size: 12px !important;
+	}
+
+	.zq-f .zq-propiedades td,
+	.zq-propiedades td {
+		padding: 0 4px;
+		font-size: 14px;
+	}
+
+	.zq-dormbanos { gap: 8px; }
+	.zq-dormbanos > span { gap: 4px; }
+	.zq-propiedades .zq-v-ico { width: 18px; height: 18px; }
+
+	.zq-propiedades .zq-ver-plano {
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 2px 4px;
+		font-size: 12px;
+		white-space: normal;
+		line-height: 1.2;
+	}
+
+	.zq-propiedades td.zq-col-ver { white-space: normal; }
+
+	.zq-propiedades .zq-ver-propiedad {
+		padding: 5px 8px;
+		font-size: 12px;
+		white-space: nowrap;
+	}
+}
+
+/* Móvil: cada inmueble en una tarjeta ordenada. */
+@media (max-width: 767px) {
+	.zq-propiedades-wrap {
+		width: 100% !important;
+		max-width: 480px !important;
+		margin-left: auto !important;
+		margin-right: auto !important;
+	}
+
+	.zq-propiedades,
+	.zq-propiedades tbody {
+		display: block;
+		width: 100%;
+	}
+
+	.zq-propiedades thead { display: none; }
+
+	.zq-propiedades tr,
+	.zq-f .zq-propiedades tr {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 14px 16px;
+		margin: 0 0 14px;
+		padding: 18px;
+		border: 1px solid #000;
+		border-radius: 14px;
+		background: #fff;
+	}
+
+	.zq-propiedades td,
+	.zq-f .zq-propiedades td {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		justify-content: flex-start;
+		height: auto;
+		padding: 0;
+		background: none !important;
+		color: #000;
+		font-size: 16px;
+		font-weight: 600;
+		text-align: left !important;
+		white-space: normal;
+	}
+
+	.zq-propiedades td::before {
+		content: attr(data-label);
+		margin-bottom: 3px;
+		color: #777;
+		font-size: 11px;
+		font-weight: 500;
+		letter-spacing: .5px;
+		text-transform: uppercase;
+	}
+
+	/* Referencia arriba y precio destacado, a todo el ancho. */
+	.zq-propiedades td:nth-child(1) {
+		order: -2;
+		grid-column: 1 / -1;
+		flex-direction: row;
+		align-items: baseline;
+		gap: 8px;
+		font-size: 20px;
+	}
+
+	.zq-propiedades td:nth-child(7) {
+		order: -1;
+		grid-column: 1 / -1;
+		padding-bottom: 12px;
+		border-bottom: 1px solid #e2e2e2;
+		font-size: 22px;
+	}
+
+	.zq-propiedades td:nth-child(2) { grid-column: 1 / -1; }
+	.zq-propiedades td:nth-child(8) { grid-column: 1 / -1; }
+
+	.zq-propiedades td.zq-col-ver {
+		grid-column: 1 / -1;
+		align-items: stretch;
+	}
+
+	.zq-propiedades td.zq-col-ver::before,
+	.zq-propiedades td.zq-sin-propiedades::before { content: none; }
+
+	.zq-propiedades .zq-ver-propiedad {
+		justify-content: center;
+		width: 100%;
+		box-sizing: border-box;
+		padding: 12px;
+		font-size: 15px;
+	}
+
+	.zq-propiedades td.zq-sin-propiedades {
+		grid-column: 1 / -1;
+		align-items: center;
+		text-align: center !important;
+	}
+
+	.zq-propiedades--vendidas tr { opacity: .75; }
+
+	/* Ficha del inmueble: cabecera y planos centrados. */
+	.zq-v-hero__txt {
+		align-items: center;
+		text-align: center;
+	}
+
+	.zq-v-volver { align-self: center; }
+	.zq-v-meta,
+	.zq-v-claves,
+	.zq-v-botones { justify-content: center; }
+
+	.zq-v-planos { text-align: center; }
+	.zq-v-planos__grid { align-items: center; }
+}
