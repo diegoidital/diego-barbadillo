@@ -439,7 +439,7 @@ function zq_planos_de_unidad( $post_id ) {
 		return array_values( array_filter( array_map( 'intval', (array) $ids ), function ( $id ) {
 			// Fuera documentos largos (la «Memoria» de calidades): un plano es un PDF de 1-3 páginas.
 			return $id && wp_get_attachment_url( $id ) && zq_pdf_paginas( $id ) <= 3
-				&& ! preg_match( '/memoria/i', (string) get_post_meta( $id, '_zq_nombre_original', true ) );
+				&& ! preg_match( '/memoria|superficie/i', (string) get_post_meta( $id, '_zq_nombre_original', true ) );
 		} ) );
 	};
 	$propios = $validos( get_post_meta( $post_id, '_zq_planos', true ) );

@@ -1752,3 +1752,10 @@ body > #colophon {
 .zq-v-planos {
 	scroll-margin-top: 120px;
 }
+
+/* Planos de la ficha del inmueble: uno debajo de otro. */
+.zq-v-planos__grid {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
