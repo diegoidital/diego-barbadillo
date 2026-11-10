@@ -279,10 +279,7 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 		$folleto = (string) get_post_meta( $promo, '_zq_folleto', true );
 	}
 	$fotos  = array_values( (array) get_post_meta( $post_id, '_zq_galeria', true ) );
-	// Solo planos que existan de verdad en la Biblioteca de medios.
-	$planos = array_values( array_filter( (array) get_post_meta( $post_id, '_zq_planos', true ), function ( $id ) {
-		return (int) $id && wp_get_attachment_image_url( (int) $id, 'large' );
-	} ) );
+	$planos = zq_planos_de_unidad( $post_id );
 	if ( ! $fotos && $promo ) { // Sin fotos propias: las de la promoción.
 		$fotos = array_values( (array) get_post_meta( $promo, '_zq_galeria', true ) );
 	}
@@ -361,11 +358,15 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 						<h3 class="zq-v-h3"><?php echo esc_html( $titulo ); ?></h3>
 						<dl class="zq-v-dl"><?php echo $filas; // phpcs:ignore ?></dl>
 						<?php if ( 'Superficies' === $titulo && $planos ) : ?>
-							<div class="zq-v-planos">
+							<div class="zq-v-planos" id="planos">
 								<h3 class="zq-v-h3">Planos</h3>
 								<div class="zq-v-planos__grid">
 									<?php foreach ( $planos as $id ) : ?>
-										<a href="<?php echo esc_url( wp_get_attachment_image_url( $id, 'full' ) ); ?>" data-zq-lb="<?php echo esc_attr( $lb ); ?>-planos"><?php echo wp_get_attachment_image( $id, 'large', false, array( 'loading' => 'lazy' ) ); ?></a>
+										<?php if ( wp_attachment_is_image( $id ) ) : ?>
+											<a href="<?php echo esc_url( wp_get_attachment_image_url( $id, 'full' ) ); ?>" data-zq-lb="<?php echo esc_attr( $lb ); ?>-planos"><?php echo wp_get_attachment_image( $id, 'large', false, array( 'loading' => 'lazy' ) ); ?></a>
+										<?php else : ?>
+											<a class="zq-v-plano-pdf" href="<?php echo esc_url( wp_get_attachment_url( $id ) ); ?>" target="_blank" rel="noopener"><?php echo zq_viv_icono( 'plano' ); // phpcs:ignore ?><span><?php echo esc_html( zq_plano_titulo( $id ) ); ?></span><small>PDF</small></a>
+										<?php endif; ?>
 									<?php endforeach; ?>
 								</div>
 							</div>
@@ -427,6 +428,54 @@ function zq_viv_portada( $post_id, $n = 0 ) {
 		return (int) get_post_thumbnail_id( $promo );
 	}
 	return 0;
+}
+
+/**
+ * Planos de un inmueble: los suyos o, si no tiene, los de su promoción cuyo nombre de archivo
+ * lleva el número de la vivienda (p. ej. «planta baja 12b.pdf» para «La Merced 12B»).
+ */
+function zq_planos_de_unidad( $post_id ) {
+	$validos = function ( $ids ) {
+		return array_values( array_filter( array_map( 'intval', (array) $ids ), function ( $id ) {
+			return $id && wp_get_attachment_url( $id );
+		} ) );
+	};
+	$propios = $validos( get_post_meta( $post_id, '_zq_planos', true ) );
+	if ( $propios ) {
+		return $propios;
+	}
+	$promo = (int) get_post_meta( $post_id, '_zq_promocion', true );
+	$todos = $promo ? $validos( get_post_meta( $promo, '_zq_planos', true ) ) : array();
+	if ( ! $todos ) {
+		return array();
+	}
+	$norm = function ( $t ) {
+		$t = strtolower( remove_accents( (string) $t ) );
+		$t = preg_replace( '/(\d)\s*-?\s*([a-z])\b/', '$1$2', $t ); // «12 B» / «12-b» → «12b»
+		return ' ' . preg_replace( '/[^a-z0-9]+/', ' ', $t ) . ' ';
+	};
+	// Números de la vivienda (con su letra) sacados del nombre: «12b», «2l»… (no la referencia de 4 cifras).
+	$nombre = $norm( get_the_title( $post_id ) . ' ' . get_post_meta( $post_id, ZQ_META_PREFIX . 'name', true ) . ' ' . get_post_meta( $post_id, ZQ_META_PREFIX . 'unit_number', true ) );
+	preg_match_all( '/ (\d{1,3}[a-z]?) /', $nombre, $m );
+	$claves = array_unique( $m[1] );
+	if ( ! $claves ) {
+		return array();
+	}
+	return array_values( array_filter( $todos, function ( $id ) use ( $claves, $norm ) {
+		$archivo = $norm( get_the_title( $id ) . ' ' . basename( (string) get_attached_file( $id ) ) );
+		foreach ( $claves as $k ) {
+			if ( false !== strpos( $archivo, ' ' . $k . ' ' ) ) {
+				return true;
+			}
+		}
+		return false;
+	} ) );
+}
+
+/** Nombre legible de un plano: «Planta baja», «Planta sótano»… a partir del archivo. */
+function zq_plano_titulo( $id ) {
+	$t = trim( (string) get_the_title( $id ) );
+	return '' !== $t ? ucfirst( $t ) : 'Plano';
 }
 
 /** Iconos de línea para dormitorios, baños y superficie. */

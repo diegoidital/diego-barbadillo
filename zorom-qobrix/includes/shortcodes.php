@@ -486,9 +486,15 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 						$txt = '<span class="zq-dormbanos"><span title="Dormitorios">' . zq_viv_icono( 'cama' ) . esc_html( $d ) . '</span><span title="Baños">' . zq_viv_icono( 'bano' ) . esc_html( $b ) . '</span></span>';
 						break;
 					case 'plano':
-						$pl  = ! empty( $u['_post'] ) ? array_values( array_filter( (array) get_post_meta( (int) $u['_post'], '_zq_planos', true ) ) ) : array();
-						$pu  = $pl ? wp_get_attachment_image_url( (int) $pl[0], 'full' ) : '';
-						$txt = $pu ? '<a class="zq-ver-plano" href="' . esc_url( $pu ) . '" target="_blank" rel="noopener">' . zq_viv_icono( 'plano' ) . 'Ver plano</a>' : '<span class="zq-vacio">—</span>';
+						$pl = ! empty( $u['_post'] ) ? zq_planos_de_unidad( (int) $u['_post'] ) : array();
+						if ( count( $pl ) > 1 && $url ) {
+							// Varios planos (sótano, baja, primera…): a la ficha del inmueble, donde están todos.
+							$txt = '<a class="zq-ver-plano" href="' . esc_url( $url . '#planos' ) . '">' . zq_viv_icono( 'plano' ) . 'Ver planos (' . count( $pl ) . ')</a>';
+						} elseif ( $pl ) {
+							$txt = '<a class="zq-ver-plano" href="' . esc_url( wp_get_attachment_url( $pl[0] ) ) . '" target="_blank" rel="noopener">' . zq_viv_icono( 'plano' ) . 'Ver plano</a>';
+						} else {
+							$txt = '<span class="zq-vacio">—</span>';
+						}
 						break;
 					default:
 						$v = zq_humanize( $v );
