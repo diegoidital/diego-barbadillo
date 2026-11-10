@@ -145,7 +145,7 @@ function zq_ficha_urbanizacion( $post_id, $a ) {
 	$desc = zq_render_field( $post_id, 'descripcion' );
 	$com  = zq_render_field( $post_id, 'comodidades' );
 	// Si la descripción ya incluye las comodidades (escritas a mano), no se repiten.
-	if ( $com && false !== stripos( wp_strip_all_tags( $desc ), 'comodidades' ) ) {
+	if ( '' === trim( wp_strip_all_tags( (string) $com ) ) || false !== stripos( wp_strip_all_tags( $desc ), 'comodidades' ) ) {
 		$com = '';
 	}
 	return '<section class="zq-f-sec zq-f-urb"><div class="zq-f-canvas zq-f-row">'
@@ -160,9 +160,10 @@ function zq_ficha_urbanizacion( $post_id, $a ) {
 
 /* 04. Galería -------------------------------------------------------------- */
 function zq_ficha_galeria( $post_id, $a ) {
-	$ids = array_slice( array_values( (array) get_post_meta( $post_id, '_zq_galeria', true ) ), 1, 2 );
+	$gal = array_values( (array) get_post_meta( $post_id, '_zq_galeria', true ) );
+	$ids = zq_fotos_distintas( $gal, 2, array( isset( $gal[0] ) ? $gal[0] : 0, (int) get_post_thumbnail_id( $post_id ) ) );
 	if ( count( $ids ) < 2 ) {
-		$ids = array_slice( array_values( (array) get_post_meta( $post_id, '_zq_galeria', true ) ), 0, 2 );
+		$ids = array_slice( $gal, 0, 2 );
 	}
 	if ( ! $ids ) {
 		return '';

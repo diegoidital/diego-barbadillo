@@ -520,11 +520,19 @@ add_shortcode( 'qobrix_galeria', function ( $atts ) {
 		'limite'   => 0,
 		'columnas' => 2,
 		'tamano'   => 'large',
+		'variado'  => 'si', // «no» = fotos seguidas, tal cual vienen de Qobrix.
 	), $atts, 'qobrix_galeria' );
 
 	$post_id = zq_resolve_project( $a['proyecto'] );
 	$ids     = $post_id ? array_values( (array) get_post_meta( $post_id, '_zq_galeria', true ) ) : array();
-	$ids     = array_slice( $ids, max( 0, (int) $a['desde'] - 1 ), (int) $a['limite'] ? (int) $a['limite'] : null );
+	if ( (int) $a['limite'] && 'no' !== $a['variado'] ) {
+		// Fotos que no se parezcan entre sí ni a las ya usadas arriba (destacada y anteriores a «desde»).
+		$antes = array_slice( $ids, 0, max( 0, (int) $a['desde'] - 1 ) );
+		$antes[] = (int) get_post_thumbnail_id( $post_id );
+		$ids   = zq_fotos_distintas( $ids, (int) $a['limite'], $antes );
+	} else {
+		$ids = array_slice( $ids, max( 0, (int) $a['desde'] - 1 ), (int) $a['limite'] ? (int) $a['limite'] : null );
+	}
 	if ( ! $ids ) {
 		return '';
 	}

@@ -310,3 +310,86 @@ function zq_image_sources() {
 	}
 	return $out;
 }
+
+/**
+ * Huella visual de una imagen (8×8, media de grises) para detectar fotos casi iguales
+ * (la misma estancia desde otro ángulo). Se guarda en el adjunto.
+ */
+function zq_img_huella( $id ) {
+	$h = get_post_meta( $id, '_zq_huella', true );
+	if ( $h ) {
+		return $h;
+	}
+	$file = get_attached_file( $id );
+	$med  = image_get_intermediate_size( $id, 'thumbnail' );
+	if ( $med && ! empty( $med['path'] ) ) {
+		$up   = wp_upload_dir();
+		$file = trailingslashit( $up['basedir'] ) . $med['path'];
+	}
+	if ( ! $file || ! is_readable( $file ) || ! function_exists( 'imagecreatefromstring' ) ) {
+		return '';
+	}
+	$src = @imagecreatefromstring( (string) file_get_contents( $file ) ); // phpcs:ignore
+	if ( ! $src ) {
+		return '';
+	}
+	$t = imagecreatetruecolor( 8, 8 );
+	imagecopyresampled( $t, $src, 0, 0, 0, 0, 8, 8, imagesx( $src ), imagesy( $src ) );
+	$g = array();
+	for ( $y = 0; $y < 8; $y++ ) {
+		for ( $x = 0; $x < 8; $x++ ) {
+			$c   = imagecolorat( $t, $x, $y );
+			$g[] = ( ( $c >> 16 ) & 255 ) * .3 + ( ( $c >> 8 ) & 255 ) * .59 + ( $c & 255 ) * .11;
+		}
+	}
+	$avg = array_sum( $g ) / 64;
+	$h   = '';
+	foreach ( $g as $v ) {
+		$h .= $v >= $avg ? '1' : '0';
+	}
+	update_post_meta( $id, '_zq_huella', $h );
+	return $h;
+}
+
+/**
+ * Elige $n fotos de la galería que no se parezcan entre sí: repartidas por toda la galería
+ * y descartando las casi iguales. $excluir: fotos ya usadas en otras partes de la página.
+ */
+function zq_fotos_distintas( array $ids, $n, array $excluir = array() ) {
+	$ids = array_values( array_diff( array_map( 'intval', array_filter( $ids ) ), array_map( 'intval', $excluir ) ) );
+	$len = count( $ids );
+	if ( $len <= $n ) {
+		return $ids;
+	}
+	// Orden de prueba: primero fotos repartidas a lo largo de la galería, luego el resto.
+	$orden = array();
+	for ( $i = 0; $i < $n; $i++ ) {
+		$orden[] = $ids[ (int) floor( ( $i + .5 ) * $len / $n ) ];
+	}
+	$orden = array_values( array_unique( array_merge( $orden, $ids ) ) );
+	$usar  = array();
+	$huell = array();
+	foreach ( array( 18, 10, -1 ) as $min ) { // Si no hay bastantes distintas, se relaja el criterio.
+		foreach ( $orden as $id ) {
+			if ( count( $usar ) >= $n ) {
+				break 2;
+			}
+			if ( in_array( $id, $usar, true ) ) {
+				continue;
+			}
+			$h  = zq_img_huella( $id );
+			$ok = true;
+			foreach ( $huell as $o ) {
+				if ( $h && $o && count( array_diff_assoc( str_split( $h ), str_split( $o ) ) ) <= $min ) {
+					$ok = false;
+					break;
+				}
+			}
+			if ( $ok ) {
+				$usar[]  = $id;
+				$huell[] = $h;
+			}
+		}
+	}
+	return $usar;
+}
