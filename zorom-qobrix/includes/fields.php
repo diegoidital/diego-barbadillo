@@ -269,7 +269,59 @@ function zq_image_id( $post_id, $campo = 'destacada' ) {
 		$id = (int) zq_get_manual( $post_id, sanitize_key( $campo ) );
 	}
 	// Sin imagen propia: la destacada de la promoción.
-	return $id && wp_attachment_is_image( $id ) ? $id : (int) get_post_thumbnail_id( $post_id );
+	$id = $id && wp_attachment_is_image( $id ) ? $id : (int) get_post_thumbnail_id( $post_id );
+	return zq_imagen_no_repetida( $post_id, $campo, $id );
+}
+
+/**
+ * Evita que la misma foto (o una casi igual) salga dos veces en la página de una promoción:
+ * si el hueco cae en una foto ya usada, toma otra de la galería que no se parezca a ninguna.
+ * Cada hueco recuerda su foto, así que pedirlo varias veces devuelve siempre la misma.
+ */
+function zq_imagen_no_repetida( $post_id, $campo, $id ) {
+	static $huecos = array();
+	if ( is_admin() && ! wp_doing_ajax() ) {
+		return $id;
+	}
+	$k = (int) $post_id;
+	if ( isset( $huecos[ $k ][ $campo ] ) ) {
+		return $huecos[ $k ][ $campo ];
+	}
+	$usadas = isset( $GLOBALS['zq_fotos_usadas'][ $k ] ) ? $GLOBALS['zq_fotos_usadas'][ $k ] : array();
+	if ( $id && zq_se_parece( $id, $usadas ) ) {
+		$gal = array_values( (array) get_post_meta( $post_id, '_zq_galeria', true ) );
+		foreach ( $gal as $g ) {
+			$g = (int) $g;
+			if ( $g && wp_attachment_is_image( $g ) && ! zq_se_parece( $g, $usadas ) ) {
+				$id = $g;
+				break;
+			}
+		}
+	}
+	$huecos[ $k ][ $campo ] = $id;
+	zq_registrar_fotos( $k, array( $id ) );
+	return $id;
+}
+
+/** Anota fotos ya mostradas en la página de la promoción. */
+function zq_registrar_fotos( $post_id, array $ids ) {
+	$k = (int) $post_id;
+	$GLOBALS['zq_fotos_usadas'][ $k ] = array_values( array_unique( array_merge( isset( $GLOBALS['zq_fotos_usadas'][ $k ] ) ? $GLOBALS['zq_fotos_usadas'][ $k ] : array(), array_filter( array_map( 'intval', $ids ) ) ) ) );
+}
+
+/** ¿La foto es la misma o casi igual que alguna de la lista? */
+function zq_se_parece( $id, array $lista, $max = 10 ) {
+	$h = zq_img_huella( $id );
+	foreach ( $lista as $o ) {
+		if ( (int) $o === (int) $id ) {
+			return true;
+		}
+		$ho = zq_img_huella( (int) $o );
+		if ( $h && $ho && count( array_diff_assoc( str_split( $h ), str_split( $ho ) ) ) <= $max ) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /** URL de la imagen por defecto (cuando la promoción no tiene ninguna). */
@@ -355,7 +407,7 @@ function zq_img_huella( $id ) {
  * Elige $n fotos de la galería que no se parezcan entre sí: repartidas por toda la galería
  * y descartando las casi iguales. $excluir: fotos ya usadas en otras partes de la página.
  */
-function zq_fotos_distintas( array $ids, $n, array $excluir = array() ) {
+function zq_fotos_distintas( array $ids, $n, array $excluir = array(), $post_id = 0 ) {
 	$ids = array_values( array_diff( array_map( 'intval', array_filter( $ids ) ), array_map( 'intval', $excluir ) ) );
 	$len = count( $ids );
 	if ( $len <= $n ) {
@@ -369,6 +421,11 @@ function zq_fotos_distintas( array $ids, $n, array $excluir = array() ) {
 	$orden = array_values( array_unique( array_merge( $orden, $ids ) ) );
 	$usar  = array();
 	$huell = array();
+	$pagina = ( $post_id && isset( $GLOBALS['zq_fotos_usadas'][ (int) $post_id ] ) ) ? $GLOBALS['zq_fotos_usadas'][ (int) $post_id ] : array();
+	$ids   = array_values( array_filter( $ids, function ( $id ) use ( $pagina ) {
+		return ! $pagina || ! zq_se_parece( $id, $pagina );
+	} ) ) ?: $ids;
+	$orden = array_values( array_intersect( $orden, $ids ) ) ?: $ids;
 	foreach ( array( 18, 10, -1 ) as $min ) { // Si no hay bastantes distintas, se relaja el criterio.
 		foreach ( $orden as $id ) {
 			if ( count( $usar ) >= $n ) {

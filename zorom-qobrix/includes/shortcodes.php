@@ -529,7 +529,8 @@ add_shortcode( 'qobrix_galeria', function ( $atts ) {
 		// Fotos que no se parezcan entre sí ni a las ya usadas arriba (destacada y anteriores a «desde»).
 		$antes = array_slice( $ids, 0, max( 0, (int) $a['desde'] - 1 ) );
 		$antes[] = (int) get_post_thumbnail_id( $post_id );
-		$ids   = zq_fotos_distintas( $ids, (int) $a['limite'], $antes );
+		$ids   = zq_fotos_distintas( $ids, (int) $a['limite'], $antes, $post_id );
+		zq_registrar_fotos( $post_id, $ids );
 	} else {
 		$ids = array_slice( $ids, max( 0, (int) $a['desde'] - 1 ), (int) $a['limite'] ? (int) $a['limite'] : null );
 	}
