@@ -271,6 +271,30 @@ class CecoCatalogFeed {
         return array_values( array_unique( $urls ) );
     }
 
+    private static function is_weak_short( $text, $compare ) {
+        $text = trim( wp_strip_all_tags( (string) $text ) );
+        if ( mb_strlen( $text ) < 30 ) {
+            return true;
+        }
+        foreach ( $compare as $value ) {
+            if ( $value !== '' && mb_strtolower( $text ) === mb_strtolower( trim( $value ) ) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static function first_sentence( $text, $max = 250 ) {
+        $text = trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( (string) $text ) ) );
+        if ( $text === '' ) {
+            return '';
+        }
+        if ( preg_match( '/^(.{30,}?[.!?])(\s|$)/u', $text, $m ) && mb_strlen( $m[1] ) <= $max ) {
+            return $m[1];
+        }
+        return mb_strlen( $text ) > $max ? rtrim( mb_substr( $text, 0, $max ) ) . '…' : $text;
+    }
+
     /**
      * Texto con saltos de línea => HTML sencillo (párrafos).
      */
@@ -311,6 +335,22 @@ class CecoCatalogFeed {
         $chars = self::field( $f, 'Caracter_sticas', $lang, $fallback );
         $long_html = trim( self::to_html( $long ) . "\n" . self::to_html( $chars ) );
 
+        // Descripción corta: en Plytix muchas veces viene vacía o es solo la categoría
+        // ("Robots Aspiradores", "Cafetera italiana"). En ese caso se usa la descripción larga
+        // (que en Plytix es una frase resumen) o, si tampoco hay, el inicio de "Características".
+        $cat1  = self::field( $f, 'Familia_padre', $lang, $fallback );
+        $cat2  = self::field( $f, 'Familia', $lang, $fallback );
+        $cat3  = self::field( $f, 'Subfamilia', $lang, $fallback );
+        $short = self::field( $f, 'Descripci_n_corta_del_producto', $lang, $fallback );
+        if ( self::is_weak_short( $short, [ $cat1, $cat2, $cat3, $name ] ) ) {
+            foreach ( [ $long, self::first_sentence( $chars ) ] as $candidate ) {
+                if ( ! self::is_weak_short( $candidate, [ $cat1, $cat2, $cat3, $name ] ) ) {
+                    $short = trim( wp_strip_all_tags( $candidate ) );
+                    break;
+                }
+            }
+        }
+
         $main    = self::images( $raw, 'Foto_M_ster_Main_Image' );
         $gallery = self::images( $raw, 'Foto_Image_Gallery_1:1' );
         $images  = $main;
@@ -321,11 +361,11 @@ class CecoCatalogFeed {
         return [
             'sku'          => $raw['tag_SKU'],
             'name'         => $name,
-            'short'        => self::field( $f, 'Descripci_n_corta_del_producto', $lang, $fallback ),
+            'short'        => $short,
             'long'         => $long_html,
-            'cat1'         => self::field( $f, 'Familia_padre', $lang, $fallback ),
-            'cat2'         => self::field( $f, 'Familia', $lang, $fallback ),
-            'cat3'         => self::field( $f, 'Subfamilia', $lang, $fallback ),
+            'cat1'         => $cat1,
+            'cat2'         => $cat2,
+            'cat3'         => $cat3,
             'weight'       => self::field( $f, 'Product_weight__Kg_' ),
             'length'       => self::field( $f, 'Product_depth__cm_' ),
             'width'        => self::field( $f, 'Product_width__cm_' ),

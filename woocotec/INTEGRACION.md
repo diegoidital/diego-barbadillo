@@ -45,7 +45,7 @@ Imagen destacada, img1, img2, img3, img4,` **`Stock, Estado stock, EAN, Estado C
 
 1. **Inventario:** «Manage stock» = Yes, «Stock Qty» = `{stock[1]}`, «Allow backorders» = No.
 2. **Imágenes:**
-   - Usar `{imagendestacada[1]}` + `{galería[1]}` con separador `|`, o seguir con `img1…img4`.
+   - Usar `{imagendestacada[1]}` + `{galera[1]}` con separador `|`, o seguir con `img1…img4`.
    - Activar «Search through the Media Library for existing images before importing new images».
    - En los productos existentes, marcar «Update images» solo si se quieren sustituir las fotos
      antiguas (`media.cecotec.cloud`) por las de Plytix. Si no, se descargan miles de imágenes
