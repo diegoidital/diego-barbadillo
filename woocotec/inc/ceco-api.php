@@ -203,17 +203,41 @@ class CecoPublisherToWooCommerce {
         return $prices;
     }
 
-    // SKU tal y como ya existe en WooCommerce (p. ej. "0121" en lugar de "00121") para no duplicar productos.
+    /**
+     * Identificador con el que cada producto ya existe, para que WP All Import lo actualice
+     * en lugar de crear uno nuevo (p. ej. "099" o "00099" frente al "00099" del feed).
+     *
+     * Se usa el identificador único que WP All Import guardó en importaciones anteriores de
+     * products.csv (tabla pmxi_posts), que es con lo que WP All Import empareja.
+     *
+     * No se usa el SKU de WooCommerce: productos antiguos de otros plugins tienen SKU sin ceros
+     * ("99") y, si no los controla esta importación, WP All Import intentaría crear otro producto
+     * con ese mismo SKU (duplicado). Para los no controlados se usa el SKU del feed ("00099").
+     */
     private function existing_skus() {
         global $wpdb;
         $skus = [];
-        $rows = $wpdb->get_col("SELECT pm.meta_value FROM {$wpdb->postmeta} pm
-                                INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-                                WHERE pm.meta_key = '_sku' AND pm.meta_value <> ''
-                                AND p.post_type IN ('product','product_variation') AND p.post_status <> 'trash'");
-        foreach ((array) $rows as $sku) {
-            $skus[CecoStockFeed::normalize_sku($sku)] = $sku;
+
+        // Identificadores únicos de WP All Import.
+        $posts_table   = $wpdb->prefix . 'pmxi_posts';
+        $imports_table = $wpdb->prefix . 'pmxi_imports';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $posts_table)) === $posts_table) {
+            $import_ids = [];
+            if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $imports_table)) === $imports_table) {
+                $import_ids = $wpdb->get_col("SELECT id FROM {$imports_table} WHERE path LIKE '%products.csv%'");
+            }
+            if (!empty($import_ids)) {
+                $in   = implode(',', array_map('intval', $import_ids));
+                $keys = $wpdb->get_col("SELECT px.unique_key FROM {$posts_table} px
+                                        INNER JOIN {$wpdb->posts} p ON p.ID = px.post_id
+                                        WHERE px.import_id IN ($in) AND px.unique_key <> '' AND p.post_status <> 'trash'
+                                        ORDER BY px.id ASC");
+                foreach ((array) $keys as $key) {
+                    $skus[CecoStockFeed::normalize_sku($key)] = $key;
+                }
+            }
         }
+
         return $skus;
     }
 
