@@ -51,6 +51,17 @@ add_action( 'elementor/dynamic_tags/register', function ( $dynamic_tags ) {
  * Shortcodes [qobrix…] en cualquier widget de Elementor (Título, Caja de icono, Botón…):
  * Elementor no siempre los procesa fuera del Editor de texto, así que se procesan aquí.
  */
+// Título «Comodidades» de la plantilla: si la promoción no tiene comodidades, no se muestra.
+add_filter( 'elementor/widget/render_content', function ( $content, $widget ) {
+	if ( is_object( $widget ) && 'heading' === $widget->get_name() && 'comodidades' === strtolower( trim( wp_strip_all_tags( (string) $widget->get_settings( 'title' ) ) ) ) ) {
+		$post_id = zq_resolve_project( '' );
+		if ( $post_id && '' === trim( wp_strip_all_tags( (string) zq_render_field( $post_id, 'comodidades' ) ) ) ) {
+			return '';
+		}
+	}
+	return $content;
+}, 19, 2 );
+
 add_filter( 'elementor/widget/render_content', function ( $content ) {
 	return ( is_string( $content ) && false !== strpos( $content, '[qobrix' ) ) ? do_shortcode( $content ) : $content;
 }, 20 );
