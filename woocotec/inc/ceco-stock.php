@@ -94,14 +94,13 @@ class CecoStockFeed {
             }
         }
 
-        $response = wp_remote_get( $url, [ 'timeout' => 120 ] );
+        $response = self::fetch( $url );
         if ( is_wp_error( $response ) ) {
             error_log( '❌ Stock Cecotec: error al descargar ' . $url . ': ' . $response->get_error_message() );
             return $response;
         }
 
-        $code = wp_remote_retrieve_response_code( $response );
-        $body = wp_remote_retrieve_body( $response );
+        list( $code, $body ) = $response;
         if ( $code !== 200 || trim( $body ) === '' ) {
             error_log( "❌ Stock Cecotec: respuesta HTTP $code vacía o incorrecta desde $url" );
             return new WP_Error( 'ceco_stock_http', "El feed de stock respondió con HTTP $code o vacío ($url)." );
@@ -118,6 +117,60 @@ class CecoStockFeed {
 
         set_transient( self::CACHE_KEY, [ 'url' => $url, 'map' => $map ], self::CACHE_TTL );
         return $map;
+    }
+
+    /**
+     * Descarga el feed. Devuelve [código HTTP, cuerpo] o WP_Error.
+     *
+     * El servidor de Cecotec (IIS) responde con la cabecera incorrecta
+     * "Content-Encoding: UTF-8". WordPress pide a cURL que descomprima las respuestas
+     * y cURL falla con "cURL error 61: Unrecognized content encoding type".
+     * Por eso se desactiva la decodificación de contenido para esta petición
+     * (el CSV llega sin comprimir).
+     */
+    private static function fetch( $url ) {
+        if ( function_exists( 'curl_init' ) ) {
+            $ch = curl_init( $url );
+            curl_setopt_array( $ch, [
+                CURLOPT_RETURNTRANSFER        => true,
+                CURLOPT_FOLLOWLOCATION        => true,
+                CURLOPT_MAXREDIRS             => 5,
+                CURLOPT_CONNECTTIMEOUT        => 20,
+                CURLOPT_TIMEOUT               => 120,
+                CURLOPT_HTTP_CONTENT_DECODING => false,
+                CURLOPT_SSL_VERIFYPEER        => true,
+                CURLOPT_USERAGENT             => 'Woocotec/' . ( defined( 'WOOCOTEC_VERSION' ) ? WOOCOTEC_VERSION : '2' ) . '; ' . home_url( '/' ),
+            ] );
+            // Mismo almacén de certificados que usa WordPress, por si el del servidor está desactualizado.
+            if ( defined( 'ABSPATH' ) && defined( 'WPINC' ) && file_exists( ABSPATH . WPINC . '/certificates/ca-bundle.crt' ) ) {
+                curl_setopt( $ch, CURLOPT_CAINFO, ABSPATH . WPINC . '/certificates/ca-bundle.crt' );
+            }
+            $body  = curl_exec( $ch );
+            $errno = curl_errno( $ch );
+            $error = curl_error( $ch );
+            $code  = (int) curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+            curl_close( $ch );
+
+            if ( $errno ) {
+                return new WP_Error( 'ceco_stock_http', "cURL error $errno: $error" );
+            }
+            return [ $code, (string) $body ];
+        }
+
+        // Sin la extensión cURL: API HTTP de WordPress, quitando la decodificación igualmente.
+        $disable_decoding = function ( $handle ) {
+            if ( defined( 'CURLOPT_HTTP_CONTENT_DECODING' ) ) {
+                curl_setopt( $handle, CURLOPT_HTTP_CONTENT_DECODING, false );
+            }
+        };
+        add_action( 'http_api_curl', $disable_decoding );
+        $response = wp_remote_get( $url, [ 'timeout' => 120, 'decompress' => false ] );
+        remove_action( 'http_api_curl', $disable_decoding );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+        return [ (int) wp_remote_retrieve_response_code( $response ), wp_remote_retrieve_body( $response ) ];
     }
 
     /**
