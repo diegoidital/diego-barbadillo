@@ -1,86 +1,67 @@
 jQuery(document).ready(function ($) {
-    $('#start-import').on('click', function () {
-        $('#import-log').html('<p>Iniciando creación del CSV...</p>');
+    var nonce = (window.cecoStock && cecoStock.nonce) || '';
+    var $log = $('#import-log');
 
-        // Primera llamada AJAX: Crear y rellenar el CSV
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'import_products' // Acción PHP para crear el CSV
-            },
-            success: function (response) {
-                if (response.success) {
-                    $('#import-log').append('<p>' + response.data.message + '</p>');
-                    //$('#import-log').append('<p>Iniciando importación de productos desde el CSV...</p>');
+    function log(text) {
+        $log.append($('<p>').text(text));
+    }
 
-                    // Segunda llamada AJAX: Crear productos desde el CSV
-                    processProducts(0, 10); // Iniciar desde el offset 0 con un límite de 10 productos por lote
-                } else {
-                    $('#import-log').append('<p>Error al crear el CSV: ' + response.data.message + '</p>');
+    // Importación manual: 1) descargar catálogo de Plytix (si hace falta) 2) generar el CSV.
+    $('#start-import').on('click', function (e) {
+        e.preventDefault();
+        var $btn = $(this).prop('disabled', true);
+        var force = $('#force-catalog').is(':checked') ? 1 : 0;
+        $log.empty();
+        log('1/2 Comprobando el catálogo de Plytix (la descarga son unos 280 MB y puede tardar varios minutos)...');
+
+        $.post(ajaxurl, { action: 'ceco_download_catalog', nonce: nonce, force: force })
+            .done(function (response) {
+                var msg = (response && response.data && response.data.message) || 'Respuesta inesperada.';
+                if (!response.success) {
+                    log('❌ ' + msg);
+                    $btn.prop('disabled', false);
+                    return;
                 }
-            },
-            error: function (xhr, status, error) {
-                $('#import-log').append('<p>Error en la solicitud AJAX: ' + error + '</p>');
-            }
-        });
+                log(msg);
+                log('2/2 Generando el CSV con precios, stock y fichas de producto...');
 
-        // Función para procesar productos desde el CSV
-           /* function processProducts(offset, limit) {
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'process_products_from_csv', // Acción PHP para procesar productos
-                        offset: offset,
-                        limit: limit
-                    },
-                    success: function (response) {
-                        if (response.success) {
-                            $('#import-log').append('<p>' + response.data.message + '</p>');
-
-                            if (response.data.has_more) {
-                                processProducts(response.data.next_offset, limit); // Procesar el siguiente lote
-                            } else {
-                                $('#import-log').append('<p>Importación completada.</p>');
-                            }
-                        } else {
-                            $('#import-log').append('<p>Error al procesar productos: ' + response.data.message + '</p>');
+                $.post(ajaxurl, { action: 'import_products' })
+                    .done(function (r) {
+                        var m = (r && r.data && r.data.message) || 'Respuesta inesperada.';
+                        log(r.success ? m : '❌ Error al crear el CSV: ' + m);
+                        if (r.success) {
+                            log('Siguiente paso: All Import › Manage Imports › ejecutar «Productos Cecotec».');
                         }
-                    },
-                    error: function (xhr, status, error) {
-                        $('#import-log').append('<p>Error en la solicitud AJAX: ' + error + '</p>');
-                    }
-                });
-            }*/
+                    })
+                    .fail(function (xhr, status, error) {
+                        log('❌ Error en la solicitud AJAX: ' + (error || status));
+                    })
+                    .always(function () {
+                        $btn.prop('disabled', false);
+                    });
+            })
+            .fail(function (xhr, status, error) {
+                log('❌ Error al descargar el catálogo: ' + (error || status) + '. Si el servidor corta la petición, el catálogo se descarga igualmente cada noche por cron.');
+                $btn.prop('disabled', false);
+            });
     });
-});
 
-// Sincronización manual del stock con el feed de Cecotec
-jQuery(document).ready(function ($) {
+    // Sincronización manual del stock con el feed de Cecotec
     $('#start-stock-sync').on('click', function (e) {
         e.preventDefault();
-        var $btn = $(this);
-        $btn.prop('disabled', true);
+        var $btn = $(this).prop('disabled', true);
         $('#stock-last-sync').text('Sincronizando stock, puede tardar unos minutos...');
 
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'ceco_sync_stock',
-                nonce: (window.cecoStock && cecoStock.nonce) || ''
-            },
-            success: function (response) {
+        $.post(ajaxurl, { action: 'ceco_sync_stock', nonce: nonce })
+            .done(function (response) {
                 var msg = (response && response.data && response.data.message) || 'Respuesta inesperada.';
                 $('#stock-last-sync').text(response.success ? msg : '❌ ' + msg);
-            },
-            error: function (xhr, status, error) {
-                $('#stock-last-sync').text('❌ Error en la solicitud AJAX: ' + error);
-            },
-            complete: function () {
+            })
+            .fail(function (xhr, status, error) {
+                $('#stock-last-sync').text('❌ Error en la solicitud AJAX: ' + (error || status));
+            })
+            .always(function () {
                 $btn.prop('disabled', false);
-            }
-        });
+            });
     });
 });

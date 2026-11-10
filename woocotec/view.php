@@ -1,5 +1,20 @@
 <div id="woocotec" class="wrap">
-    <h1>Importar Productos CecoPublisher</h1>
+    <h1>Importar Productos Cecotec</h1>
+
+    <h2>Origen de los datos</h2>
+    <table class="widefat striped" style="max-width: 900px;">
+        <thead><tr><th>Dato</th><th>España</th><th>Resto de zonas</th></tr></thead>
+        <tbody>
+            <tr><td>Ficha de producto (nombre, descripciones, familias, imágenes, medidas)</td><td colspan="2">Catálogo Plytix (XML)</td></tr>
+            <tr><td>Precio (PVPR)</td><td>Feed DROPES (<code>pvpr</code>)</td><td>Cecopublisher, tarifa DROP INTER (requiere las credenciales de abajo)</td></tr>
+            <tr><td>Stock</td><td>Feed DROPES</td><td>Feed de la zona (DROPPT, DROPIT, DROPDE, DROPFR, DROPZ1, DROPZ2, DROPZ3)</td></tr>
+        </tbody>
+    </table>
+    <p class="description">Cruce entre fuentes: SKU del catálogo = <code>public_id</code> del feed = SKU de Cecopublisher.</p>
+
+    <hr>
+
+    <h2>Credenciales de Cecopublisher <small>(solo para precios fuera de España)</small></h2>
 
     <form method="post" action="<?= admin_url('admin-post.php'); ?>">
         <input type="hidden" name="action" value="save_credentials">
@@ -139,19 +154,43 @@
 
     <hr>
 
+    <h2>Catálogo de Plytix</h2>
+    <?php
+        $ceco_catalog_url  = get_option(CecoCatalogFeed::URL_OPTION, '');
+        $ceco_gallery_mode = get_option(CecoCatalogFeed::GALLERY_OPTION, 'master_gallery');
+    ?>
+    <p><strong>Feed:</strong> <code><?= esc_html(CecoCatalogFeed::feed_url()); ?></code></p>
+    <p><strong>Última descarga:</strong> <?= esc_html(CecoCatalogFeed::describe_download(get_option(CecoCatalogFeed::LAST_DOWNLOAD, []))); ?></p>
+    <form method="post" action="<?= admin_url('admin-post.php'); ?>">
+        <input type="hidden" name="action" value="save_catalog_settings">
+        <?php wp_nonce_field('ceco_save_catalog_settings'); ?>
+        <table class="form-table">
+            <tr valign="top">
+                <th scope="row">URL del catálogo (opcional)</th>
+                <td>
+                    <input type="url" name="ceco_catalog_feed_url" class="large-text" value="<?= esc_attr($ceco_catalog_url); ?>" placeholder="<?= esc_attr(CecoCatalogFeed::DEFAULT_URL); ?>" />
+                    <p class="description">Vacío = feed XML «Integración Avanzada» de Cecotec. Tiene que ser el XML, no el Excel.</p>
+                </td>
+            </tr>
+            <tr valign="top">
+                <th scope="row">Imágenes</th>
+                <td>
+                    <label><input type="radio" name="ceco_catalog_gallery_mode" value="master_gallery" <?php checked($ceco_gallery_mode, 'master_gallery'); ?>> Fotos máster (fondo blanco) + fotos «Gallery 1:1» (producto en uso)</label><br>
+                    <label><input type="radio" name="ceco_catalog_gallery_mode" value="master" <?php checked($ceco_gallery_mode, 'master'); ?>> Solo fotos máster (fondo blanco)</label>
+                    <p class="description">La imagen destacada es siempre la primera foto máster. Las fotos «enriquecidas» (con texto) no se usan.</p>
+                </td>
+            </tr>
+        </table>
+        <?php submit_button('Guardar ajustes del catálogo', 'secondary'); ?>
+    </form>
+
+    <hr>
+
     <h2>Crea el csv con los productos de Cecotec</h2>
-    <table>
-        <tr >
-            <td>
-                  <span style="margin-bottom: 20px;">Una vez generado el CSV, para crear los productos en woocommerce, ir a All Import y ejecutar la importación: "Productos Cecotec" en el apartado "Manage Imports"</span>  
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <button id="start-import" class="button button-primary">Importación manual</button>
-            </td>
-        </tr>
-    </table>
+    <p>Último CSV: <?= esc_html(CecoPublisherToWooCommerce::describe_csv(get_option('ceco_last_csv', []))); ?></p>
+    <p>El CSV se genera automáticamente una vez al día. Una vez generado, para crear/actualizar los productos en WooCommerce, ir a All Import › Manage Imports y ejecutar la importación «Productos Cecotec».</p>
+    <p><label><input type="checkbox" id="force-catalog"> Volver a descargar el catálogo aunque esté al día</label></p>
+    <p><button id="start-import" class="button button-primary">Importación manual</button></p>
 
   
     
