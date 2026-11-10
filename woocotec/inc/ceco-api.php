@@ -404,11 +404,15 @@ class CecoPublisherToWooCommerce {
             }
 
             $sku    = $existing[$key] ?? ($feed['sku'] ?? $product['sku'] ?? $key);
-            $images = $product['images'];
-            if (empty($images) && $feed) {
-                // Sin fotos en Plytix: se usan las del feed de España (si las hay).
-                $images = array_values(array_filter([$feed['imagen'] ?? '', $feed['imagen2'] ?? '', $feed['imagen3'] ?? '']));
-                $images = str_replace([' ', ','], ['%20', '%2C'], $images);
+            // Imágenes. Por defecto, las del feed de Cecotec (media.cecotec.cloud, 2048 px, ~0,5 MB):
+            // las de Plytix son originales de 4.600-5.100 px y 7-10 MB, y WordPress tarda ~35 s por foto
+            // en generar las miniaturas. Plytix se usa si el feed no trae fotos o si se elige en ajustes.
+            $feed_images = $feed ? array_values(array_filter([$feed['imagen'] ?? '', $feed['imagen2'] ?? '', $feed['imagen3'] ?? ''])) : [];
+            $feed_images = str_replace([' ', ','], ['%20', '%2C'], $feed_images);
+            if (CecoCatalogFeed::image_source() === 'feed' && !empty($feed_images)) {
+                $images = $feed_images;
+            } else {
+                $images = !empty($product['images']) ? $product['images'] : $feed_images;
             }
 
             $row = [

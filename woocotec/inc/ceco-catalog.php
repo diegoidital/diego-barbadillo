@@ -22,6 +22,7 @@ class CecoCatalogFeed {
 
     const URL_OPTION      = 'ceco_catalog_feed_url';
     const GALLERY_OPTION  = 'ceco_catalog_gallery_mode'; // 'master' | 'master_gallery'
+    const IMAGE_SOURCE    = 'ceco_image_source';         // 'feed' | 'plytix'
     const LAST_DOWNLOAD   = 'ceco_catalog_last_download';
     const MAX_AGE         = 20 * HOUR_IN_SECONDS;        // se vuelve a descargar si el fichero tiene más de 20 h
 
@@ -50,6 +51,10 @@ class CecoCatalogFeed {
             'Zona 3'    => 'EN',
         ];
         return $map[ $zone ] ?? '';
+    }
+
+    public static function image_source() {
+        return get_option( self::IMAGE_SOURCE, 'feed' ) === 'plytix' ? 'plytix' : 'feed';
     }
 
     public static function feed_url() {
@@ -449,6 +454,9 @@ function ceco_handle_save_catalog_settings() {
 
     $mode = ( isset( $_POST['ceco_catalog_gallery_mode'] ) && $_POST['ceco_catalog_gallery_mode'] === 'master' ) ? 'master' : 'master_gallery';
     update_option( CecoCatalogFeed::GALLERY_OPTION, $mode );
+
+    $source = ( isset( $_POST['ceco_image_source'] ) && $_POST['ceco_image_source'] === 'plytix' ) ? 'plytix' : 'feed';
+    update_option( CecoCatalogFeed::IMAGE_SOURCE, $source );
 
     wp_redirect( admin_url( 'admin.php?page=import-cecopublisher' ) );
     exit;
