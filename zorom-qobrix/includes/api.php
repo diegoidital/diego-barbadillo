@@ -399,7 +399,7 @@ function zq_sync_gallery( $post_id, $qobrix_id, $name, $model = 'Projects' ) {
 			return false;
 		}
 		$type = isset( $m['media_type'] ) && is_string( $m['media_type'] ) ? $m['media_type'] : '';
-		return ! preg_match( '/document|brochure|pdf|floor|plan|video/', strtolower( $type . ' ' . $cat ) );
+		return ! preg_match( '/document|brochure|pdf|floor|plan|video/', strtolower( $type . ' ' . $cat ) ) && ! zq_media_es_plano( zq_media_kind( $m ) );
 	} ) );
 	usort( $items, function ( $a, $b ) {
 		return (int) ( isset( $a['display_order'] ) ? $a['display_order'] : 0 ) - (int) ( isset( $b['display_order'] ) ? $b['display_order'] : 0 );
@@ -552,11 +552,32 @@ function zq_sideload( $url, $post_id, $title, $auth = false, $pdf = false ) {
 
 /** Categoría (texto) de un medio de Qobrix. */
 function zq_media_kind( array $m ) {
-	$cat  = isset( $m['category'] ) ? $m['category'] : '';
-	$cat  = is_array( $cat ) ? ( isset( $cat['name'] ) ? $cat['name'] . ' ' . ( isset( $cat['label'] ) ? $cat['label'] : '' ) : '' ) : (string) $cat;
-	$mime = isset( $m['file']['mime_type'] ) ? (string) $m['file']['mime_type'] : '';
-	$type = isset( $m['media_type'] ) && is_string( $m['media_type'] ) ? $m['media_type'] : '';
-	return strtolower( $type . ' ' . $cat . ' ' . $mime );
+	// Todo el texto del medio (tipo, categoría en cualquier formato, título, nombre del archivo, MIME),
+	// sin las URLs: así se reconoce «Siteplans» o «planta baja 12b.pdf» venga como venga.
+	$txt  = array();
+	$walk = function ( $v, $k, $depth ) use ( &$walk, &$txt ) {
+		if ( preg_match( '/href|url|thumbnail|link|path|^id$|_id$|token/i', (string) $k ) ) {
+			return;
+		}
+		if ( is_array( $v ) ) {
+			if ( $depth < 3 ) {
+				foreach ( $v as $kk => $vv ) {
+					$walk( $vv, $kk, $depth + 1 );
+				}
+			}
+		} elseif ( is_scalar( $v ) && ! is_bool( $v ) && ! is_numeric( $v ) ) {
+			$txt[] = (string) $v;
+		}
+	};
+	foreach ( $m as $k => $v ) {
+		$walk( $v, $k, 0 );
+	}
+	return strtolower( remove_accents( implode( ' ', $txt ) ) );
+}
+
+/** ¿Es un plano? (categoría Siteplans / Floor plans, o el archivo se llama «plano…», «planta…»). */
+function zq_media_es_plano( $kind ) {
+	return (bool) preg_match( '/site ?plans?|floor ?plans?|\\bplan(o|os|s)?\\b|\\bplanta|\\bsotano|\\bblueprint/', $kind );
 }
 
 /**
@@ -569,16 +590,25 @@ function zq_sync_planos_folleto( $post_id, array $items, $name ) {
 	$map    = array();
 	$planos = array();
 	$folleto = '';
+	$diag   = array();
 	foreach ( $items as $m ) {
 		if ( empty( $m['id'] ) ) {
 			continue;
 		}
+		$mid_txt = '#' . $m['id'];
 		$kind   = zq_media_kind( $m );
 		$href   = isset( $m['file']['href'] ) && is_string( $m['file']['href'] ) ? $m['file']['href'] : '';
 		$fname  = isset( $m['file']['name'] ) && is_string( $m['file']['name'] ) ? $m['file']['name'] : ( isset( $m['title'] ) && is_string( $m['title'] ) ? $m['title'] : '' );
 		$es_pdf = false !== strpos( $kind, 'pdf' ) || preg_match( '/\.pdf$/i', $fname . ' ' . $href );
 		// Planos: categoría Siteplans / Floor plans (imagen o PDF).
-		if ( count( $planos ) < 30 && preg_match( '/site ?plan|floor|plan|plano/', $kind ) ) {
+		$tipo = 'foto';
+		if ( zq_media_es_plano( $kind ) ) {
+			$tipo = 'plano';
+		} elseif ( $href && preg_match( '/pdf|brochure|folleto|document|presentation/', $kind ) ) {
+			$tipo = 'folleto';
+		}
+		$diag[] = ( $fname ? $fname : $mid_txt ) . ' → ' . $tipo . ' [' . mb_substr( $kind, 0, 120 ) . ']';
+		if ( count( $planos ) < 30 && 'plano' === $tipo ) {
 			$mid   = (string) $m['id'];
 			$att   = isset( $known[ $mid ] ) && get_post( $known[ $mid ] ) ? (int) $known[ $mid ] : 0;
 			$titul = $fname ? preg_replace( '/\.[a-z0-9]+$/i', '', $fname ) : $name . ' plano';
@@ -597,11 +627,12 @@ function zq_sync_planos_folleto( $post_id, array $items, $name ) {
 			}
 			continue;
 		}
-		if ( ! $folleto && $href && preg_match( '/pdf|brochure|folleto|document/', $kind ) ) {
+		if ( ! $folleto && 'folleto' === $tipo ) {
 			$folleto = preg_match( '#^https?://#', $href ) ? $href : $base . '/' . ltrim( $href, '/' );
 		}
 	}
 	update_post_meta( $post_id, '_zq_planos_map', $map + $known );
 	update_post_meta( $post_id, '_zq_planos', $planos );
+	update_post_meta( $post_id, '_zq_medios_diag', array_slice( $diag, 0, 80 ) ); // Para Qobrix → Ajustes.
 	update_post_meta( $post_id, '_zq_folleto', $folleto );
 }

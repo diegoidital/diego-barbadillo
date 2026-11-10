@@ -208,6 +208,19 @@ function zq_settings_page() {
 
 		<?php if ( ! empty( $status['units']['fields'] ) ) : ?>
 			<h3>Campos de los inmuebles (para <code>[qobrix_propiedades columnas="…"]</code>)</h3>
+			<details><summary>Medios de Qobrix: qué se ha tomado como plano, folleto o foto</summary>
+				<p class="description">Se rellena en cada sincronización. Si un plano sale como «foto» o «folleto», copia estas líneas y envíalas.</p>
+				<?php
+				foreach ( get_posts( array( 'post_type' => array( ZQ_CPT, 'vivienda' ), 'post_status' => 'any', 'posts_per_page' => 60, 'meta_key' => '_zq_medios_diag', 'fields' => 'ids' ) ) as $pid ) {
+					$d = (array) get_post_meta( $pid, '_zq_medios_diag', true );
+					if ( ! $d ) {
+						continue;
+					}
+					$n = count( (array) get_post_meta( $pid, '_zq_planos', true ) );
+					echo '<h4 style="margin:12px 0 4px">' . esc_html( get_the_title( $pid ) ) . ' — planos descargados: ' . (int) $n . '</h4><pre style="white-space:pre-wrap;background:#f6f7f7;padding:8px;font-size:11px;max-height:220px;overflow:auto">' . esc_html( implode( "\n", $d ) ) . '</pre>';
+				}
+				?>
+			</details>
 			<details><summary>Ver campos</summary>
 			<table class="widefat striped" style="max-width:900px"><tbody>
 				<?php foreach ( $status['units']['fields'] as $k => $v ) : ?>
