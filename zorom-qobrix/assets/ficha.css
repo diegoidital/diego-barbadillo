@@ -1950,3 +1950,34 @@ body > #colophon {
 	.zq-v-planos { text-align: center; }
 	.zq-v-planos__grid { align-items: center; }
 }
+
+/* Más sitio para «Ver planos (3)» y «Ver propiedad», sin que se monten. */
+.zq-f .zq-propiedades th:nth-child(1) { width: 8%; }
+.zq-f .zq-propiedades th:nth-child(2) { width: 12%; }
+.zq-f .zq-propiedades th:nth-child(3) { width: 9%; }
+.zq-f .zq-propiedades th:nth-child(4) { width: 9%; }
+.zq-f .zq-propiedades th:nth-child(5) { width: 10%; }
+.zq-f .zq-propiedades th:nth-child(6) { width: 10%; }
+.zq-f .zq-propiedades th:nth-child(7) { width: 12%; }
+.zq-f .zq-propiedades th:nth-child(8) { width: 14%; }
+.zq-f .zq-propiedades th.zq-col-ver { width: 16%; }
+
+.zq-propiedades td { overflow: hidden; }
+
+.zq-propiedades .zq-ver-plano {
+	flex-wrap: wrap;
+	justify-content: center;
+	max-width: 100%;
+	white-space: normal;
+	line-height: 1.2;
+}
+
+.zq-propiedades td.zq-col-ver {
+	padding-left: 8px;
+	padding-right: 4px;
+}
+
+.zq-propiedades .zq-ver-propiedad {
+	max-width: 100%;
+	box-sizing: border-box;
+}
