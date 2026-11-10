@@ -1699,3 +1699,14 @@ body > #colophon {
 .zq-propiedades--vendidas .zq-ver-plano {
 	opacity: .6;
 }
+
+/* Cabecera de la tabla: 15 px / 500 y en dos líneas si no cabe, sin pisarse. */
+.zq-f .zq-propiedades th,
+.zq-propiedades th {
+	font-size: 15px !important;
+	font-weight: 500 !important;
+	white-space: normal !important;
+	overflow-wrap: break-word;
+	hyphens: none;
+	line-height: 1.2;
+}
