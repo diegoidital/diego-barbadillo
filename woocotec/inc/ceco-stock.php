@@ -318,7 +318,7 @@ class CecoStockFeed {
               WHERE pm.meta_key = '_sku'
                 AND pm.meta_value <> ''
                 AND p.post_type IN ('product', 'product_variation')
-                AND p.post_status NOT IN ('trash', 'auto-draft')"
+                AND p.post_status IN ('publish', 'private')"
         );
 
         $stats = [ 'found' => 0, 'updated' => 0, 'instock' => 0, 'outofstock' => 0, 'not_in_feed' => 0 ];
