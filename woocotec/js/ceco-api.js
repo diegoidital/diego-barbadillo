@@ -145,3 +145,41 @@ jQuery(document).ready(function ($) {
         next();
     });
 });
+
+// Preparar fotos en lotes y regenerar el CSV al terminar
+jQuery(document).ready(function ($) {
+    var nonce = (window.cecoStock && cecoStock.nonce) || '';
+    $('#process-images').on('click', function (e) {
+        e.preventDefault();
+        var $btn = $(this).prop('disabled', true);
+        var $status = $('#images-status');
+
+        function batch() {
+            $.post(ajaxurl, { action: 'ceco_process_images', nonce: nonce })
+                .done(function (r) {
+                    if (!r.success) {
+                        $status.text('❌ ' + ((r.data && r.data.message) || 'Error'));
+                        $btn.prop('disabled', false);
+                        return;
+                    }
+                    $status.text(r.data.message);
+                    if (r.data.remaining > 0 || r.data.busy) {
+                        setTimeout(batch, r.data.busy ? 5000 : 200);
+                        return;
+                    }
+                    $status.text(r.data.message + ' Regenerando el CSV...');
+                    $.post(ajaxurl, { action: 'import_products' })
+                        .done(function (c) {
+                            var m = (c && c.data && c.data.message) || '';
+                            $status.text(c.success ? '✅ Fotos preparadas y CSV regenerado. ' + m : '❌ ' + m);
+                        })
+                        .always(function () { $btn.prop('disabled', false); });
+                })
+                .fail(function (x, s, err) {
+                    $status.text('❌ Error en la solicitud AJAX: ' + (err || s) + '. Vuelve a pulsar para continuar.');
+                    $btn.prop('disabled', false);
+                });
+        }
+        batch();
+    });
+});

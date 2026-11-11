@@ -371,6 +371,11 @@ class CecoPublisherToWooCommerce {
 
         $duplicates = $this->find_duplicate_codes($prices, $stock_map, $catalog, $existing);
 
+        $cache_images     = CecoImageCache::enabled();
+        $only_new_images  = CecoImageCache::only_new();
+        $pending_images   = [];
+        $stats['images_cached'] = 0;
+
         foreach ($prices as $key => $pvpr) {
             if (isset($duplicates[$key])) {
                 $stats['skipped_duplicates']++;
@@ -413,6 +418,21 @@ class CecoPublisherToWooCommerce {
                 $images = $feed_images;
             } else {
                 $images = !empty($product['images']) ? $product['images'] : $feed_images;
+            }
+            $images = array_slice(array_values($images), 0, CecoImageCache::per_product());
+
+            // Fotos preparadas (reducidas) en el propio servidor. Solo hacen falta para los productos
+            // que WP All Import va a crear: los existentes no actualizan imágenes.
+            if ($cache_images && (!$only_new_images || !isset($existing[$key]))) {
+                foreach ($images as $i => $url) {
+                    $local = CecoImageCache::cached_url($url);
+                    if ($local) {
+                        $images[$i] = $local;
+                        $stats['images_cached']++;
+                    } else {
+                        $pending_images[] = $url;
+                    }
+                }
             }
 
             $row = [
@@ -458,6 +478,11 @@ class CecoPublisherToWooCommerce {
         }
         rename($tmp_file, $route_file);
 
+        if ($cache_images) {
+            CecoImageCache::queue_set($pending_images);
+        }
+        $stats['images_pending'] = count(array_unique($pending_images));
+
         $stats['zone']         = $selected_zone;
         $stats['price_source'] = $price_source;
         $stats['stock_url']    = CecoStockFeed::feed_url($selected_zone);
@@ -477,7 +502,7 @@ class CecoPublisherToWooCommerce {
             '✅ %s — Zona %s · %d productos en el CSV (%d con stock) · precios: %s · %d descatalogados sin stock omitidos · %d códigos duplicados sin stock omitidos · %d sin ficha en el catálogo omitidos.',
             $stats['time'], $stats['zone'], $stats['rows'], $stats['instock'], $stats['price_source'],
             $stats['skipped_discontinued'], $stats['skipped_duplicates'] ?? 0, $stats['no_catalog']
-        );
+        ) . (isset($stats['images_pending']) ? sprintf(' · Fotos: %d preparadas, %d pendientes de preparar.', $stats['images_cached'] ?? 0, $stats['images_pending']) : '');
     }
 
     // Botón "Importación manual" (AJAX).
