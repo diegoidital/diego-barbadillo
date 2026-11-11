@@ -204,4 +204,16 @@
   
     
     <div id="import-log" style="margin-top: 20px; padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9; max-height: 300px; overflow-y: auto;"></div>
+
+    <hr>
+
+    <h2>Limpiar borradores antiguos de Cecotec</h2>
+    <p>Busca productos en <strong>borrador</strong> que <strong>no</strong> controla la importación de WP All Import y cuyo SKU (sin contar ceros a la izquierda) coincide con un producto del CSV actual: por ejemplo «123» o «00127» frente a «00123» / «00127». Son fichas antiguas de plugins anteriores; si se dejan, WooCommerce no permite crear la ficha nueva con el mismo SKU.</p>
+    <p>No toca productos publicados, ni borradores de la importación actual, ni borradores que no estén en el CSV. Se envían a la <strong>papelera</strong>, de donde se pueden recuperar.</p>
+    <p>
+        <button id="find-old-drafts" class="button button-secondary">1. Buscar borradores antiguos</button>
+        <button id="trash-old-drafts" class="button button-secondary" disabled>2. Enviar a la papelera</button>
+    </p>
+    <div id="old-drafts-result" style="margin-top: 10px; max-height: 400px; overflow-y: auto;"></div>
+
 </div>
