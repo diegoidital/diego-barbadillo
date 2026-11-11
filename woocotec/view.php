@@ -195,6 +195,43 @@
 
     <hr>
 
+    <h2>Optimización de imágenes</h2>
+    <?php
+        $ceco_sizes     = function_exists('wp_get_registered_image_subsizes') ? wp_get_registered_image_subsizes() : [];
+        $ceco_essential = array_intersect_key($ceco_sizes, array_flip(CecoImageCache::ESSENTIAL_SIZES));
+    ?>
+    <p>Lo que más tarda al importar es que WordPress genere las miniaturas de cada foto. Estas opciones lo reducen:</p>
+    <form method="post" action="<?= admin_url('admin-post.php'); ?>">
+        <input type="hidden" name="action" value="save_image_settings">
+        <?php wp_nonce_field('ceco_save_image_settings'); ?>
+        <table class="form-table">
+            <tr valign="top">
+                <th scope="row">Preparar fotos antes de importar</th>
+                <td>
+                    <label><input type="checkbox" name="ceco_img_cache" value="1" <?php checked(CecoImageCache::enabled()); ?>> Descargar y reducir las fotos en segundo plano; el CSV apunta a las copias del propio servidor (<code>uploads/woocotec-img</code>).</label><br>
+                    <label><input type="checkbox" name="ceco_img_only_new" value="1" <?php checked(CecoImageCache::only_new()); ?>> Solo para productos nuevos (los existentes no actualizan imágenes).</label><br>
+                    Tamaño máximo: <input type="number" name="ceco_img_max_px" min="600" max="3000" step="100" value="<?= esc_attr(CecoImageCache::max_px()); ?>" style="width:90px"> px
+                </td>
+            </tr>
+            <tr valign="top">
+                <th scope="row">Fotos por producto</th>
+                <td><input type="number" name="ceco_img_per_product" min="1" max="20" value="<?= esc_attr(CecoImageCache::per_product()); ?>" style="width:70px"> como máximo (la primera es la destacada)</td>
+            </tr>
+            <tr valign="top">
+                <th scope="row">Miniaturas durante la importación</th>
+                <td>
+                    <label><input type="checkbox" name="ceco_img_light_sizes" value="1" <?php checked(CecoImageCache::light_sizes()); ?>> Generar solo las miniaturas de WooCommerce mientras importa WP All Import</label>
+                    <p class="description">Hay <?= count($ceco_sizes); ?> tamaños registrados en la web; con esta opción se generan <?= count($ceco_essential); ?> (<?= esc_html(implode(', ', array_keys($ceco_essential))); ?>). Si alguna plantilla pide otro tamaño, WordPress usa la imagen más próxima.</p>
+                </td>
+            </tr>
+        </table>
+        <?php submit_button('Guardar ajustes de imágenes', 'secondary'); ?>
+    </form>
+    <p><strong>Estado:</strong> <span id="images-status"><?= esc_html(CecoImageCache::describe()); ?></span></p>
+    <p><button id="process-images" class="button button-secondary">Preparar fotos ahora</button> <span class="description">Se preparan solas por cron; este botón lo acelera (deja la pestaña abierta). Al terminar se regenera el CSV.</span></p>
+
+    <hr>
+
     <h2>Crea el csv con los productos de Cecotec</h2>
     <p>Último CSV: <?= esc_html(CecoPublisherToWooCommerce::describe_csv(get_option('ceco_last_csv', []))); ?></p>
     <p>El CSV se genera automáticamente una vez al día. Una vez generado, para crear/actualizar los productos en WooCommerce, ir a All Import › Manage Imports y ejecutar la importación «Productos Cecotec».</p>
