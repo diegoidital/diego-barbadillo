@@ -162,6 +162,7 @@ jQuery(document).ready(function ($) {
                         $btn.prop('disabled', false);
                         return;
                     }
+                    retries = 0;
                     $status.text(r.data.message);
                     if (r.data.remaining > 0 || r.data.busy) {
                         setTimeout(batch, r.data.busy ? 5000 : 200);
@@ -176,10 +177,20 @@ jQuery(document).ready(function ($) {
                         .always(function () { $btn.prop('disabled', false); });
                 })
                 .fail(function (x, s, err) {
-                    $status.text('❌ Error en la solicitud AJAX: ' + (err || s) + '. Vuelve a pulsar para continuar.');
+                    // Si el servidor corta un lote (p. ej. una foto enorme), el siguiente lote la descarta y sigue.
+                    retries++;
+                    var detail = 'HTTP ' + x.status + (err ? ' ' + err : '') +
+                        (x.responseText ? ' — ' + $('<div>').html(x.responseText).text().replace(/\s+/g, ' ').substring(0, 200) : '');
+                    if (retries <= 5) {
+                        $status.text('⚠️ Un lote ha fallado (' + detail + '). Reintentando en 10 s (' + retries + '/5)...');
+                        setTimeout(batch, 10000);
+                        return;
+                    }
+                    $status.text('❌ Error en la solicitud AJAX: ' + detail + '. Vuelve a pulsar para continuar.');
                     $btn.prop('disabled', false);
                 });
         }
+        var retries = 0;
         batch();
     });
 });
