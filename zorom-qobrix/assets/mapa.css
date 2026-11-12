@@ -133,28 +133,29 @@ a.zq-mo__label:focus-visible {
 	min-height: 24px;
 	box-sizing: border-box;
 	border-radius: 0;
-	background: #000 !important;
-	color: #bdbdbd;
+	background: #F5F5F5 !important;
+	color: #000;
 	font-family: var(--zq-geist, sans-serif);
 	font-size: 10px;
 	line-height: 1.6;
 }
 
 .zq-mapa-oficina .maplibregl-ctrl-attrib a {
-	color: #bdbdbd !important;
+	color: #000 !important;
 	text-decoration: none;
 }
 
 .zq-mapa-oficina .maplibregl-ctrl-attrib a:hover {
-	color: #fff !important;
+	color: #000 !important;
+	text-decoration: underline;
 }
 
 /* Botón «i» del aviso compacto, en blanco. */
 .zq-mapa-oficina .maplibregl-ctrl-attrib-button {
 	background-color: transparent !important;
-	filter: invert(1);
+	filter: none;
 }
 
 .zq-mapa-oficina .maplibregl-compact-show .maplibregl-ctrl-attrib-button {
-	filter: invert(1);
+	filter: none;
 }
