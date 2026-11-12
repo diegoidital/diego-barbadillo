@@ -4,7 +4,7 @@
 		fondo: '#e4e4e4',
 		zonas: '#d9d9d9',
 		edificios: '#d0d0d0',
-		agua: '#0d0d0d',
+		agua: '#F5F5F5',
 		vias: '#ffffff',
 		viasPrincipales: '#9a9a9a',
 		texto: '#555555'
