@@ -47,11 +47,22 @@
 		} );
 	}
 
-	function marcador( texto ) {
-		var el = document.createElement( 'div' );
+	// La etiqueta con el nombre es también el botón «Cómo llegar».
+	function marcador( c ) {
+		var el    = document.createElement( 'div' );
+		var label = document.createElement( c.enlace ? 'a' : 'span' );
 		el.className = 'zq-mo';
-		el.innerHTML = '<span class="zq-mo__h"></span><span class="zq-mo__v"></span><span class="zq-mo__label"></span>';
-		el.querySelector( '.zq-mo__label' ).textContent = texto;
+		el.innerHTML = '<span class="zq-mo__h"></span><span class="zq-mo__v"></span>';
+		label.className   = 'zq-mo__label';
+		label.textContent = ( c.etiqueta || 'Zorom' ) + ( c.enlace ? ' →' : '' );
+		if ( c.enlace ) {
+			label.href   = c.enlace;
+			label.target = '_blank';
+			label.rel    = 'noopener';
+			label.title  = c.boton || 'Cómo llegar';
+			label.setAttribute( 'aria-label', ( c.etiqueta || 'Zorom' ) + ': ' + ( c.boton || 'Cómo llegar' ) );
+		}
+		el.appendChild( label );
 		return el;
 	}
 
@@ -72,7 +83,7 @@
 		map.on( 'load', function () {
 			estiloZorom( map );
 		} );
-		new maplibregl.Marker( { element: marcador( c.etiqueta || 'Zorom' ), anchor: 'center' } )
+		new maplibregl.Marker( { element: marcador( c ), anchor: 'center' } )
 			.setLngLat( [ c.lng, c.lat ] )
 			.addTo( map );
 	}
