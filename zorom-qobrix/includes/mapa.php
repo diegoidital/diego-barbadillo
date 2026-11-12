@@ -34,9 +34,10 @@ add_shortcode( 'zorom_mapa_oficina', function ( $atts ) {
 		'lng'      => (float) $a['lng'],
 		'zoom'     => (float) $a['zoom'],
 		'etiqueta' => $a['etiqueta'],
+		'enlace'   => esc_url_raw( $a['enlace'] ),
+		'boton'    => $a['boton'],
 	);
 	return '<div class="zq-mapa-oficina" style="height:' . esc_attr( $a['alto'] ) . '">'
-		. '<div class="zq-mapa-oficina__mapa" data-zq-mapa="' . esc_attr( wp_json_encode( $cfg ) ) . '" role="img" aria-label="' . esc_attr( 'Mapa: ' . $a['direccion'] ) . '"></div>'
-		. ( $a['enlace'] ? '<a class="zq-mapa-oficina__boton" href="' . esc_url( $a['enlace'] ) . '" target="_blank" rel="noopener">' . esc_html( $a['boton'] ) . ' <span aria-hidden="true">&rarr;</span></a>' : '' )
+		. '<div class="zq-mapa-oficina__mapa" data-zq-mapa="' . esc_attr( wp_json_encode( $cfg ) ) . '" role="region" aria-label="' . esc_attr( 'Mapa: ' . $a['direccion'] ) . '"></div>'
 		. '</div>';
 } );

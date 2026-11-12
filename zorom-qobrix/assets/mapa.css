@@ -22,10 +22,24 @@
 }
 
 .zq-mo__h,
-.zq-mo__v,
-.zq-mo__label {
+.zq-mo__v {
 	position: absolute;
 	pointer-events: none;
+}
+
+.zq-mo__label {
+	position: absolute;
+	display: block;
+	text-decoration: none !important;
+	cursor: pointer;
+	transition: background .2s, color .2s;
+}
+
+a.zq-mo__label:hover,
+a.zq-mo__label:focus-visible {
+	border-color: #000;
+	background: #fff;
+	color: #000 !important;
 }
 
 .zq-mo__h {
@@ -51,7 +65,7 @@
 	padding: 7px 12px;
 	border: 1px solid #fff;
 	background: #000;
-	color: #fff;
+	color: #fff !important;
 	font-family: var(--zq-geist, sans-serif);
 	font-size: 12px;
 	font-weight: 600;
