@@ -529,3 +529,40 @@ body:has(.zq-promos) {
 .zq-listado .zq-card * {
 	text-decoration: none !important;
 }
+
+/* Móvil: sin scroll horizontal, pestañas en dos filas y datos centrados. */
+body:has(.zq-promos) {
+	overflow-x: clip;
+}
+
+.zq-promos {
+	overflow-x: clip;
+}
+
+@media (max-width: 767px) {
+	.zq-promos .zq-tabs {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		flex-wrap: wrap;
+		gap: 8px;
+		overflow: visible;
+	}
+
+	.zq-promos .zq-tab {
+		width: 100%;
+		min-width: 0;
+		padding: 12px 10px;
+		text-align: center;
+		white-space: normal;
+		line-height: 1.2;
+	}
+
+	.zq-promos .zq-datos {
+		justify-items: center;
+		text-align: center;
+	}
+
+	.zq-promos .zq-dato {
+		width: 100%;
+	}
+}
