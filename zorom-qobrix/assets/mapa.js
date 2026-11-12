@@ -73,7 +73,7 @@
 			style: 'https://tiles.openfreemap.org/styles/positron',
 			center: [ c.lng, c.lat ],
 			zoom: c.zoom || 13,
-			attributionControl: { compact: true },
+			attributionControl: false, // Sin el aviso sobre el mapa: el crédito de OpenStreetMap va en el aviso legal.
 			interactive: ! c.enlace, // Con enlace, el mapa entero es el botón: sin arrastre ni zoom.
 			dragRotate: false,
 			pitchWithRotate: false,
