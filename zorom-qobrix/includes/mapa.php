@@ -39,5 +39,7 @@ add_shortcode( 'zorom_mapa_oficina', function ( $atts ) {
 	);
 	return '<div class="zq-mapa-oficina" style="height:' . esc_attr( $a['alto'] ) . '">'
 		. '<div class="zq-mapa-oficina__mapa" data-zq-mapa="' . esc_attr( wp_json_encode( $cfg ) ) . '" role="region" aria-label="' . esc_attr( 'Mapa: ' . $a['direccion'] ) . '"></div>'
+		// Todo el mapa es el enlace «Cómo llegar».
+		. ( $a['enlace'] ? '<a class="zq-mapa-oficina__enlace" href="' . esc_url( $a['enlace'] ) . '" target="_blank" rel="noopener" aria-label="' . esc_attr( $a['boton'] . ': ' . $a['direccion'] ) . '"></a>' : '' )
 		. '</div>';
 } );
