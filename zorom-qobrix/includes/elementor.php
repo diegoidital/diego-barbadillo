@@ -65,3 +65,21 @@ add_filter( 'elementor/widget/render_content', function ( $content, $widget ) {
 add_filter( 'elementor/widget/render_content', function ( $content ) {
 	return ( is_string( $content ) && false !== strpos( $content, '[qobrix' ) ) ? do_shortcode( $content ) : $content;
 }, 20 );
+
+/*
+ * Fecha de las entradas en los widgets «Publicaciones» y «Archivo» de Elementor con el formato
+ * del diseño (21·09·2026), sin cambiar el formato de fecha del resto de la web.
+ */
+add_action( 'elementor/widget/before_render_content', function ( $widget ) {
+	if ( in_array( $widget->get_name(), array( 'posts', 'archive-posts' ), true ) ) {
+		$GLOBALS['zq_fecha_posts'] = true;
+	}
+} );
+add_action( 'elementor/frontend/widget/after_render', function ( $widget ) {
+	if ( in_array( $widget->get_name(), array( 'posts', 'archive-posts' ), true ) ) {
+		$GLOBALS['zq_fecha_posts'] = false;
+	}
+} );
+add_filter( 'get_the_date', function ( $fecha, $formato, $post ) {
+	return empty( $GLOBALS['zq_fecha_posts'] ) ? $fecha : get_post_time( apply_filters( 'zq_formato_fecha_actualidad', 'd·m·Y' ), false, $post, true );
+}, 10, 3 );
