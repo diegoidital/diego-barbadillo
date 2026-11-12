@@ -129,7 +129,9 @@ a.zq-mo__label:focus-visible {
 .zq-mapa-oficina .maplibregl-ctrl-attrib,
 .zq-mapa-oficina .maplibregl-ctrl-attrib.maplibregl-compact {
 	margin: 0 12px 12px 0;
-	padding: 2px 6px;
+	padding: 2px 30px 2px 8px;
+	min-height: 24px;
+	box-sizing: border-box;
 	border-radius: 0;
 	background: #000 !important;
 	color: #bdbdbd;
@@ -149,9 +151,8 @@ a.zq-mo__label:focus-visible {
 
 /* Botón «i» del aviso compacto, en blanco. */
 .zq-mapa-oficina .maplibregl-ctrl-attrib-button {
-	background-color: #000 !important;
+	background-color: transparent !important;
 	filter: invert(1);
-	mix-blend-mode: normal;
 }
 
 .zq-mapa-oficina .maplibregl-compact-show .maplibregl-ctrl-attrib-button {
