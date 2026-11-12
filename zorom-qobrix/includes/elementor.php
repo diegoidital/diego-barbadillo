@@ -95,3 +95,43 @@ add_filter( 'body_class', function ( $clases ) {
 	}
 	return $clases;
 } );
+
+/*
+ * Menú: cuando su fondo pasa a negro al hacer scroll (efecto de transparencia de Elementor),
+ * se añade «zq-menu-opaco» al <body> para invertir el botón «Contacto» (blanco con letra negra).
+ */
+add_action( 'wp_footer', function () {
+	if ( ! did_action( 'elementor/loaded' ) ) {
+		return;
+	}
+	?>
+	<script>
+	( function () {
+		var b = document.body;
+		function opaco() {
+			if ( b.classList.contains( 'zq-menu-sin-efecto' ) ) {
+				return true; // Páginas legales: el menú siempre es negro.
+			}
+			var capa = document.querySelector( '.elementor-location-header .elementor-motion-effects-layer' );
+			if ( capa ) {
+				return parseFloat( getComputedStyle( capa ).opacity ) >= 0.5;
+			}
+			return window.scrollY > 60;
+		}
+		var pendiente = false;
+		function revisar() {
+			pendiente = false;
+			b.classList.toggle( 'zq-menu-opaco', opaco() );
+		}
+		window.addEventListener( 'scroll', function () {
+			if ( ! pendiente ) {
+				pendiente = true;
+				requestAnimationFrame( revisar );
+			}
+		}, { passive: true } );
+		window.addEventListener( 'load', revisar );
+		revisar();
+	}() );
+	</script>
+	<?php
+}, 99 );

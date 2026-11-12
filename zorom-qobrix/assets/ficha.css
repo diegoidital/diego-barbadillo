@@ -2127,3 +2127,20 @@ body.zq-menu-sin-efecto .elementor-location-header [data-settings*="background_m
 body.zq-menu-sin-efecto .elementor-location-header .elementor-motion-effects-element {
 	opacity: 1 !important;
 }
+
+/* Botón «Contacto» del menú: blanco con letra negra cuando el menú ya tiene fondo negro. */
+body.zq-menu-opaco .elementor-location-header .elementor-button,
+body.zq-menu-opaco .elementor-location-header .elementor-button:visited {
+	background-color: #fff !important;
+	color: #000 !important;
+	transition: background-color .25s, color .25s;
+}
+
+body.zq-menu-opaco .elementor-location-header .elementor-button * {
+	color: #000 !important;
+	fill: #000 !important;
+}
+
+.elementor-location-header .elementor-button {
+	transition: background-color .25s, color .25s;
+}
