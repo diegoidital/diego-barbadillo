@@ -530,7 +530,7 @@ body:has(.zq-promos) {
 	text-decoration: none !important;
 }
 
-/* Móvil: sin scroll horizontal, pestañas en dos filas y datos centrados. */
+/* Móvil y tablet: sin scroll horizontal, pestañas en dos filas y datos centrados. */
 body:has(.zq-promos) {
 	overflow-x: clip;
 }
@@ -539,7 +539,7 @@ body:has(.zq-promos) {
 	overflow-x: clip;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1024px) {
 	.zq-promos .zq-tabs {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -567,8 +567,8 @@ body:has(.zq-promos) {
 	}
 }
 
-/* Móvil: «Ver promoción» como botón negro con letras blancas. */
-@media (max-width: 767px) {
+/* Móvil y tablet: «Ver promoción» como botón negro con letras blancas. */
+@media (max-width: 1024px) {
 	.zq-promos .zq-link {
 		display: flex;
 		align-items: center;
