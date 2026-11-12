@@ -30,6 +30,7 @@ class CecoImageCache {
     const OPT_STATS       = 'ceco_img_stats';
     const OPT_FAILED      = 'ceco_img_failed';
     const LOCK            = 'ceco_img_lock';
+    const OPT_CURRENT     = 'ceco_img_current';       // foto en proceso (para detectar caídas)
     const EVENT           = 'ceco_process_images_event';
 
     // Tamaños que se generan durante la importación si está activado "miniaturas esenciales".
@@ -145,7 +146,7 @@ class CecoImageCache {
         if ( get_transient( self::LOCK ) ) {
             return [ 'processed' => 0, 'remaining' => count( self::queue_get() ), 'failed' => 0, 'busy' => true ];
         }
-        set_transient( self::LOCK, 1, 120 );
+        set_transient( self::LOCK, 1, 60 );
 
         require_once ABSPATH . 'wp-admin/includes/file.php';
 
@@ -157,6 +158,21 @@ class CecoImageCache {
 
         $queue   = self::queue_get();
         $failed  = (array) get_option( self::OPT_FAILED, [] );
+
+        // Si el lote anterior se cayó (memoria, tiempo...) con una foto, esa foto se descarta
+        // para no quedarse atascado en ella: el CSV usará su URL original.
+        $crashed = get_option( self::OPT_CURRENT, '' );
+        if ( $crashed !== '' ) {
+            $failed[ $crashed ] = time();
+            $queue = array_values( array_diff( $queue, [ $crashed ] ) );
+            delete_option( self::OPT_CURRENT );
+            error_log( '⚠️ Imagen Cecotec descartada tras una caída del proceso: ' . $crashed );
+        }
+
+        if ( function_exists( 'wp_raise_memory_limit' ) ) {
+            wp_raise_memory_limit( 'image' );
+        }
+        $memory_limit = function_exists( 'wp_convert_hr_to_bytes' ) ? wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) ) : -1;
         $max     = self::max_px();
         $start   = microtime( true );
         $done    = 0;
@@ -169,21 +185,42 @@ class CecoImageCache {
                 continue;
             }
 
+            update_option( self::OPT_CURRENT, $url, false );
+            if ( function_exists( 'set_time_limit' ) ) {
+                @set_time_limit( 120 ); // una foto pesada (descarga + reducción) no debe agotar el tiempo de PHP
+            }
+
             $ok  = false;
-            $tmp = download_url( $url, 60 );
+            $tmp = download_url( $url, 30 );
             if ( ! is_wp_error( $tmp ) ) {
-                $editor = wp_get_image_editor( $tmp );
-                if ( ! is_wp_error( $editor ) ) {
-                    $size = $editor->get_size();
-                    if ( $size['width'] > $max || $size['height'] > $max ) {
-                        $editor->resize( $max, $max, false );
+                try {
+                    // Fotos enormes (originales de Plytix de ~5000 px): abrirlas puede agotar la memoria
+                    // de PHP. Si no cabe, se descarta y el CSV usa la URL original.
+                    $info = @getimagesize( $tmp );
+                    $need = $info ? (int) $info[0] * (int) $info[1] * 6 : 0;
+                    if ( ! $info ) {
+                        error_log( '⚠️ Imagen Cecotec no válida: ' . $url );
+                    } elseif ( $memory_limit > 0 && memory_get_usage() + $need > $memory_limit * 0.8 ) {
+                        error_log( sprintf( '⚠️ Imagen Cecotec demasiado grande para la memoria de PHP (%dx%d): %s', $info[0], $info[1], $url ) );
+                    } else {
+                        $editor = wp_get_image_editor( $tmp );
+                        if ( ! is_wp_error( $editor ) ) {
+                            $size = $editor->get_size();
+                            if ( $size['width'] > $max || $size['height'] > $max ) {
+                                $editor->resize( $max, $max, false );
+                            }
+                            $editor->set_quality( 85 );
+                            $saved = $editor->save( $dest );
+                            $ok    = ! is_wp_error( $saved );
+                            unset( $editor );
+                        }
                     }
-                    $editor->set_quality( 85 );
-                    $saved = $editor->save( $dest );
-                    $ok    = ! is_wp_error( $saved );
+                } catch ( \Throwable $e ) {
+                    error_log( '⚠️ Error preparando imagen Cecotec ' . $url . ': ' . $e->getMessage() );
                 }
                 @unlink( $tmp );
             }
+            delete_option( self::OPT_CURRENT );
 
             if ( $ok ) {
                 $done++;
@@ -214,7 +251,7 @@ class CecoImageCache {
      * regenera el CSV para que apunte a las copias locales.
      */
     public static function cron() {
-        $result = self::process( 25 );
+        $result = self::process( 20 );
         if ( ! empty( $result['busy'] ) || $result['remaining'] > 0 ) {
             if ( ! wp_next_scheduled( self::EVENT ) ) {
                 wp_schedule_single_event( time() + 60, self::EVENT );
@@ -275,7 +312,7 @@ function ceco_ajax_process_images() {
     }
     check_ajax_referer( 'ceco_sync_stock', 'nonce' );
 
-    $result = CecoImageCache::process( 20 );
+    $result = CecoImageCache::process( 15 );
     $result['message'] = CecoImageCache::describe();
     wp_send_json_success( $result );
 }
