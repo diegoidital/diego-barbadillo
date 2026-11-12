@@ -2115,3 +2115,15 @@ body > #colophon {
 		padding-bottom: 110% !important;
 	}
 }
+
+/* Páginas legales: menú sin el efecto de transparencia de Elementor al hacer scroll. */
+body.zq-menu-sin-efecto .elementor-location-header .elementor-motion-effects-layer,
+body.zq-menu-sin-efecto .elementor-location-header .elementor-motion-effects-container,
+body.zq-menu-sin-efecto .elementor-location-header [data-settings*="background_motion_fx"] {
+	opacity: 1 !important;
+	transform: none !important;
+}
+
+body.zq-menu-sin-efecto .elementor-location-header .elementor-motion-effects-element {
+	opacity: 1 !important;
+}
