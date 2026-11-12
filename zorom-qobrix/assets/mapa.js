@@ -74,12 +74,15 @@
 			center: [ c.lng, c.lat ],
 			zoom: c.zoom || 13,
 			attributionControl: { compact: true },
+			interactive: ! c.enlace, // Con enlace, el mapa entero es el botón: sin arrastre ni zoom.
 			dragRotate: false,
 			pitchWithRotate: false,
 			cooperativeGestures: false
 		} );
-		map.scrollZoom.disable(); // Que la rueda haga scroll en la página, no zoom.
-		map.touchZoomRotate.disableRotation();
+		if ( ! c.enlace ) {
+			map.scrollZoom.disable(); // Que la rueda haga scroll en la página, no zoom.
+			map.touchZoomRotate.disableRotation();
+		}
 		map.on( 'load', function () {
 			estiloZorom( map );
 		} );

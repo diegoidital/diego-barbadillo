@@ -35,6 +35,16 @@
 	transition: background .2s, color .2s;
 }
 
+.zq-mapa-oficina__enlace {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	cursor: pointer;
+}
+
+/* Al pasar por cualquier parte del mapa, la etiqueta se invierte. */
+.zq-mapa-oficina:hover .zq-mo__label,
+.zq-mapa-oficina:focus-within .zq-mo__label,
 a.zq-mo__label:hover,
 a.zq-mo__label:focus-visible {
 	border-color: #000;
@@ -108,4 +118,9 @@ a.zq-mo__label:focus-visible {
 	.zq-mo__h { width: 60px; }
 	.zq-mo__v { right: calc(100% + 60px); height: 50px; }
 	.zq-mo__label { right: calc(100% + 60px); bottom: calc(50% + 50px); font-size: 11px; }
+}
+
+/* El aviso de OpenStreetMap queda por encima del enlace para poder abrirlo. */
+.zq-mapa-oficina .maplibregl-ctrl-bottom-right {
+	z-index: 4;
 }
