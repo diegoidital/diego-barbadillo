@@ -1981,3 +1981,114 @@ body > #colophon {
 	max-width: 100%;
 	box-sizing: border-box;
 }
+
+/* ======================================================================
+ * Actualidad: entradas del widget «Publicaciones» de Elementor (y archivo del blog)
+ * con el diseño del Figma: foto alta redondeada, fecha, título y extracto.
+ * ==================================================================== */
+.elementor-widget-posts .elementor-posts-container,
+.elementor-widget-archive-posts .elementor-posts-container {
+	--grid-column-gap: 35px;
+	--grid-row-gap: 60px;
+}
+
+.elementor-widget-posts .elementor-post,
+.elementor-widget-archive-posts .elementor-post {
+	display: flex;
+	flex-direction: column;
+	border: 0 !important;
+	box-shadow: none !important;
+	background: transparent !important;
+}
+
+.elementor-widget-posts .elementor-post__thumbnail__link,
+.elementor-widget-archive-posts .elementor-post__thumbnail__link {
+	width: 100% !important;
+	margin-bottom: 14px !important;
+}
+
+.elementor-widget-posts .elementor-post__thumbnail,
+.elementor-widget-archive-posts .elementor-post__thumbnail {
+	overflow: hidden;
+	padding-bottom: 147% !important; /* 289 × 425 del Figma */
+	border-radius: 16px;
+}
+
+.elementor-widget-posts .elementor-post__thumbnail img,
+.elementor-widget-archive-posts .elementor-post__thumbnail img {
+	width: 100% !important;
+	height: 100% !important;
+	object-fit: cover;
+	transition: transform .5s;
+}
+
+.elementor-widget-posts .elementor-post:hover .elementor-post__thumbnail img,
+.elementor-widget-archive-posts .elementor-post:hover .elementor-post__thumbnail img {
+	transform: scale(1.04);
+}
+
+.elementor-widget-posts .elementor-post__text,
+.elementor-widget-archive-posts .elementor-post__text {
+	display: flex;
+	flex-direction: column;
+	padding: 0 !important;
+}
+
+/* La fecha va encima del título. */
+.elementor-widget-posts .elementor-post__meta-data,
+.elementor-widget-archive-posts .elementor-post__meta-data {
+	order: -1;
+	margin: 0 0 10px !important;
+	padding: 0 !important;
+	border: 0 !important;
+	color: #000 !important;
+	font-family: var(--zq-geist, inherit);
+	font-size: 11px !important;
+	font-weight: 400;
+	letter-spacing: .3px;
+}
+
+.elementor-widget-posts .elementor-post__title,
+.elementor-widget-archive-posts .elementor-post__title {
+	margin: 0 0 22px !important;
+	font-family: var(--zq-geist, inherit);
+	font-size: 16px !important;
+	font-weight: 500 !important;
+	line-height: 1.3 !important;
+}
+
+.elementor-widget-posts .elementor-post__title a,
+.elementor-widget-archive-posts .elementor-post__title a {
+	color: #000 !important;
+	text-decoration: none;
+}
+
+.elementor-widget-posts .elementor-post__excerpt,
+.elementor-widget-archive-posts .elementor-post__excerpt {
+	margin: 0 !important;
+}
+
+.elementor-widget-posts .elementor-post__excerpt p,
+.elementor-widget-archive-posts .elementor-post__excerpt p {
+	margin: 0;
+	color: #000;
+	font-size: 15px;
+	line-height: 1.4;
+	display: -webkit-box;
+	-webkit-line-clamp: 4;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+/* Sin «Leer más»: toda la tarjeta (foto y título) ya enlaza a la entrada. */
+.elementor-widget-posts .elementor-post__read-more,
+.elementor-widget-archive-posts .elementor-post__read-more {
+	display: none !important;
+}
+
+@media (max-width: 767px) {
+	.elementor-widget-posts .elementor-post__thumbnail,
+	.elementor-widget-archive-posts .elementor-post__thumbnail {
+		padding-bottom: 110% !important;
+	}
+}
