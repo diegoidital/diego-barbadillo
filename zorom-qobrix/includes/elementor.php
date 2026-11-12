@@ -83,3 +83,15 @@ add_action( 'elementor/frontend/widget/after_render', function ( $widget ) {
 add_filter( 'get_the_date', function ( $fecha, $formato, $post ) {
 	return empty( $GLOBALS['zq_fecha_posts'] ) ? $fecha : get_post_time( apply_filters( 'zq_formato_fecha_actualidad', 'd·m·Y' ), false, $post, true );
 }, 10, 3 );
+
+/*
+ * Páginas legales: el menú sin el efecto de transparencia al hacer scroll
+ * (Elementor → Estilo → Fondo → Efectos de scroll → Transparencia).
+ */
+add_filter( 'body_class', function ( $clases ) {
+	$legales = apply_filters( 'zq_paginas_menu_fijo', array( 'politica-de-cookies', 'aviso-legal', 'politica-de-privacidad' ) );
+	if ( is_page( $legales ) ) {
+		$clases[] = 'zq-menu-sin-efecto';
+	}
+	return $clases;
+} );
