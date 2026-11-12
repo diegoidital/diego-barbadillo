@@ -135,3 +135,28 @@ add_action( 'wp_footer', function () {
 	</script>
 	<?php
 }, 99 );
+
+/*
+ * Cabecera de las entradas: la imagen destacada como fondo (con su velo oscuro).
+ * El fondo dinámico «Imagen destacada» de los Flexbox de Elementor 4 no sale en la web
+ * (el CSS de la plantilla es el mismo para todas las entradas), así que se pone aquí.
+ * Se aplica al contenedor con la clase «zq-fondo-destacada» y al de la plantilla «Entrada blog».
+ */
+add_action( 'wp_head', function () {
+	if ( ! is_singular() || ! has_post_thumbnail() ) {
+		return;
+	}
+	$url = get_the_post_thumbnail_url( null, 'full' );
+	if ( ! $url ) {
+		return;
+	}
+	$sel = implode( ',', apply_filters( 'zq_selectores_fondo_destacada', array(
+		'.zq-fondo-destacada',
+		'.elementor-location-single [data-id="a0a643c"]',
+	) ) );
+	printf(
+		'<style id="zq-fondo-destacada">%1$s{background-image:linear-gradient(var(--zq-velo,#0000006b),var(--zq-velo,#0000006b)),url("%2$s")!important;background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}</style>' . "\n",
+		$sel, // phpcs:ignore WordPress.Security.EscapeOutput -- selectores fijos o filtrados por código.
+		esc_url( $url )
+	);
+}, 99 );
