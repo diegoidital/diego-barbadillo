@@ -124,3 +124,36 @@ a.zq-mo__label:focus-visible {
 .zq-mapa-oficina .maplibregl-ctrl-bottom-right {
 	z-index: 4;
 }
+
+/* Aviso de OpenStreetMap a juego: fondo negro, texto gris claro y enlaces en blanco. */
+.zq-mapa-oficina .maplibregl-ctrl-attrib,
+.zq-mapa-oficina .maplibregl-ctrl-attrib.maplibregl-compact {
+	margin: 0 12px 12px 0;
+	padding: 2px 6px;
+	border-radius: 0;
+	background: #000 !important;
+	color: #bdbdbd;
+	font-family: var(--zq-geist, sans-serif);
+	font-size: 10px;
+	line-height: 1.6;
+}
+
+.zq-mapa-oficina .maplibregl-ctrl-attrib a {
+	color: #bdbdbd !important;
+	text-decoration: none;
+}
+
+.zq-mapa-oficina .maplibregl-ctrl-attrib a:hover {
+	color: #fff !important;
+}
+
+/* Botón «i» del aviso compacto, en blanco. */
+.zq-mapa-oficina .maplibregl-ctrl-attrib-button {
+	background-color: #000 !important;
+	filter: invert(1);
+	mix-blend-mode: normal;
+}
+
+.zq-mapa-oficina .maplibregl-compact-show .maplibregl-ctrl-attrib-button {
+	filter: invert(1);
+}
