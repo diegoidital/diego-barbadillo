@@ -2032,6 +2032,24 @@ body > #colophon {
 	opacity: 1 !important;
 }
 
+/* La foto ocupa toda la caja (sin depender del centrado con transform de Elementor). */
+.elementor-widget-posts .elementor-post__thumbnail,
+.elementor-widget-archive-posts .elementor-post__thumbnail {
+	position: relative !important;
+}
+
+.elementor-widget-posts .elementor-post__thumbnail img,
+.elementor-widget-archive-posts .elementor-post__thumbnail img {
+	position: absolute !important;
+	inset: 0 !important;
+	top: 0 !important;
+	left: 0 !important;
+	width: 100% !important;
+	height: 100% !important;
+	max-width: none !important;
+	object-fit: cover !important;
+}
+
 .elementor-widget-posts .elementor-post__text,
 .elementor-widget-archive-posts .elementor-post__text {
 	display: flex;
