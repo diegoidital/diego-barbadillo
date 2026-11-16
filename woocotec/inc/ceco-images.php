@@ -33,6 +33,10 @@ class CecoImageCache {
     const OPT_CURRENT     = 'ceco_img_current';       // foto en proceso (para detectar caídas)
     const EVENT           = 'ceco_process_images_event';
 
+    // Fotos de más de 16 megapíxeles (p. ej. originales de Plytix de 4.600-5.100 px) no se abren:
+    // Imagick usa memoria fuera del límite de PHP y el servidor puede matar el proceso.
+    const MAX_PIXELS      = 16000000;
+
     // Tamaños que se generan durante la importación si está activado "miniaturas esenciales".
     const ESSENTIAL_SIZES = [
         'thumbnail',
@@ -200,6 +204,8 @@ class CecoImageCache {
                     $need = $info ? (int) $info[0] * (int) $info[1] * 6 : 0;
                     if ( ! $info ) {
                         error_log( '⚠️ Imagen Cecotec no válida: ' . $url );
+                    } elseif ( (int) $info[0] * (int) $info[1] > self::MAX_PIXELS ) {
+                        error_log( sprintf( '⚠️ Imagen Cecotec demasiado grande (%dx%d), se usa la URL original: %s', $info[0], $info[1], $url ) );
                     } elseif ( $memory_limit > 0 && memory_get_usage() + $need > $memory_limit * 0.8 ) {
                         error_log( sprintf( '⚠️ Imagen Cecotec demasiado grande para la memoria de PHP (%dx%d): %s', $info[0], $info[1], $url ) );
                     } else {
@@ -312,7 +318,7 @@ function ceco_ajax_process_images() {
     }
     check_ajax_referer( 'ceco_sync_stock', 'nonce' );
 
-    $result = CecoImageCache::process( 15 );
+    $result = CecoImageCache::process( 10 );
     $result['message'] = CecoImageCache::describe();
     wp_send_json_success( $result );
 }

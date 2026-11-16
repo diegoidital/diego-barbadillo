@@ -182,7 +182,7 @@ jQuery(document).ready(function ($) {
                     var detail = 'HTTP ' + x.status + (err ? ' ' + err : '') +
                         (x.responseText ? ' — ' + $('<div>').html(x.responseText).text().replace(/\s+/g, ' ').substring(0, 200) : '');
                     if (retries <= 5) {
-                        $status.text('⚠️ Un lote ha fallado (' + detail + '). Reintentando en 10 s (' + retries + '/5)...');
+                        $status.text('⚠️ Un lote ha fallado (' + detail + '). Es normal si había una foto problemática: se descarta y se sigue. Reintentando en 10 s (' + retries + '/5)...');
                         setTimeout(batch, 10000);
                         return;
                     }
