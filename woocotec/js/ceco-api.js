@@ -30,6 +30,9 @@ jQuery(document).ready(function ($) {
                         var m = (r && r.data && r.data.message) || 'Respuesta inesperada.';
                         log(r.success ? m : '❌ Error al crear el CSV: ' + m);
                         if (r.success) {
+                            $('#last-csv').text(m).attr('title', m);
+                        }
+                        if (r.success) {
                             log('Siguiente paso: All Import › Manage Imports › ejecutar «Productos Cecotec».');
                         }
                     })
@@ -55,7 +58,7 @@ jQuery(document).ready(function ($) {
         $.post(ajaxurl, { action: 'ceco_sync_stock', nonce: nonce })
             .done(function (response) {
                 var msg = (response && response.data && response.data.message) || 'Respuesta inesperada.';
-                $('#stock-last-sync').text(response.success ? msg : '❌ ' + msg);
+                $('#stock-last-sync').text(response.success ? msg : '❌ ' + msg).attr('title', msg);
             })
             .fail(function (xhr, status, error) {
                 $('#stock-last-sync').text('❌ Error en la solicitud AJAX: ' + (error || status));
