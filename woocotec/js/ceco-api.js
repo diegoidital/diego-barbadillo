@@ -197,3 +197,53 @@ jQuery(document).ready(function ($) {
         batch();
     });
 });
+
+// Corregir nombres con el EAN delante
+jQuery(document).ready(function ($) {
+    var nonce = (window.cecoStock && cecoStock.nonce) || '';
+    var $res = $('#ean-names-result');
+    function esc(t) { return $('<div>').text(t == null ? '' : String(t)).html(); }
+
+    $('#find-ean-names').on('click', function (e) {
+        e.preventDefault();
+        var $btn = $(this).prop('disabled', true);
+        $('#fix-ean-names').prop('disabled', true);
+        $res.text('Buscando...');
+        $.post(ajaxurl, { action: 'ceco_find_ean_names', nonce: nonce })
+            .done(function (r) {
+                if (!r.success) { $res.text('❌ ' + ((r.data && r.data.message) || 'Error')); return; }
+                if (!r.data.count) { $res.html('<p>✅ No hay productos con el EAN delante del nombre.</p>'); return; }
+                var html = '<p><strong>' + r.data.count + '</strong> productos con el EAN delante' + (r.data.count > 50 ? ' (se muestran 50)' : '') + ':</p>' +
+                    '<table class="widefat striped"><thead><tr><th>ID</th><th>Nombre actual</th><th>Nombre corregido</th></tr></thead><tbody>';
+                r.data.items.forEach(function (it) {
+                    html += '<tr><td>' + it.id + '</td><td>' + esc(it.title) + '</td><td>' + esc(it.new) + '</td></tr>';
+                });
+                $res.html(html + '</tbody></table>');
+                $('#fix-ean-names').prop('disabled', false).data('count', r.data.count);
+            })
+            .fail(function (x, s, err) { $res.text('❌ Error en la solicitud AJAX: ' + (err || s)); })
+            .always(function () { $btn.prop('disabled', false); });
+    });
+
+    $('#fix-ean-names').on('click', function (e) {
+        e.preventDefault();
+        if (!window.confirm('Se corregirá el nombre de ' + $(this).data('count') + ' productos. ¿Continuar?')) { return; }
+        var $btn = $(this).prop('disabled', true);
+        var total = 0;
+        var $st = $('<p>').prependTo($res);
+        (function next() {
+            $.post(ajaxurl, { action: 'ceco_fix_ean_names', nonce: nonce })
+                .done(function (r) {
+                    if (!r.success) { $st.text('❌ ' + ((r.data && r.data.message) || 'Error')); return; }
+                    total += r.data.fixed;
+                    if (r.data.remaining > 0 && r.data.fixed > 0) {
+                        $st.text('Corrigiendo... ' + total + ' hechos, ' + r.data.remaining + ' pendientes');
+                        next();
+                    } else {
+                        $st.text('✅ ' + total + ' nombres corregidos.' + (r.data.remaining ? ' (' + r.data.remaining + ' no se han podido corregir)' : ''));
+                    }
+                })
+                .fail(function (x, s, err) { $st.text('❌ Error en la solicitud AJAX: ' + (err || s) + ' (' + total + ' corregidos). Vuelve a pulsar Buscar.'); });
+        })();
+    });
+});
