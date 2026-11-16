@@ -24,6 +24,37 @@ class CecoStockFeed {
     const CACHE_TTL   = 600; // 10 minutos: evita descargar el feed dos veces seguidas (CSV + sincronización)
     const LAST_SYNC   = 'ceco_stock_last_sync';
     const URL_OPTION  = 'ceco_stock_feed_url';
+    const MISSING_OPT = 'ceco_stock_zero_missing';     // '1' | '0'
+    const FEED_SIZE   = 'ceco_stock_last_feed_size';
+
+    // Marcas que sirve Cecotec (taxonomía product_brand, por slug).
+    const CECOTEC_BRANDS = [ 'cecotec', 'evvo', 'cecolchon' ];
+
+    public static function zero_missing() {
+        return get_option( self::MISSING_OPT, '1' ) === '1';
+    }
+
+    /**
+     * IDs de productos que son de Cecotec: los que controla la importación de products.csv
+     * de WP All Import y los que tienen marca Cecotec / EVVO / Cecolchon.
+     */
+    private static function cecotec_product_ids() {
+        global $wpdb;
+        $ids = class_exists( 'CecoDraftCleanup' ) ? CecoDraftCleanup::tracked_ids() : [];
+
+        $slugs = "'" . implode( "','", array_map( 'esc_sql', self::CECOTEC_BRANDS ) ) . "'";
+        $brand = $wpdb->get_col(
+            "SELECT tr.object_id
+               FROM {$wpdb->term_relationships} tr
+               INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+               INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
+              WHERE tt.taxonomy = 'product_brand' AND t.slug IN ($slugs)"
+        );
+        foreach ( (array) $brand as $id ) {
+            $ids[ (int) $id ] = true;
+        }
+        return $ids;
+    }
 
     /**
      * Zona (valor guardado en ceco_selected_zone) => etiqueta del feed de Cecotec.
@@ -312,7 +343,7 @@ class CecoStockFeed {
         global $wpdb;
         // Todos los SKU de productos y variaciones en una sola consulta.
         $rows = $wpdb->get_results(
-            "SELECT pm.post_id, pm.meta_value AS sku
+            "SELECT pm.post_id, pm.meta_value AS sku, p.post_type
                FROM {$wpdb->postmeta} pm
                INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
               WHERE pm.meta_key = '_sku'
@@ -321,12 +352,38 @@ class CecoStockFeed {
                 AND p.post_status IN ('publish', 'private')"
         );
 
-        $stats = [ 'found' => 0, 'updated' => 0, 'instock' => 0, 'outofstock' => 0, 'not_in_feed' => 0 ];
+        $stats = [ 'found' => 0, 'updated' => 0, 'instock' => 0, 'outofstock' => 0, 'not_in_feed' => 0, 'missing_zeroed' => 0, 'missing_cecotec' => 0 ];
+
+        // Productos de Cecotec que no están en el feed: Cecotec ya no los sirve, así que se dejan
+        // agotados. Protección: si el feed llega con muchos menos productos que la vez anterior
+        // (feed incompleto), este paso no se hace para no agotar media tienda por error.
+        $zero_missing  = self::zero_missing();
+        $previous_size = (int) get_option( self::FEED_SIZE, 0 );
+        if ( $zero_missing && $previous_size > 0 && count( $map ) < $previous_size * 0.8 ) {
+            $zero_missing = false;
+            $stats['missing_skipped'] = sprintf( 'El feed trae %d productos frente a %d la vez anterior: no se agotan los que faltan.', count( $map ), $previous_size );
+            error_log( '⚠️ Stock Cecotec: ' . $stats['missing_skipped'] );
+        }
+        $cecotec_ids = $zero_missing ? self::cecotec_product_ids() : [];
 
         foreach ( $rows as $row ) {
             $key = self::normalize_sku( $row->sku );
             if ( ! isset( $map[ $key ] ) ) {
                 $stats['not_in_feed']++;
+
+                if ( $zero_missing && $row->post_type === 'product' && isset( $cecotec_ids[ (int) $row->post_id ] ) ) {
+                    $stats['missing_cecotec']++;
+                    $product = wc_get_product( $row->post_id );
+                    if ( $product && ! $product->is_type( 'variable' )
+                        && ( ! $product->get_manage_stock() || (int) $product->get_stock_quantity() !== 0
+                             || $product->get_stock_quantity() === null || $product->get_backorders() !== 'no' ) ) {
+                        $product->set_manage_stock( true );
+                        $product->set_backorders( 'no' );
+                        $product->set_stock_quantity( 0 );
+                        $product->save();
+                        $stats['missing_zeroed']++;
+                    }
+                }
                 continue;
             }
             $stats['found']++;
@@ -362,6 +419,7 @@ class CecoStockFeed {
         }
 
         $stats['feed']  = count( $map );
+        update_option( self::FEED_SIZE, count( $map ), false );
         $stats['url']   = self::feed_url();
         $stats['time']  = current_time( 'mysql' );
         update_option( self::LAST_SYNC, $stats, false );
@@ -381,14 +439,17 @@ class CecoStockFeed {
             return sprintf( '❌ %s — %s', $stats['time'], $stats['error'] );
         }
         return sprintf(
-            '✅ %s — %d productos en el feed · %d encontrados en la tienda (%d con stock, %d agotados) · %d actualizados · %d productos de la tienda no están en el feed (no se han tocado).',
+            '✅ %s — %d productos en el feed · %d encontrados en la tienda (%d con stock, %d agotados) · %d actualizados · %d productos de la tienda no están en el feed%s',
             $stats['time'],
             $stats['feed'],
             $stats['found'],
             $stats['instock'],
             $stats['outofstock'],
             $stats['updated'],
-            $stats['not_in_feed']
+            $stats['not_in_feed'],
+            isset( $stats['missing_cecotec'] ) && empty( $stats['missing_skipped'] ) && self::zero_missing()
+                ? sprintf( ': %d son de Cecotec y quedan agotados (%d cambiados ahora); el resto no se toca.', $stats['missing_cecotec'], $stats['missing_zeroed'] )
+                : ( ! empty( $stats['missing_skipped'] ) ? ' (no se tocan: ' . $stats['missing_skipped'] . ')' : ' (no se han tocado).' )
         );
     }
 }
@@ -437,6 +498,7 @@ function ceco_handle_save_stock_settings() {
 
     $url = isset( $_POST['ceco_stock_feed_url'] ) ? esc_url_raw( trim( wp_unslash( $_POST['ceco_stock_feed_url'] ) ) ) : '';
     update_option( CecoStockFeed::URL_OPTION, $url );
+    update_option( CecoStockFeed::MISSING_OPT, empty( $_POST['ceco_stock_zero_missing'] ) ? '0' : '1' );
     delete_transient( CecoStockFeed::CACHE_KEY );
 
     wp_redirect( admin_url( 'admin.php?page=import-cecopublisher' ) );

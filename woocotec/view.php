@@ -127,6 +127,7 @@
     </p>
     <ul style="list-style-type:disc; margin-left: 20px;">
         <li>Se cruza el <code>public_id</code> del feed con el SKU del producto.</li>
+        <li>Los productos de Cecotec (los de la importación y los de marca Cecotec, EVVO o Cecolchon) que <strong>no</strong> aparecen en el feed se dejan agotados (opción de abajo). Los de otras marcas no se tocan.</li>
         <li>Cada hora se actualiza el stock de los productos de la tienda que aparecen en el feed. Se activa la gestión de inventario y se desactivan las reservas: un producto sin stock queda <em>Agotado</em> y no se puede comprar.</li>
         <li>El CSV de productos incluye también las columnas <code>Stock</code>, <code>Estado stock</code> y <code>EAN</code>.</li>
         <li>Para que tampoco se muestren los agotados: WooCommerce › Ajustes › Productos › Inventario › «Ocultar en el catálogo los artículos agotados».</li>
@@ -142,6 +143,13 @@
         <?php wp_nonce_field('ceco_save_stock_settings'); ?>
         <table class="form-table">
             <tr valign="top">
+                <th scope="row">Productos de Cecotec fuera del feed</th>
+                <td>
+                    <label><input type="checkbox" name="ceco_stock_zero_missing" value="1" <?php checked(CecoStockFeed::zero_missing()); ?>> Marcarlos como agotados (stock 0) en cada sincronización</label>
+                    <p class="description">Si Cecotec deja de servir un producto, desaparece del feed: así no se vende sin stock real. Por seguridad no se hace si el feed llega con un 20&nbsp;% menos de productos que la vez anterior.</p>
+                </td>
+            </tr>
+            <tr valign="top">
                 <th scope="row">URL del feed de stock (opcional)</th>
                 <td>
                     <input type="url" name="ceco_stock_feed_url" class="large-text" value="<?= esc_attr($ceco_custom_url); ?>" placeholder="<?= esc_attr(CecoStockFeed::default_url($ceco_zone)); ?>" />
@@ -149,7 +157,7 @@
                 </td>
             </tr>
         </table>
-        <?php submit_button('Guardar URL de stock', 'secondary'); ?>
+        <?php submit_button('Guardar ajustes de stock', 'secondary'); ?>
     </form>
 
     <hr>
