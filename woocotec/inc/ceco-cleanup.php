@@ -46,7 +46,7 @@ class CecoDraftCleanup {
     /**
      * IDs de los productos que controla la importación de products.csv.
      */
-    private static function tracked_ids() {
+    public static function tracked_ids() {
         global $wpdb;
         $posts_table   = $wpdb->prefix . 'pmxi_posts';
         $imports_table = $wpdb->prefix . 'pmxi_imports';
