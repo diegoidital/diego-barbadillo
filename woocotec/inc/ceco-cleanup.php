@@ -161,3 +161,54 @@ function ceco_ajax_trash_old_drafts() {
     wp_send_json_success( [ 'trashed' => $trashed, 'processed' => $batch ] );
 }
 add_action( 'wp_ajax_ceco_trash_old_drafts', 'ceco_ajax_trash_old_drafts' );
+
+/*******************************************************************************
+ *  Corregir nombres con el EAN delante ("8435743904049-Ventilador ...")
+ ******************************************************************************/
+
+function ceco_ean_name_rows( $limit = 0 ) {
+    global $wpdb;
+    $sql = "SELECT ID, post_title FROM {$wpdb->posts}
+             WHERE post_type = 'product' AND post_status IN ('publish', 'draft', 'private', 'pending')
+               AND post_title REGEXP '^[[:space:]]*[0-9]{8,14}[[:space:]]*-'
+             ORDER BY ID ASC";
+    if ( $limit > 0 ) {
+        $sql .= ' LIMIT ' . (int) $limit;
+    }
+    return $wpdb->get_results( $sql );
+}
+
+function ceco_ajax_find_ean_names() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_send_json_error( [ 'message' => 'Sin permisos.' ] );
+    }
+    check_ajax_referer( 'ceco_sync_stock', 'nonce' );
+
+    $rows  = ceco_ean_name_rows();
+    $items = array_map( function ( $r ) {
+        return [ 'id' => (int) $r->ID, 'title' => $r->post_title, 'new' => CecoPublisherToWooCommerce::clean_name( $r->post_title ) ];
+    }, array_slice( $rows, 0, 50 ) );
+    wp_send_json_success( [ 'count' => count( $rows ), 'items' => $items ] );
+}
+add_action( 'wp_ajax_ceco_find_ean_names', 'ceco_ajax_find_ean_names' );
+
+function ceco_ajax_fix_ean_names() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_send_json_error( [ 'message' => 'Sin permisos.' ] );
+    }
+    check_ajax_referer( 'ceco_sync_stock', 'nonce' );
+
+    $fixed = 0;
+    foreach ( ceco_ean_name_rows( 100 ) as $row ) {
+        $clean = CecoPublisherToWooCommerce::clean_name( $row->post_title );
+        if ( $clean !== $row->post_title ) {
+            // wp_update_post conserva el slug (post_name) existente.
+            $result = wp_update_post( [ 'ID' => (int) $row->ID, 'post_title' => $clean ], true );
+            if ( ! is_wp_error( $result ) ) {
+                $fixed++;
+            }
+        }
+    }
+    wp_send_json_success( [ 'fixed' => $fixed, 'remaining' => count( ceco_ean_name_rows() ) ] );
+}
+add_action( 'wp_ajax_ceco_fix_ean_names', 'ceco_ajax_fix_ean_names' );

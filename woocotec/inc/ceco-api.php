@@ -146,6 +146,15 @@ class CecoPublisherToWooCommerce {
         ];
     }
 
+    /**
+     * Cecotec pone el EAN delante del nombre en algunos productos (sobre todo EVVO):
+     * "8435743904049-Ventilador Evaporativo EVVO AC750" => "Ventilador Evaporativo EVVO AC750".
+     */
+    public static function clean_name($name) {
+        $clean = preg_replace('/^\s*\d{8,14}\s*-\s*/u', '', (string) $name);
+        return $clean !== '' ? $clean : (string) $name;
+    }
+
     public static function csv_path() {
         $upload_dir = wp_upload_dir();
         return $upload_dir['basedir'] . '/wpallimport/files/products.csv';
@@ -367,7 +376,8 @@ class CecoPublisherToWooCommerce {
         $existing = $this->existing_skus();
         fputcsv($file, $columns);
 
-        $stats = ['rows' => 0, 'instock' => 0, 'no_catalog' => 0, 'skipped_discontinued' => 0, 'fallback_feed' => 0, 'skipped_duplicates' => 0];
+        $stats = ['rows' => 0, 'instock' => 0, 'no_catalog' => 0, 'skipped_discontinued' => 0, 'fallback_feed' => 0, 'skipped_duplicates' => 0, 'skipped_no_photo' => 0];
+        $skip_no_photo = get_option('ceco_skip_no_photo', '0') === '1';
 
         $duplicates = $this->find_duplicate_codes($prices, $stock_map, $catalog, $existing);
 
@@ -421,6 +431,12 @@ class CecoPublisherToWooCommerce {
             }
             $images = array_slice(array_values($images), 0, CecoImageCache::per_product());
 
+            // Productos sin ninguna foto (ni en el feed ni en Plytix): opcionalmente no se publican.
+            if ($skip_no_photo && empty($images)) {
+                $stats['skipped_no_photo']++;
+                continue;
+            }
+
             // Fotos preparadas (reducidas) en el propio servidor. Solo hacen falta para los productos
             // que WP All Import va a crear: los existentes no actualizan imágenes.
             if ($cache_images && (!$only_new_images || !isset($existing[$key]))) {
@@ -437,7 +453,7 @@ class CecoPublisherToWooCommerce {
 
             $row = [
                 $sku,
-                $product['name'],
+                self::clean_name($product['name']),
                 $pvpr,
                 $product['cat1'],
                 $product['cat2'],
@@ -502,7 +518,7 @@ class CecoPublisherToWooCommerce {
             '✅ %s — Zona %s · %d productos en el CSV (%d con stock) · precios: %s · %d descatalogados sin stock omitidos · %d códigos duplicados sin stock omitidos · %d sin ficha en el catálogo omitidos.',
             $stats['time'], $stats['zone'], $stats['rows'], $stats['instock'], $stats['price_source'],
             $stats['skipped_discontinued'], $stats['skipped_duplicates'] ?? 0, $stats['no_catalog']
-        ) . (isset($stats['images_pending']) ? sprintf(' · Fotos: %d preparadas, %d pendientes de preparar.', $stats['images_cached'] ?? 0, $stats['images_pending']) : '');
+        ) . (!empty($stats['skipped_no_photo']) ? sprintf(' · %d sin foto omitidos.', $stats['skipped_no_photo']) : '') . (isset($stats['images_pending']) ? sprintf(' · Fotos: %d preparadas, %d pendientes de preparar.', $stats['images_cached'] ?? 0, $stats['images_pending']) : '');
     }
 
     // Botón "Importación manual" (AJAX).

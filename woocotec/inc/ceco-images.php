@@ -339,6 +339,7 @@ function ceco_handle_save_image_settings() {
     update_option( CecoImageCache::OPT_LIGHT_SIZES, empty( $_POST['ceco_img_light_sizes'] ) ? '0' : '1' );
     update_option( CecoImageCache::OPT_MAX_PX, (int) ( $_POST['ceco_img_max_px'] ?? 1200 ) );
     update_option( CecoImageCache::OPT_PER_PRODUCT, (int) ( $_POST['ceco_img_per_product'] ?? 5 ) );
+    update_option( 'ceco_skip_no_photo', empty( $_POST['ceco_skip_no_photo'] ) ? '0' : '1' );
 
     wp_redirect( admin_url( 'admin.php?page=import-cecopublisher' ) );
     exit;

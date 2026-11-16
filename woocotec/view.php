@@ -199,6 +199,13 @@
                 </td>
             </tr>
             <tr valign="top">
+                <th scope="row">Productos sin foto</th>
+                <td>
+                    <label><input type="checkbox" name="ceco_skip_no_photo" value="1" <?php checked(get_option('ceco_skip_no_photo', '0'), '1'); ?>> No publicar productos que no tienen ninguna foto (ni en el feed de Cecotec ni en Plytix)</label>
+                    <p class="description">Se quedan fuera del CSV; los que ya existen pasan a borrador en la siguiente importación. Se vuelven a publicar solos cuando Cecotec añada fotos.</p>
+                </td>
+            </tr>
+            <tr valign="top">
                 <th scope="row">Fotos por producto</th>
                 <td><input type="number" name="ceco_img_per_product" min="1" max="20" value="<?= esc_attr(CecoImageCache::per_product()); ?>" style="width:70px"> como máximo (la primera es la destacada)</td>
             </tr>
@@ -236,6 +243,14 @@
         <button id="trash-old-drafts" class="button button-secondary" disabled>2. Enviar a la papelera</button>
     </p>
     <div id="old-drafts-result" style="margin-top: 10px; max-height: 400px; overflow-y: auto;"></div>
+
+    <h3>Nombres con el EAN delante</h3>
+    <p>Cecotec pone el EAN delante del nombre en algunos productos (p. ej. «8435743904049-Ventilador Evaporativo EVVO AC750»). El CSV ya lo quita; este botón corrige los productos que ya se crearon así. No cambia la URL.</p>
+    <p>
+        <button id="find-ean-names" class="button button-secondary">1. Buscar nombres con EAN</button>
+        <button id="fix-ean-names" class="button button-secondary" disabled>2. Corregir nombres</button>
+    </p>
+    <div id="ean-names-result" style="margin-top: 10px; max-height: 400px; overflow-y: auto;"></div>
         </div>
     </details>
 
