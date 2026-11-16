@@ -318,3 +318,5 @@ Las detectó el vigilante o se reportaron en el uso diario. Todas se hicieron di
   - megaproduct registraba `displayPrice` → `Tools::displayPrice`. Al generar el PDF, `classes/pdf/PDF.php` comprueba si ya existe el registro con `Tools::displayPriceSmarty`, no lo encuentra con ese nombre e intenta registrarla otra vez.
   - Se cambió a `displayPriceSmarty` en `megaproduct.php:6254` y `controllers/front/ajaxmegaproduct.php:35`. Copias previas: `*.bak-20261106`.
   - Comprobado: ficha de producto → 200 y configurador → OK.
+- **Avisos nocturnos (00:15–00:25):** son 500/000 sin rastro en ningún log, a la hora del backup del servidor (`backupdbs.sh`, que no se modifica por decisión del cliente).
+- **Vigilante retirado (16/11/2026)** a petición del cliente: se borraron `/etc/cron.d/vigila_beleno`, `/root/vigila_beleno.sh` (y su `.bak-20261103`) y `/root/.vigila_beleno`.
