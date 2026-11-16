@@ -1,27 +1,62 @@
 #woocotec table.zones{
         border-spacing: 1rem;
-        margin: 0.8rem;
+        margin: 0.8rem 0;
         border: 1px solid #e5e5e5;
         box-shadow: 0 1px 2px rgba(0,0,0,.1);
         border-radius: 3px;
         text-align: center;
 }
 
-.flexotec {
+/* Credenciales e idioma en horizontal */
+#woocotec .ceco-top {
         display: flex;
         flex-wrap: wrap;
-        align-items: center;
-        gap: 2.5rem 4rem;
-        margin: 1rem 0rem;
+        gap: 2rem 4rem;
+        align-items: flex-start;
+        margin: 1rem 0 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #dcdcde;
+}
+#woocotec .ceco-top-col {
+        flex: 1 1 380px;
+        min-width: 0;
+}
+#woocotec .ceco-top-col .form-table th {
+        width: 120px;
+}
+
+/* Secciones plegables */
+#woocotec details.ceco-section {
+        border-bottom: 1px solid #dcdcde;
+}
+#woocotec details.ceco-section > summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 0.9rem 0;
+}
+#woocotec details.ceco-section > summary::-webkit-details-marker {
+        display: none;
+}
+#woocotec details.ceco-section > summary h2 {
+        display: inline;
+        margin: 0;
+}
+#woocotec details.ceco-section > summary h2::after {
+        content: "\25BE";
+        display: inline-block;
+        margin-left: 0.4rem;
+        font-size: 0.9em;
+        transition: transform .15s;
+}
+#woocotec details.ceco-section[open] > summary h2::after {
+        transform: rotate(180deg);
+}
+#woocotec .ceco-section-body {
+        padding: 0 0 1.2rem;
 }
 
 @media (max-width: 768px) {
-        .flexotec{
-            flex-direction: column;
-        }
-}
-@media (min-width: 768) {
-        .flexotec{
-            flex-direction: row;
+        #woocotec .ceco-top {
+                flex-direction: column;
         }
 }
