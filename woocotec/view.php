@@ -35,7 +35,7 @@
                     <option value="Zona 2" <?php selected($selected_zone, 'Zona 2'); ?>>Zona 2</option>
                     <option value="Zona 3" <?php selected($selected_zone, 'Zona 3'); ?>>Zona 3</option>
                 </select>
-                <button type="submit">Guardar</button>
+                <button type="submit" title="Guarda la zona: decide de qué feed se leen el stock y los precios, y el idioma del catálogo.">Guardar</button>
                 <table class="zones">
                     <tr>
                         <th>Zona 1</th>
@@ -78,11 +78,13 @@
     <div class="ceco-actions">
         <div class="ceco-action">
             <p class="ceco-status"><strong>Última sincronización:</strong> <span id="stock-last-sync" title="<?= esc_attr($ceco_sync_text); ?>"><?= esc_html($ceco_sync_text); ?></span></p>
-            <button id="start-stock-sync" class="button button-secondary">Sincronizar stock ahora</button>
+            <button id="start-stock-sync" class="button button-secondary" title="Lee ahora el feed de Cecotec y actualiza el stock de los productos de la tienda (lo mismo que hace cada hora el cron). No crea productos ni cambia precios.">Sincronizar stock ahora</button>
+            <p class="description ceco-btn-help">Actualiza ya el stock de la tienda con el feed de Cecotec (se hace solo cada hora). No crea productos ni cambia precios.</p>
         </div>
         <div class="ceco-action">
             <p class="ceco-status"><strong>Último CSV:</strong> <span id="last-csv" title="<?= esc_attr($ceco_csv_text); ?>"><?= esc_html($ceco_csv_text); ?></span></p>
-            <button id="start-import" class="button button-primary">Importación manual</button>
+            <button id="start-import" class="button button-primary" title="Descarga el catálogo de Plytix si hace falta y genera el CSV (products.csv) con precios, stock y fichas. No modifica la tienda: después hay que ejecutar «Productos Cecotec» en WP All Import.">Importación manual</button>
+            <p class="description ceco-btn-help">Genera ahora el CSV para WP All Import (se hace solo cada día). No cambia la tienda: después hay que ejecutar «Productos Cecotec» en All Import.</p>
         </div>
         <div id="import-log" class="ceco-log"></div>
     </div>
@@ -220,7 +222,7 @@
         <?php submit_button('Guardar ajustes de imágenes', 'secondary'); ?>
     </form>
     <p><strong>Estado:</strong> <span id="images-status"><?= esc_html(CecoImageCache::describe()); ?></span></p>
-    <p><button id="process-images" class="button button-secondary">Preparar fotos ahora</button> <span class="description">Se preparan solas por cron; este botón lo acelera (deja la pestaña abierta). Al terminar se regenera el CSV.</span></p>
+    <p><button id="process-images" class="button button-secondary" title="Descarga y reduce ahora las fotos pendientes del CSV; al terminar regenera el CSV para que apunte a ellas.">Preparar fotos ahora</button> <span class="description">Se preparan solas por cron; este botón lo acelera (deja la pestaña abierta). Al terminar se regenera el CSV.</span></p>
         </div>
     </details>
 
@@ -239,16 +241,16 @@
     <p>Busca productos en <strong>borrador</strong> que <strong>no</strong> controla la importación de WP All Import y cuyo SKU (sin contar ceros a la izquierda) coincide con un producto del CSV actual: por ejemplo «123» o «00127» frente a «00123» / «00127». Son fichas antiguas de plugins anteriores; si se dejan, WooCommerce no permite crear la ficha nueva con el mismo SKU.</p>
     <p>No toca productos publicados, ni borradores de la importación actual, ni borradores que no estén en el CSV. Se envían a la <strong>papelera</strong>, de donde se pueden recuperar.</p>
     <p>
-        <button id="find-old-drafts" class="button button-secondary">1. Buscar borradores antiguos</button>
-        <button id="trash-old-drafts" class="button button-secondary" disabled>2. Enviar a la papelera</button>
+        <button id="find-old-drafts" class="button button-secondary" title="Solo muestra la lista; no modifica nada.">1. Buscar borradores antiguos</button>
+        <button id="trash-old-drafts" class="button button-secondary" disabled title="Envía a la papelera los borradores de la lista (se pueden recuperar).">2. Enviar a la papelera</button>
     </p>
     <div id="old-drafts-result" style="margin-top: 10px; max-height: 400px; overflow-y: auto;"></div>
 
     <h3>Nombres con el EAN delante</h3>
     <p>Cecotec pone el EAN delante del nombre en algunos productos (p. ej. «8435743904049-Ventilador Evaporativo EVVO AC750»). El CSV ya lo quita; este botón corrige los productos que ya se crearon así. No cambia la URL.</p>
     <p>
-        <button id="find-ean-names" class="button button-secondary">1. Buscar nombres con EAN</button>
-        <button id="fix-ean-names" class="button button-secondary" disabled>2. Corregir nombres</button>
+        <button id="find-ean-names" class="button button-secondary" title="Solo muestra la lista; no modifica nada.">1. Buscar nombres con EAN</button>
+        <button id="fix-ean-names" class="button button-secondary" disabled title="Quita el EAN del nombre de los productos de la lista. No cambia la URL.">2. Corregir nombres</button>
     </p>
     <div id="ean-names-result" style="margin-top: 10px; max-height: 400px; overflow-y: auto;"></div>
         </div>
