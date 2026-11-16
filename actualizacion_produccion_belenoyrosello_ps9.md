@@ -320,3 +320,8 @@ Las detectó el vigilante o se reportaron en el uso diario. Todas se hicieron di
   - Comprobado: ficha de producto → 200 y configurador → OK.
 - **Avisos nocturnos (00:15–00:25):** son 500/000 sin rastro en ningún log, a la hora del backup del servidor (`backupdbs.sh`, que no se modifica por decisión del cliente).
 - **Vigilante retirado (16/11/2026)** a petición del cliente: se borraron `/etc/cron.d/vigila_beleno`, `/root/vigila_beleno.sh` (y su `.bak-20261103`) y `/root/.vigila_beleno`.
+- **Back office: Mega Products y Mega Designer salían en blanco (16/11):**
+  - Sus controladores redirigían a la configuración del módulo dentro de `display()`, que PS9 ya no ejecuta.
+  - Se reescribieron `megaproduct/.../AdminMegaproductController.php` y `megadesigner/.../AdminMegadesignerController.php` para redirigir en `init()` con `getAdminLink`. Copias previas: `.bak-20261116`.
+- **megaproduct "Rango / Atributos" daba error 500:** la clase `Attribute` se llama `ProductAttribute` en PS8+.
+  - Se cambió en `megaproduct.php` (4 llamadas), `megaproduct.class.php`, `megaproduct/override/classes/Cart.php` y el override activo `override/classes/Cart.php:764`. Copias previas: `.bak-20261116b`.
