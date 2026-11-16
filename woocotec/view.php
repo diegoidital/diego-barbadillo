@@ -63,13 +63,28 @@
                         <td></td>
                     </tr>
                 </table>
-                <ul style="list-style-type:disc;">
-                    <li>Los produtos de las zonas se importan en inglés,<br>
-                    pero tienen tarifas distintas.</li>
+                <ul style="list-style-type:disc; margin-left: 18px;">
+                    <li>Los productos de las zonas se importan en inglés, pero tienen tarifas distintas.</li>
                     <li>Si se elige holandés como idioma, la tarifa es la Zona 1</li>
                 </ul>
             </form>
         </div>
+    </div>
+
+    <?php
+        $ceco_sync_text = CecoStockFeed::describe(get_option(CecoStockFeed::LAST_SYNC, []));
+        $ceco_csv_text  = CecoPublisherToWooCommerce::describe_csv(get_option('ceco_last_csv', []));
+    ?>
+    <div class="ceco-actions">
+        <div class="ceco-action">
+            <p class="ceco-status"><strong>Última sincronización:</strong> <span id="stock-last-sync" title="<?= esc_attr($ceco_sync_text); ?>"><?= esc_html($ceco_sync_text); ?></span></p>
+            <button id="start-stock-sync" class="button button-secondary">Sincronizar stock ahora</button>
+        </div>
+        <div class="ceco-action">
+            <p class="ceco-status"><strong>Último CSV:</strong> <span id="last-csv" title="<?= esc_attr($ceco_csv_text); ?>"><?= esc_html($ceco_csv_text); ?></span></p>
+            <button id="start-import" class="button button-primary">Importación manual</button>
+        </div>
+        <div id="import-log" class="ceco-log"></div>
     </div>
 
     <details class="ceco-section" id="ceco-stock">
@@ -92,11 +107,9 @@
         <li>El CSV de productos incluye también las columnas <code>Stock</code>, <code>Estado stock</code> y <code>EAN</code>.</li>
         <li>Para que tampoco se muestren los agotados: WooCommerce › Ajustes › Productos › Inventario › «Ocultar en el catálogo los artículos agotados».</li>
     </ul>
-    <p><strong>Última sincronización:</strong> <span id="stock-last-sync"><?= esc_html(CecoStockFeed::describe(get_option(CecoStockFeed::LAST_SYNC, []))); ?></span></p>
     <?php if ($ceco_next_sync) : ?>
         <p><strong>Próxima sincronización automática:</strong> <?= esc_html(get_date_from_gmt(gmdate('Y-m-d H:i:s', $ceco_next_sync), 'd/m/Y H:i')); ?></p>
     <?php endif; ?>
-    <p><button id="start-stock-sync" class="button button-secondary">Sincronizar stock ahora</button></p>
 
     <form method="post" action="<?= admin_url('admin-post.php'); ?>">
         <input type="hidden" name="action" value="save_stock_settings">
@@ -207,12 +220,9 @@
     <details class="ceco-section" id="ceco-csv">
         <summary><h2>Crea el csv con los productos de Cecotec</h2></summary>
         <div class="ceco-section-body">
-    <p>Último CSV: <?= esc_html(CecoPublisherToWooCommerce::describe_csv(get_option('ceco_last_csv', []))); ?></p>
     <p>El CSV se genera automáticamente una vez al día. Una vez generado, para crear/actualizar los productos en WooCommerce, ir a All Import › Manage Imports y ejecutar la importación «Productos Cecotec».</p>
     <p><label><input type="checkbox" id="force-catalog"> Volver a descargar el catálogo aunque esté al día</label></p>
-    <p><button id="start-import" class="button button-primary">Importación manual</button></p>
 
-    <div id="import-log" style="margin-top: 20px; padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9; max-height: 300px; overflow-y: auto;"></div>
         </div>
     </details>
 

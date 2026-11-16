@@ -25,6 +25,37 @@
         width: 120px;
 }
 
+/* Barra de acciones rápidas */
+#woocotec .ceco-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem 4rem;
+        margin: 0 0 1rem;
+        padding: 0 0 1.2rem;
+        border-bottom: 1px solid #dcdcde;
+}
+#woocotec .ceco-action {
+        flex: 0 1 420px;
+        min-width: 0;
+}
+#woocotec .ceco-status {
+        margin: 0 0 .6rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+}
+#woocotec .ceco-log {
+        flex: 1 1 100%;
+        max-height: 300px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #dcdcde;
+        padding: 0 10px;
+}
+#woocotec .ceco-log:empty {
+        display: none;
+}
+
 /* Secciones plegables */
 #woocotec details.ceco-section {
         border-bottom: 1px solid #dcdcde;
