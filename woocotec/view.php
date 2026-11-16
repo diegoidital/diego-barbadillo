@@ -1,21 +1,9 @@
 <div id="woocotec" class="wrap">
     <h1>Importar Productos Cecotec</h1>
 
-    <h2>Origen de los datos</h2>
-    <table class="widefat striped" style="max-width: 900px;">
-        <thead><tr><th>Dato</th><th>España</th><th>Resto de zonas</th></tr></thead>
-        <tbody>
-            <tr><td>Ficha de producto (nombre, descripciones, familias, imágenes, medidas)</td><td colspan="2">Catálogo Plytix (XML)</td></tr>
-            <tr><td>Precio (PVPR)</td><td>Feed DROPES (<code>pvpr</code>)</td><td>Cecopublisher, tarifa DROP INTER (requiere las credenciales de abajo)</td></tr>
-            <tr><td>Stock</td><td>Feed DROPES</td><td>Feed de la zona (DROPPT, DROPIT, DROPDE, DROPFR, DROPZ1, DROPZ2, DROPZ3)</td></tr>
-        </tbody>
-    </table>
-    <p class="description">Cruce entre fuentes: SKU del catálogo = <code>public_id</code> del feed = SKU de Cecopublisher.</p>
-
-    <hr>
-
-    <h2>Credenciales de Cecopublisher <small>(solo para precios fuera de España)</small></h2>
-
+    <div class="ceco-top">
+        <div class="ceco-top-col">
+            <h2>Credenciales de Cecopublisher <small>(solo para precios fuera de España)</small></h2>
     <form method="post" action="<?= admin_url('admin-post.php'); ?>">
         <input type="hidden" name="action" value="save_credentials">
         <table class="form-table">
@@ -30,14 +18,11 @@
         </table>
         <?php submit_button('Guardar Credenciales'); ?>
     </form>
-
-    <hr>
-
-    <div class="flexotec">
-
+        </div>
+        <div class="ceco-top-col">
             <?php $selected_zone = get_option('ceco_selected_zone', 'Español'); ?>
             <form method="post" action="<?= admin_url('admin-post.php'); ?>">
-                    <h2>Selección de Idioma</h2>   
+                    <h2>Selección de Idioma</h2>
             <input type="hidden" name="action" value="save_selected_zone">
                 <select name="selected_zone" id="selected_zone">
                     <option value="Español" <?php selected($selected_zone, 'Español'); ?>>Español</option>
@@ -84,37 +69,12 @@
                     <li>Si se elige holandés como idioma, la tarifa es la Zona 1</li>
                 </ul>
             </form>
-
-    <!--<form method="post" action="<?= admin_url('admin-post.php'); ?>">
-            <input type="hidden" name="action" value="save_import_settings">
-
-        
-            <h2>Seleccionar categorías para excluir de la eliminación</h2>
-            
-            <select name="excluded_categories[]" multiple style="width: 100%; height: 150px;">
-                <?php
-                $categories = get_terms([
-                    'taxonomy' => 'product_cat',
-                    'hide_empty' => false,
-                ]);
-
-                $selected_categories = get_option('ceco_excluded_categories', []); // Recuperar categorías seleccionadas previamente
-
-                foreach ($categories as $category) {
-                    $selected = in_array($category->slug, $selected_categories) ? 'selected' : '';
-                    echo "<option value='{$category->slug}' {$selected}>{$category->name}</option>";
-                }
-                ?>
-            </select>
-            <p>Usa Ctrl (Windows) o Cmd (Mac) para seleccionar múltiples categorías.</p>
-
-            <?php submit_button('Guardar Configuración'); ?>
-        </form>-->
+        </div>
     </div>
 
-    <hr>
-
-    <h2>Stock de Cecotec</h2>
+    <details class="ceco-section" id="ceco-stock">
+        <summary><h2>Stock de Cecotec</h2></summary>
+        <div class="ceco-section-body">
     <?php
         $ceco_zone       = get_option('ceco_selected_zone', 'Español');
         $ceco_custom_url = get_option(CecoStockFeed::URL_OPTION, '');
@@ -159,10 +119,12 @@
         </table>
         <?php submit_button('Guardar ajustes de stock', 'secondary'); ?>
     </form>
+        </div>
+    </details>
 
-    <hr>
-
-    <h2>Catálogo de Plytix</h2>
+    <details class="ceco-section" id="ceco-catalogo">
+        <summary><h2>Catálogo de Plytix</h2></summary>
+        <div class="ceco-section-body">
     <?php
         $ceco_catalog_url  = get_option(CecoCatalogFeed::URL_OPTION, '');
         $ceco_gallery_mode = get_option(CecoCatalogFeed::GALLERY_OPTION, 'master_gallery');
@@ -200,10 +162,12 @@
         </table>
         <?php submit_button('Guardar ajustes del catálogo', 'secondary'); ?>
     </form>
+        </div>
+    </details>
 
-    <hr>
-
-    <h2>Optimización de imágenes</h2>
+    <details class="ceco-section" id="ceco-imagenes">
+        <summary><h2>Optimización de imágenes</h2></summary>
+        <div class="ceco-section-body">
     <?php
         $ceco_sizes     = function_exists('wp_get_registered_image_subsizes') ? wp_get_registered_image_subsizes() : [];
         $ceco_essential = array_intersect_key($ceco_sizes, array_flip(CecoImageCache::ESSENTIAL_SIZES));
@@ -237,22 +201,24 @@
     </form>
     <p><strong>Estado:</strong> <span id="images-status"><?= esc_html(CecoImageCache::describe()); ?></span></p>
     <p><button id="process-images" class="button button-secondary">Preparar fotos ahora</button> <span class="description">Se preparan solas por cron; este botón lo acelera (deja la pestaña abierta). Al terminar se regenera el CSV.</span></p>
+        </div>
+    </details>
 
-    <hr>
-
-    <h2>Crea el csv con los productos de Cecotec</h2>
+    <details class="ceco-section" id="ceco-csv">
+        <summary><h2>Crea el csv con los productos de Cecotec</h2></summary>
+        <div class="ceco-section-body">
     <p>Último CSV: <?= esc_html(CecoPublisherToWooCommerce::describe_csv(get_option('ceco_last_csv', []))); ?></p>
     <p>El CSV se genera automáticamente una vez al día. Una vez generado, para crear/actualizar los productos en WooCommerce, ir a All Import › Manage Imports y ejecutar la importación «Productos Cecotec».</p>
     <p><label><input type="checkbox" id="force-catalog"> Volver a descargar el catálogo aunque esté al día</label></p>
     <p><button id="start-import" class="button button-primary">Importación manual</button></p>
 
-  
-    
     <div id="import-log" style="margin-top: 20px; padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9; max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </details>
 
-    <hr>
-
-    <h2>Limpiar borradores antiguos de Cecotec</h2>
+    <details class="ceco-section" id="ceco-limpiar">
+        <summary><h2>Limpiar borradores antiguos de Cecotec</h2></summary>
+        <div class="ceco-section-body">
     <p>Busca productos en <strong>borrador</strong> que <strong>no</strong> controla la importación de WP All Import y cuyo SKU (sin contar ceros a la izquierda) coincide con un producto del CSV actual: por ejemplo «123» o «00127» frente a «00123» / «00127». Son fichas antiguas de plugins anteriores; si se dejan, WooCommerce no permite crear la ficha nueva con el mismo SKU.</p>
     <p>No toca productos publicados, ni borradores de la importación actual, ni borradores que no estén en el CSV. Se envían a la <strong>papelera</strong>, de donde se pueden recuperar.</p>
     <p>
@@ -260,5 +226,22 @@
         <button id="trash-old-drafts" class="button button-secondary" disabled>2. Enviar a la papelera</button>
     </p>
     <div id="old-drafts-result" style="margin-top: 10px; max-height: 400px; overflow-y: auto;"></div>
+        </div>
+    </details>
+
+    <details class="ceco-section" id="ceco-origen">
+        <summary><h2>Origen de los datos</h2></summary>
+        <div class="ceco-section-body">
+    <table class="widefat striped" style="max-width: 900px;">
+        <thead><tr><th>Dato</th><th>España</th><th>Resto de zonas</th></tr></thead>
+        <tbody>
+            <tr><td>Ficha de producto (nombre, descripciones, familias, imágenes, medidas)</td><td colspan="2">Catálogo Plytix (XML)</td></tr>
+            <tr><td>Precio (PVPR)</td><td>Feed DROPES (<code>pvpr</code>)</td><td>Cecopublisher, tarifa DROP INTER (requiere las credenciales de abajo)</td></tr>
+            <tr><td>Stock</td><td>Feed DROPES</td><td>Feed de la zona (DROPPT, DROPIT, DROPDE, DROPFR, DROPZ1, DROPZ2, DROPZ3)</td></tr>
+        </tbody>
+    </table>
+    <p class="description">Cruce entre fuentes: SKU del catálogo = <code>public_id</code> del feed = SKU de Cecopublisher.</p>
+        </div>
+    </details>
 
 </div>
