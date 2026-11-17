@@ -253,6 +253,14 @@
         <button id="fix-ean-names" class="button button-secondary" disabled title="Quita el EAN del nombre de los productos de la lista. No cambia la URL.">2. Corregir nombres</button>
     </p>
     <div id="ean-names-result" style="margin-top: 10px; max-height: 400px; overflow-y: auto;"></div>
+
+    <h3>Productos publicados sin foto</h3>
+    <p>Algunos productos se crearon en importaciones anteriores sin imagen y la importación no actualiza las fotos de los productos existentes. Esta herramienta les pone las fotos que trae el CSV actual (las ya preparadas de 1200 px). No toca productos que ya tienen foto.</p>
+    <p>
+        <button id="find-missing-photos" class="button button-secondary" title="Solo muestra la lista; no modifica nada.">1. Buscar productos sin foto</button>
+        <button id="fix-missing-photos" class="button button-secondary" disabled title="Asigna las fotos del CSV a los productos de la lista (imagen destacada y galería).">2. Poner fotos</button>
+    </p>
+    <div id="missing-photos-result" style="margin-top: 10px; max-height: 400px; overflow-y: auto;"></div>
         </div>
     </details>
 

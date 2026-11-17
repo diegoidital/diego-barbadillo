@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Importador de productos Cecotec.
  * Description: Crea el CSV de productos de Cecotec para WP All Import: catálogo de Plytix, precios y stock de los feeds de dropshipping (España) o de Cecopublisher (resto de zonas), y sincroniza el stock cada hora.
- * Version: 2.4.1
+ * Version: 2.5.0
  * Author: Idital
  * Author URI: https://idital.com
  * License: GPL2
@@ -12,7 +12,7 @@
 // Exit if accessed directly
     if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-    define('WOOCOTEC_VERSION', '2.4.1');
+    define('WOOCOTEC_VERSION', '2.5.0');
 
 /*******************************************************************************
  *  add plugin files
@@ -23,6 +23,7 @@
     include plugin_dir_path(__FILE__) . '/inc/ceco-catalog.php';
     include plugin_dir_path(__FILE__) . '/inc/ceco-cleanup.php';
     include plugin_dir_path(__FILE__) . '/inc/ceco-images.php';
+    include plugin_dir_path(__FILE__) . '/inc/ceco-photos.php';
     
     if (is_admin()) {
         function enqueue_admin_styles() {
