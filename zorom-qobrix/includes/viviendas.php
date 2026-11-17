@@ -504,6 +504,8 @@ function zq_plano_titulo( $id, $post_id = 0 ) {
 		$t = (string) get_the_title( $id );
 	}
 	$t = preg_replace( '/\.[a-z0-9]{2,4}$/i', '', $t );
+	// Fuera «Copia de», «Copy of» y «(1)» que añaden Drive/Windows al duplicar archivos.
+	$t = preg_replace( array( '/^\s*(copia|copy)\s+(de|of)\s+/iu', '/\s*\(\d+\)\s*$/' ), '', $t );
 	// Fuera el nombre de la promoción y de la vivienda, y el código («13b», «2L»…).
 	$quitar = array( 'plano' );
 	if ( $post_id ) {
@@ -520,6 +522,7 @@ function zq_plano_titulo( $id, $post_id = 0 ) {
 	$t = preg_replace( '/\b(villa|vivienda)?\s*\d{1,3}\s*[a-z]?\b/iu', ' ', $t );
 	$t = strtolower( trim( preg_replace( '/[\s_\-]+/', ' ', $t ) ) );
 	$t = str_replace( array( 'sotano', 'tabla superficies' ), array( 'sótano', 'tabla de superficies' ), $t );
+	$t = trim( preg_replace( '/^(copia|copy)(\s+(de|of))?\s*/iu', '', $t ) );
 	return '' !== $t ? ucfirst( $t ) : 'Plano';
 }
 

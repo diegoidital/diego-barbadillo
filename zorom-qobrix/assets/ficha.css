@@ -1772,7 +1772,11 @@ body > #colophon {
 	gap: 14px;
 	padding: 18px 20px;
 	border-radius: 12px;
-	background: #fff;
+	background: transparent;
+}
+
+.zq-v .zq-v-plano-pdf:hover {
+	background: #000;
 }
 
 .zq-v .zq-v-plano-pdf .zq-v-ico {
