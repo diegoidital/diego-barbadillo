@@ -35,6 +35,9 @@ function zq_sanitize( $in ) {
 	$out['escala']         = max( 50, min( 150, absint( isset( $in['escala'] ) ? $in['escala'] : 100 ) ) );
 	$out['menu_transparente'] = empty( $in['menu_transparente'] ) ? 0 : 1;
 	$out['load_fonts']     = empty( $in['load_fonts'] ) ? 0 : 1;
+	$out['traducir']       = empty( $in['traducir'] ) ? 0 : 1;
+	// La clave no se muestra en el formulario: si llega vacía se conserva la anterior.
+	$out['deepl_key']      = ! empty( $in['deepl_key'] ) ? sanitize_text_field( $in['deepl_key'] ) : $old['deepl_key'];
 	$out['gallery_max'] = min( 50, absint( isset( $in['gallery_max'] ) ? $in['gallery_max'] : 12 ) );
 	foreach ( array( 'field_desc', 'field_price', 'field_units', 'field_date', 'field_energy' ) as $k ) {
 		$out[ $k ] = preg_replace( '/[^a-z0-9_,]/i', '', isset( $in[ $k ] ) ? $in[ $k ] : '' );
@@ -133,6 +136,11 @@ function zq_settings_page() {
 					<label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[menu_transparente]" value="1" <?php checked( $o['menu_transparente'] ); ?>> Fondo del menú transparente en las páginas de promoción</label></td></tr>
 				<?php // El formulario sale del global de Elementor (arriba). El shortcode antiguo se conserva oculto. ?>
 				<input type="hidden" name="<?php echo esc_attr( $name ); ?>[form_shortcode]" value="<?php echo esc_attr( $o['form_shortcode'] ); ?>">
+				<tr><th><label for="zq-deepl">Traducción al español</label></th>
+					<td><label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[traducir]" value="1" <?php checked( $o['traducir'] ); ?>> Traducir las descripciones que llegan en inglés de Qobrix (promociones e inmuebles)</label><br>
+						<input id="zq-deepl" class="regular-text code" type="password" autocomplete="off" name="<?php echo esc_attr( $name ); ?>[deepl_key]" value="" placeholder="<?php echo $o['deepl_key'] ? esc_attr( 'Guardada (…' . substr( $o['deepl_key'], -4 ) . ') – escribe otra para cambiarla' ) : 'Clave de la API de DeepL'; ?>">
+						<p class="description">Clave gratuita en <a href="https://www.deepl.com/pro-api" target="_blank" rel="noopener">deepl.com/pro-api</a> (plan Free: 500.000 caracteres al mes). Cada texto se traduce una vez y se guarda; solo se vuelve a traducir si cambia en Qobrix. Lo escrito a mano en «Descripción en español» de la promoción manda sobre la traducción.
+						<?php if ( get_option( 'zq_trad_error' ) ) : ?><br><strong style="color:#b32d2e">Último error de DeepL: <?php echo esc_html( get_option( 'zq_trad_error' ) ); ?></strong><?php endif; ?></p></td></tr>
 				<tr><th>Tipografías</th>
 					<td><label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[load_fonts]" value="1" <?php checked( $o['load_fonts'] ); ?>> Cargar Geist e Inter (Google Fonts) en las páginas de promoción</label>
 						<p class="description">Desmárcalo si el tema ya las carga.</p></td></tr>

@@ -335,7 +335,7 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 		<div class="zq-v-canvas">
 			<section class="zq-v-desc">
 				<h2 class="zq-v-h2">Descripción</h2>
-				<div class="zq-f-txt"><?php echo wpautop( wp_kses_post( get_post_field( 'post_content', $post_id ) ) ); // phpcs:ignore ?></div>
+				<div class="zq-f-txt"><?php echo wpautop( wp_kses_post( zq_traducir( get_post_field( 'post_content', $post_id ) ) ) ); // phpcs:ignore ?></div>
 			</section>
 
 			<div class="zq-v-datos">

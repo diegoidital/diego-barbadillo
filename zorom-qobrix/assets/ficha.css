@@ -2127,3 +2127,49 @@ body.zq-menu-sin-efecto .elementor-location-header [data-settings*="background_m
 body.zq-menu-sin-efecto .elementor-location-header .elementor-motion-effects-element {
 	opacity: 1 !important;
 }
+
+/* Ficha del inmueble: cabecera con fondo negro y textos en blanco. */
+.zq-v .zq-v-hero {
+	background: #000;
+	color: #fff;
+}
+
+.zq-v .zq-v-hero__txt {
+	margin-right: 0;
+	border-bottom: 0;
+	padding-bottom: 50px;
+}
+
+.zq-v .zq-v-hero .zq-v-volver,
+.zq-v .zq-v-hero .zq-v-titulo,
+.zq-v .zq-v-hero .zq-v-precio,
+.zq-v .zq-v-hero .zq-v-claves,
+.zq-v .zq-v-hero .zq-v-ico {
+	color: #fff !important;
+}
+
+.zq-v .zq-v-hero .zq-v-ubi {
+	color: #bdbdbd;
+}
+
+.zq-v .zq-v-hero .zq-v-meta span {
+	border-color: #fff;
+	color: #fff;
+}
+
+.zq-v .zq-v-hero .zq-v-meta .zq-v-estado--available {
+	background: #fff;
+	color: #000;
+}
+
+.zq-v .zq-v-hero .zq-v-btn {
+	border-color: #fff;
+	background: #fff;
+	color: #000 !important;
+}
+
+.zq-v .zq-v-hero .zq-v-btn:hover,
+.zq-v .zq-v-hero .zq-v-btn:focus {
+	background: transparent;
+	color: #fff !important;
+}
