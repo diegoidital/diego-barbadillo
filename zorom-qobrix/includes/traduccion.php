@@ -22,6 +22,12 @@ function zq_parece_ingles( $texto ) {
 
 function zq_traducir( $texto ) {
 	$texto = (string) $texto;
+	// Con WPML: solo se traduce automáticamente en la versión en español; en el resto de idiomas
+	// se deja el texto original para que lo gestione WPML.
+	$lang = apply_filters( 'wpml_current_language', null );
+	if ( $lang && 'es' !== $lang ) {
+		return $texto;
+	}
 	$o     = zq_options();
 	if ( '' === trim( wp_strip_all_tags( $texto ) ) || empty( $o['traducir'] ) || empty( $o['deepl_key'] ) || ! zq_parece_ingles( $texto ) ) {
 		return $texto;
