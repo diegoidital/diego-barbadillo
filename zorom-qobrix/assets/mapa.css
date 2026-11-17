@@ -1,0 +1,161 @@
+/* [zorom_mapa_oficina] – estilo Zorom */
+.zq-mapa-oficina {
+	position: relative;
+	overflow: hidden;
+	border-radius: 20px;
+	background: #e4e4e4;
+}
+
+.zq-mapa-oficina__mapa {
+	position: absolute;
+	inset: 0;
+}
+
+/* Marcador: cuadrado negro, línea en ángulo y etiqueta. */
+.zq-mo {
+	position: relative;
+	width: 16px;
+	height: 16px;
+	box-sizing: border-box;
+	border: 2px solid #fff;
+	background: #000;
+}
+
+.zq-mo__h,
+.zq-mo__v {
+	position: absolute;
+	pointer-events: none;
+}
+
+.zq-mo__label {
+	position: absolute;
+	display: block;
+	text-decoration: none !important;
+	cursor: pointer;
+	transition: background .2s, color .2s;
+}
+
+.zq-mapa-oficina__enlace {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	cursor: pointer;
+}
+
+/* Al pasar por cualquier parte del mapa, la etiqueta se invierte. */
+.zq-mapa-oficina:hover .zq-mo__label,
+.zq-mapa-oficina:focus-within .zq-mo__label,
+a.zq-mo__label:hover,
+a.zq-mo__label:focus-visible {
+	border-color: #000;
+	background: #fff;
+	color: #000 !important;
+}
+
+.zq-mo__h {
+	top: 50%;
+	right: 100%;
+	width: 110px;
+	height: 1.5px;
+	background: #000;
+}
+
+.zq-mo__v {
+	right: calc(100% + 110px);
+	bottom: 50%;
+	width: 1.5px;
+	height: 70px;
+	background: #000;
+}
+
+.zq-mo__label {
+	right: calc(100% + 110px);
+	bottom: calc(50% + 70px);
+	transform: translateX(50%);
+	padding: 7px 12px;
+	border: 1px solid #fff;
+	background: #000;
+	color: #fff !important;
+	font-family: var(--zq-geist, sans-serif);
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: .6px;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.zq-mapa-oficina__boton {
+	position: absolute;
+	z-index: 2;
+	top: 20px;
+	left: 20px;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 12px;
+	border-radius: 8px;
+	background: #000;
+	color: #fff !important;
+	font-family: var(--zq-geist, sans-serif);
+	font-size: 15px;
+	font-weight: 500;
+	text-decoration: none !important;
+}
+
+.zq-mapa-oficina__boton:hover {
+	background: #333;
+}
+
+.zq-mapa-oficina .maplibregl-ctrl-attrib {
+	font-size: 10px;
+}
+
+@media (max-width: 767px) {
+	.zq-mapa-oficina {
+		height: 380px !important;
+	}
+
+	.zq-mo__h { width: 60px; }
+	.zq-mo__v { right: calc(100% + 60px); height: 50px; }
+	.zq-mo__label { right: calc(100% + 60px); bottom: calc(50% + 50px); font-size: 11px; }
+}
+
+/* El aviso de OpenStreetMap queda por encima del enlace para poder abrirlo. */
+.zq-mapa-oficina .maplibregl-ctrl-bottom-right {
+	z-index: 4;
+}
+
+/* Aviso de OpenStreetMap a juego: fondo negro, texto gris claro y enlaces en blanco. */
+.zq-mapa-oficina .maplibregl-ctrl-attrib,
+.zq-mapa-oficina .maplibregl-ctrl-attrib.maplibregl-compact {
+	margin: 0 12px 12px 0;
+	padding: 2px 30px 2px 8px;
+	min-height: 24px;
+	box-sizing: border-box;
+	border-radius: 0;
+	background: #F5F5F5 !important;
+	color: #000;
+	font-family: var(--zq-geist, sans-serif);
+	font-size: 10px;
+	line-height: 1.6;
+}
+
+.zq-mapa-oficina .maplibregl-ctrl-attrib a {
+	color: #000 !important;
+	text-decoration: none;
+}
+
+.zq-mapa-oficina .maplibregl-ctrl-attrib a:hover {
+	color: #000 !important;
+	text-decoration: underline;
+}
+
+/* Botón «i» del aviso compacto, en blanco. */
+.zq-mapa-oficina .maplibregl-ctrl-attrib-button {
+	background-color: transparent !important;
+	filter: none;
+}
+
+.zq-mapa-oficina .maplibregl-compact-show .maplibregl-ctrl-attrib-button {
+	filter: none;
+}

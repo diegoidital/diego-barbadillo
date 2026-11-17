@@ -1,0 +1,590 @@
+/* Promociones Qobrix – estilos base. El tema puede sobrescribirlos. */
+.zq-promos {
+	--zq-tab-bg: #f1f1f1;
+	--zq-tab-active: #d9d9d9;
+	--zq-text: #111;
+	--zq-radius: 12px;
+	color: var(--zq-text);
+}
+
+.zq-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 20px;
+}
+
+.zq-tab {
+	padding: 16px 34px;
+	border: 0;
+	border-radius: var(--zq-radius);
+	background: var(--zq-tab-bg);
+	color: inherit;
+	font: inherit;
+	font-size: 13px;
+	letter-spacing: .02em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: background-color .2s;
+}
+
+.zq-tab:hover,
+.zq-tab.is-active {
+	background: var(--zq-tab-active);
+}
+
+.zq-tab:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+.zq-panel {
+	display: grid;
+	/* Medidas del diseño: texto 840 px · hueco 117 px · foto 442 px. */
+	grid-template-columns: minmax(0, 840px) minmax(0, 442px);
+	column-gap: clamp(40px, 6vw, 117px);
+	justify-content: start;
+	align-items: start;
+}
+
+.zq-panel__info {
+	padding-left: 10px;
+}
+
+.zq-panel--plantilla {
+	display: block;
+}
+
+.zq-panel[hidden] {
+	display: none;
+}
+
+.zq-title {
+	margin: 0 0 14px;
+	font-size: 32px;
+	font-weight: 400;
+	line-height: 1.2;
+}
+
+.zq-desc {
+	font-size: 16px;
+	line-height: 1.6;
+}
+
+.zq-desc p {
+	margin: 0 0 1.6em;
+}
+
+.zq-desc p:last-child {
+	margin-bottom: 0;
+}
+
+.zq-datos {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 20px;
+	margin: 44px 0 0;
+}
+
+.zq-dato dt {
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.zq-dato dd {
+	margin: 2px 0 0;
+	font-size: 16px;
+	line-height: 1.4;
+}
+
+.zq-link,
+.zq-promos .zq-link {
+	display: inline-block;
+	margin-top: 46px;
+	color: inherit;
+	font-size: 15px;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.zq-promos .zq-link .zq-flecha {
+	margin-left: 4px;
+	font-size: 1.1em;
+}
+
+.zq-link:hover {
+	text-decoration: underline;
+}
+
+.zq-panel__img {
+	position: relative;
+	z-index: 0;
+	margin-top: 7px;
+	padding-bottom: 48px;
+	max-width: 442px;
+}
+
+/* Bloque negro detrás de la foto, hasta el borde derecho de la pantalla (diseño Figma). */
+.zq-panel__img::before {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	top: -14px;
+	bottom: 0;
+	left: 80px;
+	width: 100vw;
+	border-radius: 40px 0 0 40px;
+	background: var(--zq-bloque, #000);
+}
+
+.zq-promos--sin-fondo .zq-panel__img {
+	padding-bottom: 0;
+}
+
+.zq-promos--sin-fondo .zq-panel__img::before {
+	display: none;
+}
+
+/* El bloque negro sale del contenedor: evita la barra de desplazamiento horizontal. */
+body:has(.zq-promos) {
+	overflow-x: clip;
+}
+
+.zq-panel__img img {
+	display: block;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 7 / 10;
+	object-fit: cover;
+	border-radius: var(--zq-radius);
+}
+
+/* Listado [qobrix_listado] */
+.zq-listado {
+	display: grid;
+	grid-template-columns: repeat(var(--zq-cols, 3), minmax(0, 1fr));
+	gap: 30px;
+}
+
+.zq-card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	color: inherit;
+	text-decoration: none;
+}
+
+.zq-card img {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+	border-radius: 12px;
+}
+
+.zq-card__title {
+	font-size: 22px;
+}
+
+/* Tarjeta: al pasar el ratón el contenedor pasa a negro y textos e iconos a blanco. */
+.zq-listado .zq-card {
+	height: 100%;
+	box-sizing: border-box;
+	padding: 14px 14px 22px;
+	border-radius: 18px;
+	background: transparent;
+	transition: background-color .25s, color .25s;
+}
+
+.zq-card__ubi {
+	font-size: 14px;
+	opacity: .7;
+}
+
+.zq-card__texto {
+	font-size: 15px;
+	line-height: 1.45;
+	opacity: .85;
+}
+
+.zq-listado .zq-card .zq-link {
+	margin-top: auto;
+	padding-top: 10px;
+}
+
+.zq-listado .zq-card:hover,
+.zq-listado .zq-card:focus-visible {
+	background: #000;
+	color: #fff !important;
+}
+
+.zq-listado .zq-card:hover *,
+.zq-listado .zq-card:focus-visible * {
+	color: #fff !important;
+	border-color: #fff !important;
+}
+
+@media (max-width: 900px) {
+	.zq-listado {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.zq-panel {
+		grid-template-columns: 1fr;
+		gap: 30px;
+	}
+
+	.zq-panel__img {
+		order: -1;
+	}
+
+	.zq-panel__img img {
+		aspect-ratio: 4 / 3;
+	}
+
+	.zq-panel__img {
+		margin-top: 0;
+		padding-bottom: 24px;
+		max-width: none;
+	}
+
+	.zq-panel__info {
+		padding-left: 0;
+	}
+
+	.zq-panel__img::before {
+		top: -10px;
+		left: 40px;
+		border-radius: 24px 0 0 24px;
+	}
+
+	.zq-tabs {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.zq-tab {
+		flex: 0 0 auto;
+		padding: 12px 20px;
+	}
+
+	.zq-datos {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+@media (max-width: 600px) {
+	.zq-listado {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ---------------------------------------------------------------------
+ * Página de promoción
+ * ------------------------------------------------------------------ */
+
+/* Portada [qobrix_hero] */
+.zq-hero {
+	position: relative;
+	display: flex;
+	align-items: center;
+	background: #222 center / cover no-repeat;
+	color: #fff;
+}
+
+.zq-hero::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(90deg, rgba(0, 0, 0, .55), rgba(0, 0, 0, .1));
+}
+
+.zq-hero__inner {
+	position: relative;
+	width: 100%;
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 60px 20px;
+}
+
+.zq-hero__title {
+	margin: 0 0 8px;
+	color: inherit;
+	font-size: clamp(32px, 5vw, 56px);
+	font-weight: 500;
+}
+
+.zq-hero__ubicacion {
+	margin: 0 0 48px;
+	font-size: 16px;
+}
+
+.zq-hero__subtitulo {
+	margin: 0 0 12px;
+	font-size: 13px;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+}
+
+.zq-hero__boton {
+	display: inline-block;
+	padding: 10px 20px;
+	border-radius: 6px;
+	background: #fff;
+	color: #111;
+	font-size: 13px;
+	text-decoration: none;
+	text-transform: uppercase;
+}
+
+/* Fichas [qobrix_datos] */
+.zq-datos-grid {
+	display: grid;
+	grid-template-columns: repeat(var(--zq-cols, 4), minmax(0, 1fr));
+	gap: 14px;
+}
+
+.zq-datos-grid--tarjetas .zq-dato-card {
+	padding: 14px 10px;
+	border: 1px solid #111;
+	border-radius: 8px;
+	text-align: center;
+}
+
+.zq-dato-card__label {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	text-transform: uppercase;
+}
+
+.zq-datos-grid--lista .zq-dato-card__label {
+	justify-content: flex-start;
+	text-transform: none;
+}
+
+.zq-dato-card__value {
+	margin-top: 6px;
+	font-weight: 600;
+	text-transform: uppercase;
+}
+
+.zq-datos-grid--lista .zq-dato-card__value {
+	padding-left: 28px;
+	text-transform: none;
+}
+
+/* Tabla [qobrix_propiedades] */
+.zq-propiedades-wrap {
+	overflow-x: auto;
+}
+
+.zq-propiedades {
+	width: 100%;
+	border-collapse: collapse;
+	text-align: center;
+}
+
+.zq-propiedades th {
+	padding: 10px 12px;
+	background: #000;
+	color: #fff;
+	font-weight: 400;
+}
+
+.zq-propiedades td {
+	padding: 12px;
+	border: 0;
+	font-weight: 600;
+}
+
+.zq-propiedades .zq-estado-sold td,
+.zq-propiedades .zq-estado-reserved td {
+	color: #bbb;
+	font-weight: 400;
+}
+
+.zq-propiedades .zq-estado-sold td:last-child span {
+	color: #e88;
+	text-decoration: line-through;
+}
+
+/* Galería y mapa */
+.zq-galeria {
+	display: grid;
+	grid-template-columns: repeat(var(--zq-cols, 2), minmax(0, 1fr));
+	gap: 30px;
+}
+
+.zq-galeria img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+	border-radius: 12px;
+}
+
+.zq-mapa {
+	overflow: hidden;
+	border-radius: 12px;
+}
+
+.zq-mapa iframe {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: 0;
+}
+
+@media (max-width: 767px) {
+	.zq-datos-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.zq-galeria {
+		grid-template-columns: 1fr;
+	}
+
+	/* Tabla en tarjetas en móvil */
+	.zq-propiedades thead {
+		display: none;
+	}
+
+	.zq-propiedades tr {
+		display: block;
+		margin-bottom: 12px;
+		border: 1px solid #ddd;
+		border-radius: 8px;
+	}
+
+	.zq-propiedades td {
+		display: flex;
+		justify-content: space-between;
+		padding: 6px 12px;
+		text-align: right;
+	}
+
+	.zq-propiedades td::before {
+		content: attr(data-label);
+		font-weight: 400;
+		text-align: left;
+	}
+}
+
+/* Plantilla de promoción */
+.zq-subtitulo {
+	margin: -10px 0 0;
+	font-size: 14px;
+}
+
+.zq-sombra-dcha img,
+.zq-sombra-izda img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: 14px;
+}
+
+.zq-sombra-dcha img {
+	box-shadow: 24px 24px 0 #000;
+}
+
+.zq-sombra-izda img {
+	box-shadow: -24px 24px 0 #000;
+}
+
+/* Títulos de campos manuales vacíos: no ocupan espacio. */
+.elementor-widget-heading .elementor-heading-title:empty {
+	display: none;
+}
+
+.zq-datos-grid--lista {
+	row-gap: 28px;
+}
+
+@media (max-width: 767px) {
+	.zq-sombra-dcha img {
+		box-shadow: 12px 12px 0 #000;
+	}
+
+	.zq-sombra-izda img {
+		box-shadow: -12px 12px 0 #000;
+	}
+}
+
+/* Portada antigua [qobrix_hero] bajo el menú */
+.zq-bajo-menu {
+	margin-top: calc(-1 * var(--zq-menu-h, 0px));
+}
+
+.zq-hero.zq-bajo-menu .zq-hero__inner {
+	padding-top: calc(60px + var(--zq-menu-h, 0px));
+}
+
+.zq-listado .zq-card,
+.zq-listado .zq-card * {
+	text-decoration: none !important;
+}
+
+/* Móvil y tablet: sin scroll horizontal, pestañas en dos filas y datos centrados. */
+body:has(.zq-promos) {
+	overflow-x: clip;
+}
+
+.zq-promos {
+	overflow-x: clip;
+}
+
+@media (max-width: 1024px) {
+	.zq-promos .zq-tabs {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		flex-wrap: wrap;
+		gap: 8px;
+		overflow: visible;
+	}
+
+	.zq-promos .zq-tab {
+		width: 100%;
+		min-width: 0;
+		padding: 12px 10px;
+		text-align: center;
+		white-space: normal;
+		line-height: 1.2;
+	}
+
+	.zq-promos .zq-datos {
+		justify-items: center;
+		text-align: center;
+	}
+
+	.zq-promos .zq-dato {
+		width: 100%;
+	}
+}
+
+/* Móvil y tablet: «Ver promoción» como botón negro con letras blancas. */
+@media (max-width: 1024px) {
+	.zq-promos .zq-link {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		width: 100%;
+		box-sizing: border-box;
+		margin-top: 24px;
+		padding: 14px 20px;
+		border-radius: 8px;
+		background: #000;
+		color: #fff !important;
+		text-decoration: none !important;
+	}
+
+	.zq-promos .zq-link * {
+		color: #fff !important;
+	}
+}
