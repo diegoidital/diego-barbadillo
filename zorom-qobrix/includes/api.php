@@ -193,6 +193,7 @@ function zq_sync( $force = false ) {
 		'pending' => $media['pending'],
 	), false );
 
+	do_action( 'zq_tras_sincronizar' ); // p. ej. traducir las descripciones nuevas.
 	return true;
 }
 

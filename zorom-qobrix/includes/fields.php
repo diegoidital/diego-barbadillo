@@ -164,7 +164,7 @@ function zq_get_raw( $post_id, $campo ) {
 			return get_the_title( $post_id );
 		case 'descripcion':
 			$v = zq_get_manual( $post_id, 'descripcion_es' );
-			return '' !== $v ? $v : get_post_field( 'post_content', $post_id );
+			return '' !== $v ? $v : zq_traducir( get_post_field( 'post_content', $post_id ) );
 		case 'descripcion_corta':
 			return get_post_field( 'post_excerpt', $post_id );
 		case 'enlace':
