@@ -247,3 +247,62 @@ jQuery(document).ready(function ($) {
         })();
     });
 });
+
+// Poner foto a los productos publicados que no tienen
+jQuery(document).ready(function ($) {
+    var nonce = (window.cecoStock && cecoStock.nonce) || '';
+    var $res = $('#missing-photos-result');
+    function esc(t) { return $('<div>').text(t == null ? '' : String(t)).html(); }
+
+    $('#find-missing-photos').on('click', function (e) {
+        e.preventDefault();
+        var $btn = $(this).prop('disabled', true);
+        $('#fix-missing-photos').prop('disabled', true);
+        $res.text('Buscando...');
+        $.post(ajaxurl, { action: 'ceco_find_missing_photos', nonce: nonce })
+            .done(function (r) {
+                if (!r.success) { $res.text('❌ ' + ((r.data && r.data.message) || 'Error')); return; }
+                if (!r.data.count) { $res.html('<p>✅ No hay productos publicados sin foto que tengan fotos en el CSV.</p>'); return; }
+                var html = '<p><strong>' + r.data.count + '</strong> productos publicados sin foto' + (r.data.count > 50 ? ' (se muestran 50)' : '') + ':</p>' +
+                    '<table class="widefat striped"><thead><tr><th>ID</th><th>Producto</th><th>SKU</th><th>Fotos en el CSV</th></tr></thead><tbody>';
+                r.data.items.forEach(function (it) {
+                    html += '<tr><td><a href="post.php?post=' + it.id + '&action=edit" target="_blank">' + it.id + '</a></td><td>' + esc(it.title) + '</td><td>' + esc(it.sku) + '</td><td>' + it.n + '</td></tr>';
+                });
+                $res.html(html + '</tbody></table>');
+                $('#fix-missing-photos').prop('disabled', false).data('count', r.data.count);
+            })
+            .fail(function (x, s, err) { $res.text('❌ Error en la solicitud AJAX: ' + (err || s)); })
+            .always(function () { $btn.prop('disabled', false); });
+    });
+
+    $('#fix-missing-photos').on('click', function (e) {
+        e.preventDefault();
+        if (!window.confirm('Se pondrán fotos a ' + $(this).data('count') + ' productos. Puede tardar; deja la pestaña abierta. ¿Continuar?')) { return; }
+        $(this).prop('disabled', true);
+        var total = 0, errors = 0, retries = 0;
+        var $st = $('<p>').prependTo($res);
+        (function next() {
+            $.post(ajaxurl, { action: 'ceco_fix_missing_photos', nonce: nonce })
+                .done(function (r) {
+                    if (!r.success) { $st.text('❌ ' + ((r.data && r.data.message) || 'Error')); return; }
+                    retries = 0;
+                    total += r.data.done; errors += r.data.errors;
+                    if (r.data.remaining > 0 && (r.data.done > 0 || r.data.errors > 0)) {
+                        $st.text('Poniendo fotos... ' + total + ' productos hechos, ' + r.data.remaining + ' pendientes' + (errors ? ', ' + errors + ' sin foto disponible' : ''));
+                        next();
+                    } else {
+                        $st.text('✅ Fotos puestas a ' + total + ' productos.' + (errors ? ' ' + errors + ' no se han podido completar (fotos no descargables).' : ''));
+                    }
+                })
+                .fail(function (x, s, err) {
+                    retries++;
+                    if (retries <= 5) {
+                        $st.text('⚠️ Un lote ha fallado (HTTP ' + x.status + '). Se descarta el producto problemático y se sigue en 10 s (' + retries + '/5)...');
+                        setTimeout(next, 10000);
+                        return;
+                    }
+                    $st.text('❌ Error en la solicitud AJAX: HTTP ' + x.status + ' ' + (err || s) + ' (' + total + ' hechos). Vuelve a pulsar Buscar.');
+                });
+        })();
+    });
+});
