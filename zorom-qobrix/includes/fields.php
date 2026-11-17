@@ -84,6 +84,11 @@ function zq_resolve_project( $ref = '' ) {
 	if ( '' === $ref ) {
 		$id = get_the_ID();
 		$id = ( $id && ZQ_CPT === get_post_type( $id ) ) ? (int) $id : 0;
+		// Dentro de una plantilla/bloque guardado de Elementor el «post actual» es la plantilla:
+		// se usa entonces la promoción de la página que se está visitando.
+		if ( ! $id && ! is_admin() && is_singular( ZQ_CPT ) ) {
+			$id = (int) get_queried_object_id();
+		}
 		return (int) apply_filters( 'zq_current_project_fallback', $id );
 	}
 	if ( isset( $cache[ $ref ] ) ) {
