@@ -209,6 +209,10 @@ function zq_render_field( $post_id, $campo, $formato = 'auto' ) {
 	if ( '' === $value || null === $value ) {
 		return '';
 	}
+	// Textos que Qobrix solo tiene en inglés (descripción corta, comodidades, etc.): se traducen al español.
+	if ( is_string( $value ) && in_array( $formato, array( 'texto', 'html' ), true ) && ! in_array( $campo, array( 'titulo', 'ubicacion', 'id_qobrix', 'enlace', 'imagen', 'coordenadas' ), true ) ) {
+		$value = zq_traducir( $value );
+	}
 
 	switch ( $formato ) {
 		case 'precio':

@@ -15,8 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** ¿Parece inglés? Evita traducir (y pagar) textos que ya están en español. */
 function zq_parece_ingles( $texto ) {
 	$t = ' ' . strtolower( wp_strip_all_tags( $texto ) ) . ' ';
-	$en = preg_match_all( '/\b(the|and|with|of|is|are|for|this|offers|home|homes|views|located)\b/', $t );
-	$es = preg_match_all( '/\b(el|la|los|las|y|con|de|del|es|son|para|esta|ofrece|vivienda|viviendas|vistas)\b/', $t );
+	$en = preg_match_all( '/\b(the|and|with|of|is|are|for|this|offers|home|homes|views|located|in|to|on|from|by|at|its|all|private|pool|garden|terrace|bedrooms|bathrooms|swimming|gym|parking|sea|beach|modern|luxury|close|minutes|within|each|every|your|you)\b/', $t );
+	$es = preg_match_all( '/\b(el|la|los|las|y|con|de|del|es|son|para|esta|ofrece|vivienda|viviendas|vistas|en|un|una|por|al|su|sus|piscina|jardín|terraza|dormitorios|baños|playa|mar|cerca|minutos|tu)\b/', $t );
 	return $en > $es;
 }
 
@@ -78,9 +78,15 @@ function zq_pretraducir() {
 	foreach ( get_posts( array( 'post_type' => array( ZQ_CPT, 'vivienda' ), 'post_status' => 'publish', 'posts_per_page' => -1 ) ) as $p ) {
 		$t = (string) $p->post_content;
 		if ( '' === trim( $t ) || get_option( 'zq_trad_' . md5( $t ) ) || ! zq_parece_ingles( $t ) ) {
+			// Aunque la descripción ya esté, pueden faltar la corta o las comodidades.
+			zq_traducir( (string) $p->post_excerpt );
+			zq_traducir( (string) zq_meta_pick( $p->ID, 'custom_amenities_description_es,amenities_description' ) );
 			continue;
 		}
 		zq_traducir( $t );
+		// También la descripción corta y las comodidades.
+		zq_traducir( (string) $p->post_excerpt );
+		zq_traducir( (string) zq_meta_pick( $p->ID, 'custom_amenities_description_es,amenities_description' ) );
 		if ( ++$hechas >= 25 || get_transient( 'zq_trad_pausa' ) ) {
 			break;
 		}
