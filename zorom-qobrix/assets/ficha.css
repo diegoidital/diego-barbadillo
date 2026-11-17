@@ -2178,3 +2178,32 @@ body.zq-menu-sin-efecto .elementor-location-header .elementor-motion-effects-ele
 	background: transparent;
 	color: #fff !important;
 }
+
+/* ======================================================================
+ * 2.14.4 – Imagen con bloque negro: más alta (proporción como el mapa) y
+ * texto con aire respecto a la imagen.
+ * ==================================================================== */
+@media (min-width: 768px) {
+	.elementor-widget-image.zq-bloque-dcha,
+	.elementor-widget-image.zq-bloque-izda {
+		min-height: clamp(380px, 34vw, 640px);
+	}
+
+	/* Columna de texto junto a la imagen: respiro lateral y ancho de lectura cómodo. */
+	.e-con:has(> .zq-bloque-dcha) ~ .e-con,
+	.e-con:has(> .zq-bloque-izda) ~ .e-con,
+	.e-con:has(+ .e-con > .zq-bloque-dcha),
+	.e-con:has(+ .e-con > .zq-bloque-izda) {
+		box-sizing: border-box;
+		max-width: 640px;
+		align-self: center;
+	}
+
+	.e-con:has(> .zq-bloque-izda) ~ .e-con {
+		padding-left: clamp(24px, 4vw, 72px);
+	}
+
+	.e-con:has(+ .e-con > .zq-bloque-dcha) {
+		padding-right: clamp(24px, 4vw, 72px);
+	}
+}
