@@ -1766,7 +1766,8 @@ body > #colophon {
 }
 
 .zq-v .zq-v-plano-pdf {
-	width: 230px;
+	width: fit-content;
+	min-width: 230px;
 	max-width: 100%;
 	box-sizing: border-box;
 	gap: 14px;
