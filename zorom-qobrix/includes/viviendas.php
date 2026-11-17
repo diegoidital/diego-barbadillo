@@ -323,6 +323,7 @@ add_shortcode( 'qobrix_vivienda', function ( $atts ) {
 					</ul>
 					<div class="zq-v-botones">
 						<a class="zq-v-btn zq-v-btn--negro" href="#contacto">Solicitar información</a>
+						<?php if ( $planos ) : ?><a class="zq-v-btn zq-v-btn--plano" href="#planos">Ver plano</a><?php endif; ?>
 						<?php if ( $folleto ) : ?><a class="zq-v-btn zq-v-btn--linea" href="<?php echo esc_url( $folleto ); ?>" target="_blank" rel="noopener">Folleto</a><?php endif; ?>
 					</div>
 				</div>

@@ -2207,3 +2207,19 @@ body.zq-menu-sin-efecto .elementor-location-header .elementor-motion-effects-ele
 		padding-right: clamp(24px, 4vw, 72px);
 	}
 }
+
+/* ======================================================================
+ * 2.15.0 – Botón «Ver plano» de la cabecera del inmueble: fondo negro, borde y texto blancos.
+ * ==================================================================== */
+.zq-v .zq-v-hero .zq-v-btn--plano {
+	border-color: #fff;
+	background: #000;
+	color: #fff !important;
+}
+
+.zq-v .zq-v-hero .zq-v-btn--plano:hover,
+.zq-v .zq-v-hero .zq-v-btn--plano:focus {
+	background: #fff;
+	color: #000 !important;
+}
+
