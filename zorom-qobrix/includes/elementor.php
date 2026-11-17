@@ -34,6 +34,23 @@ add_filter( 'zq_current_project_fallback', function ( $id ) {
 	return $first ? (int) $first[0] : 0;
 } );
 
+/*
+ * Caché de elementos de Elementor: guarda el HTML de títulos y cajas de icono con shortcodes
+ * de una página y lo reutiliza en las demás que usan la misma plantilla (todas las promociones
+ * mostrarían los datos de la primera, p. ej. Amiral). En las páginas de promoción y mientras se pintan
+ * plantillas del plugin se desactiva; el resto de la web conserva su caché.
+ */
+add_filter( 'pre_option_elementor_element_cache_ttl', function ( $v ) {
+	return ( is_singular( ZQ_CPT ) || ! empty( $GLOBALS['zq_sin_cache_elementor'] ) ) ? 'disable' : $v;
+} );
+
+add_filter( 'elementor/element/is_dynamic_content', function ( $is_dynamic, $element = null ) {
+	if ( $is_dynamic || ! is_object( $element ) || ! method_exists( $element, 'get_settings' ) ) {
+		return $is_dynamic;
+	}
+	return false !== strpos( wp_json_encode( $element->get_settings() ), '[qobrix' ) ? true : $is_dynamic;
+}, 10, 2 );
+
 add_action( 'elementor/dynamic_tags/register', function ( $dynamic_tags ) {
 	if ( ! class_exists( '\Elementor\Core\DynamicTags\Tag' ) ) {
 		return;
