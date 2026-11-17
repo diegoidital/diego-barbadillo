@@ -152,7 +152,9 @@ function zq_render_template( $template_id, WP_Post $project ) {
 	global $post;
 	$post = $project; // phpcs:ignore WordPress.WP.GlobalVariablesOverride
 	setup_postdata( $post );
+	$GLOBALS['zq_sin_cache_elementor'] = true;
 	$html = \Elementor\Plugin::instance()->frontend->get_builder_content_for_display( (int) $template_id, true );
+	$GLOBALS['zq_sin_cache_elementor'] = false;
 	wp_reset_postdata();
 	return $html;
 }
