@@ -325,3 +325,10 @@ Las detectó el vigilante o se reportaron en el uso diario. Todas se hicieron di
   - Se reescribieron `megaproduct/.../AdminMegaproductController.php` y `megadesigner/.../AdminMegadesignerController.php` para redirigir en `init()` con `getAdminLink`. Copias previas: `.bak-20261116`.
 - **megaproduct "Rango / Atributos" daba error 500:** la clase `Attribute` se llama `ProductAttribute` en PS8+.
   - Se cambió en `megaproduct.php` (4 llamadas), `megaproduct.class.php`, `megaproduct/override/classes/Cart.php` y el override activo `override/classes/Cart.php:764`. Copias previas: `.bak-20261116b`.
+- **Buscador: algunos productos no salían (problema antiguo, 17/11):**
+  - Al **duplicar** un producto, la copia queda sin indexar (`indexed=0`); había 136 productos activos fuera del índice.
+  - `searchcron.php` ya no existe en PS9. Se creó `/var/www/vhosts/belenoyrosello.com/indexa_beleno.php`, que llama a `Search::indexation(false)`.
+  - Cron `/etc/cron.d/indexa_beleno`: se ejecuta a las 03:15 como usuario `beleno`.
+  - Primera ejecución: de 136 sin indexar a 6, que son los productos base de megaproduct (ids 47, 48, 50, 73, 74 y 77).
+- **megaproduct "Rangos" daba error 500:** a la clase `megaproductrange` le faltaba la `$definition` que exige ObjectModel. Se añadió en `megaproduct.class.php`; copia previa: `.bak-20261116c`.
+- **megaproduct "Atributos":** un atributo borrado (#35) rompía la página. `megaproduct.php:1628` ahora usa `?? '#id'`.
