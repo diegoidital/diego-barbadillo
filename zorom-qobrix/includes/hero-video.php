@@ -3,7 +3,6 @@
  * Vídeo de portada de las promociones.
  *
  * - Campo «Vídeo de portada (URL .mp4)» en cada promoción (Portada).
- * - Amiral lleva incluido su vídeo (assets/video/amiral-portada.mp4).
  * - Sustituye a la imagen de la portada (la de la plantilla de Elementor o la del plugin),
  *   sin sonido, en bucle, con una capa negra suave para que se lea el texto.
  * - Si la portada de la plantilla no se detecta sola, añade la clase CSS «zq-hero» al contenedor de la portada.
@@ -15,20 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** URL del vídeo de portada de una promoción ('' si no tiene). */
 function zq_hero_video_url( $post_id ) {
-	$v = trim( (string) zq_get_manual( $post_id, 'video_portada' ) );
-	if ( '' !== $v ) {
-		return esc_url_raw( $v );
-	}
-	if ( 'amiral' === get_post_field( 'post_name', $post_id ) ) {
-		return plugins_url( 'assets/video/amiral-portada.mp4', ZQ_FILE );
-	}
-	return '';
-}
-
-function zq_hero_video_poster( $post_id ) {
-	return ( 'amiral' === get_post_field( 'post_name', $post_id ) && ! trim( (string) zq_get_manual( $post_id, 'video_portada' ) ) )
-		? plugins_url( 'assets/video/amiral-portada.jpg', ZQ_FILE )
-		: '';
+	return esc_url_raw( trim( (string) zq_get_manual( $post_id, 'video_portada' ) ) );
 }
 
 add_action( 'wp_footer', function () {
@@ -40,7 +26,7 @@ add_action( 'wp_footer', function () {
 	if ( ! $url ) {
 		return;
 	}
-	$poster = zq_hero_video_poster( $id );
+	$poster = '';
 	?>
 	<style id="zq-hero-video-css">
 		.zq-hero-video-on { position: relative; overflow: hidden; background-image: none !important; }
