@@ -14,7 +14,7 @@ function zq_manual_fields() {
 		'Portada'                       => array(
 			'ubicacion' => array( 'Ubicación', 'text', 'Ej.: Calpe, Alicante. Vacío = ciudad de Qobrix.' ),
 			'subtitulo' => array( 'Frase de portada', 'text', 'Ej.: Adosados de lujo en Calpe' ),
-			'video_portada' => array( 'Vídeo de portada (URL .mp4)', 'text', 'Si se rellena, la portada muestra este vídeo (sin sonido, en bucle) en lugar de la imagen. Amiral ya lleva el suyo incluido.' ),
+			'video_portada' => array( 'Vídeo de portada (URL .mp4)', 'text', 'Si se rellena, la portada muestra este vídeo (sin sonido, en bucle) en lugar de la imagen.' ),
 		),
 		'Zona (primer bloque)'          => array(
 			'zona_titulo'    => array( 'Título', 'text', 'Ej.: Calpe, un paraíso natural' ),
