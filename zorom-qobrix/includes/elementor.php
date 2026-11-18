@@ -68,11 +68,37 @@ add_action( 'elementor/dynamic_tags/register', function ( $dynamic_tags ) {
  * Shortcodes [qobrix…] en cualquier widget de Elementor (Título, Caja de icono, Botón…):
  * Elementor no siempre los procesa fuera del Editor de texto, así que se procesan aquí.
  */
-// Título «Comodidades» de la plantilla: si la promoción no tiene comodidades, no se muestra.
+/** ¿La descripción ya incluye las comodidades (mismo texto o su propio título «Comodidades»)? */
+function zq_comodidades_duplicadas( $post_id ) {
+	static $c = array();
+	if ( isset( $c[ $post_id ] ) ) {
+		return $c[ $post_id ];
+	}
+	$norm = function ( $h ) {
+		return trim( preg_replace( '/\s+/u', ' ', html_entity_decode( wp_strip_all_tags( (string) $h ), ENT_QUOTES, 'UTF-8' ) ) );
+	};
+	$desc = zq_render_field( $post_id, 'descripcion' );
+	$com  = $norm( zq_render_field( $post_id, 'comodidades' ) );
+	$dup  = false;
+	if ( '' !== $com && '' !== $norm( $desc ) ) {
+		$dup = false !== mb_stripos( $norm( $desc ), mb_substr( $com, 0, 60 ) )
+			|| (bool) preg_match( '/(^|>|\n)\s*(<[^>]+>\s*)*comodidades\s*:?\s*(<|\n|$)/iu', $desc );
+	}
+	return $c[ $post_id ] = $dup;
+}
+
+// Título y texto «Comodidades» de la plantilla: se ocultan si la promoción no tiene comodidades
+// o si la descripción ya las incluye (para que no salgan dos veces).
 add_filter( 'elementor/widget/render_content', function ( $content, $widget ) {
-	if ( is_object( $widget ) && 'heading' === $widget->get_name() && 'comodidades' === strtolower( trim( wp_strip_all_tags( (string) $widget->get_settings( 'title' ) ) ) ) ) {
+	if ( ! is_object( $widget ) ) {
+		return $content;
+	}
+	$name = $widget->get_name();
+	$es_titulo = 'heading' === $name && 'comodidades' === strtolower( trim( wp_strip_all_tags( (string) $widget->get_settings( 'title' ) ) ) );
+	$es_texto  = 'text-editor' === $name && false !== strpos( (string) $widget->get_settings( 'editor' ), 'campo="comodidades"' );
+	if ( $es_titulo || $es_texto ) {
 		$post_id = zq_resolve_project( '' );
-		if ( $post_id && '' === trim( wp_strip_all_tags( (string) zq_render_field( $post_id, 'comodidades' ) ) ) ) {
+		if ( $post_id && ( '' === trim( wp_strip_all_tags( (string) zq_render_field( $post_id, 'comodidades' ) ) ) || zq_comodidades_duplicadas( $post_id ) ) ) {
 			return '';
 		}
 	}
