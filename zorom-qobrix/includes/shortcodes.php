@@ -289,7 +289,7 @@ add_shortcode( 'qobrix_listado', function ( $atts ) {
 			$texto  = '';
 			if ( (int) $a['palabras'] ) {
 				// Extracto manual de la promoción; si no hay, su descripción de Qobrix.
-				$texto = has_excerpt( $p ) ? get_the_excerpt( $p ) : zq_render_field( $p->ID, 'descripcion' );
+				$texto = has_excerpt( $p ) ? zq_traducir( get_the_excerpt( $p ) ) : zq_render_field( $p->ID, 'descripcion' );
 				$texto = wp_trim_words( wp_strip_all_tags( $texto ), (int) $a['palabras'], '…' );
 			}
 			$out   .= '<a class="zq-card" href="' . esc_url( get_permalink( $p ) ) . '">'
