@@ -193,10 +193,10 @@ function zq_editable_template_data() {
 	$o[] = zq_ed_con( array(
 		zq_ed_heading( '[qobrix campo="titulo"]', 30, 'h2', 'center', 'Inter', '300', '#000000' ),
 		zq_ed_con( array(
-			zq_ed_iconbox( 'far fa-calendar', 'FECHA', '[qobrix campo="fecha"]', true, zq_ed_px( 300 ) ),
-			zq_ed_iconbox( 'fas fa-key', 'PRECIO', '[qobrix campo="precio"]', true, zq_ed_px( 300 ) ),
-			zq_ed_iconbox( 'fas fa-leaf', 'EFICIENCIA', '[qobrix campo="eficiencia" antes="CATEGORÍA "]', true, zq_ed_px( 300 ) ),
-			zq_ed_iconbox( 'fas fa-home', 'UNIDADES', '[qobrix campo="unidades"]', true, zq_ed_px( 300 ) ),
+			zq_ed_iconbox( 'far fa-calendar', 'FECHA', '[qobrix campo="fecha" vacio="—"]', true, zq_ed_px( 300 ) ),
+			zq_ed_iconbox( 'fas fa-key', 'PRECIO', '[qobrix campo="precio" vacio="—"]', true, zq_ed_px( 300 ) ),
+			zq_ed_iconbox( 'fas fa-leaf', 'EFICIENCIA', '[qobrix campo="eficiencia" antes="CATEGORÍA " vacio="—"]', true, zq_ed_px( 300 ) ),
+			zq_ed_iconbox( 'fas fa-home', 'UNIDADES', '[qobrix campo="unidades" vacio="—"]', true, zq_ed_px( 300 ) ),
 		), array( 'content_width' => 'full', 'flex_direction' => 'row', 'flex_direction_mobile' => 'column', 'flex_justify_content' => 'center', 'flex_gap' => array( 'unit' => 'px', 'column' => '16', 'row' => '16', 'isLinked' => true, 'size' => 16 ), 'padding' => zq_ed_box( 0, 0, 0, 0 ) ) ),
 	), array( 'padding' => zq_ed_box( 92, 20, 0, 20 ), 'flex_gap' => array( 'unit' => 'px', 'column' => '20', 'row' => '20', 'isLinked' => true, 'size' => 20 ), '_title' => 'Características' ) );
 

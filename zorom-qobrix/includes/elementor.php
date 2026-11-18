@@ -109,6 +109,15 @@ add_filter( 'elementor/widget/render_content', function ( $content ) {
 	return ( is_string( $content ) && false !== strpos( $content, '[qobrix' ) ) ? do_shortcode( $content ) : $content;
 }, 20 );
 
+// Cajas de icono con datos de Qobrix (ficha técnica): si el dato no existe se muestra «—»
+// para que todas las cajas mantengan la misma altura.
+add_filter( 'elementor/widget/render_content', function ( $content, $widget ) {
+	if ( ! is_string( $content ) || ! is_object( $widget ) || 'icon-box' !== $widget->get_name() || false === strpos( (string) $widget->get_settings( 'description_text' ), '[qobrix' ) ) {
+		return $content;
+	}
+	return preg_replace( '#(<(p|div)[^>]*elementor-icon-box-description[^>]*>)\s*(</\2>)#i', '$1—$3', $content );
+}, 25, 2 );
+
 /*
  * Fecha de las entradas en los widgets «Publicaciones» y «Archivo» de Elementor con el formato
  * del diseño (21·09·2026), sin cambiar el formato de fecha del resto de la web.
