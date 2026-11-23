@@ -306,3 +306,41 @@ jQuery(document).ready(function ($) {
         })();
     });
 });
+
+// Actualizar la tienda (WP All Import) ahora y seguir el progreso
+jQuery(document).ready(function ($) {
+    var nonce = (window.cecoStock && cecoStock.nonce) || '';
+    var $btn = $('.ceco-btn-shop');
+    var $st = $('.ceco-shop-status');
+    var polling = false;
+
+    function show(msg) { $st.text(msg).attr('title', msg); }
+
+    function poll() {
+        polling = true;
+        $.post(ajaxurl, { action: 'ceco_auto_step', nonce: nonce })
+            .done(function (r) {
+                if (!r.success) { show('❌ ' + ((r.data && r.data.message) || 'Error')); $btn.prop('disabled', false); polling = false; return; }
+                show(r.data.message);
+                if (r.data.running) { setTimeout(poll, 20000); } else { $btn.prop('disabled', false); polling = false; }
+            })
+            .fail(function () { setTimeout(poll, 30000); });
+    }
+
+    $btn.on('click', function (e) {
+        e.preventDefault();
+        if (!window.confirm('Se lanzará la importación «Productos Cecotec» de WP All Import con el último CSV. Puede tardar un rato; puedes cerrar la página, seguirá sola. ¿Continuar?')) { return; }
+        $btn.prop('disabled', true);
+        show('Lanzando la importación...');
+        $.post(ajaxurl, { action: 'ceco_auto_start', nonce: nonce })
+            .done(function (r) {
+                if (!r.success) { show('❌ ' + ((r.data && r.data.message) || 'Error')); $btn.prop('disabled', false); return; }
+                show(r.data.message);
+                if (!polling) { setTimeout(poll, 3000); }
+            })
+            .fail(function (x, s, err) { show('❌ Error en la solicitud AJAX: ' + (err || s)); $btn.prop('disabled', false); });
+    });
+
+    // Si hay una actualización en curso al abrir el panel, seguirla.
+    if (/^⏳/.test($.trim($st.first().text()))) { $btn.prop('disabled', true); setTimeout(poll, 2000); }
+});

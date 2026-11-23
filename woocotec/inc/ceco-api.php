@@ -541,7 +541,9 @@ class CecoPublisherToWooCommerce {
         $result = $this->build_csv();
         if (is_wp_error($result)) {
             error_log('❌ CSV Cecotec (cron): ' . $result->get_error_message());
+            return;
         }
+        do_action('ceco_csv_built', $result, 'cron');
     }
 
 /*******************************************************************************

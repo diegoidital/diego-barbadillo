@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Importador de productos Cecotec.
  * Description: Crea el CSV de productos de Cecotec para WP All Import: catálogo de Plytix, precios y stock de los feeds de dropshipping (España) o de Cecopublisher (resto de zonas), y sincroniza el stock cada hora.
- * Version: 2.5.2
+ * Version: 2.6.0
  * Author: Idital
  * Author URI: https://idital.com
  * License: GPL2
@@ -12,7 +12,7 @@
 // Exit if accessed directly
     if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-    define('WOOCOTEC_VERSION', '2.5.2');
+    define('WOOCOTEC_VERSION', '2.6.0');
 
 /*******************************************************************************
  *  add plugin files
@@ -24,6 +24,7 @@
     include plugin_dir_path(__FILE__) . '/inc/ceco-cleanup.php';
     include plugin_dir_path(__FILE__) . '/inc/ceco-images.php';
     include plugin_dir_path(__FILE__) . '/inc/ceco-photos.php';
+    include plugin_dir_path(__FILE__) . '/inc/ceco-auto.php';
     
     if (is_admin()) {
         function enqueue_admin_styles() {
@@ -135,11 +136,17 @@
 
 
     function ceco_register_cron_event() {
-        if (!wp_next_scheduled('ceco_import_products_event')) {
-            wp_schedule_event(time(), 'daily', 'ceco_import_products_event');
+        // CSV diario a la hora elegida en el panel (Crear CSV Cecotec › Automatización).
+        // Al actualizar desde versiones anteriores se reprograma una vez a esa hora.
+        if (get_option('ceco_auto_schedule_v') !== '1') {
+            CecoAutomation::schedule_csv(true);
+            update_option('ceco_auto_schedule_v', '1');
+        } else {
+            CecoAutomation::schedule_csv(false);
         }
     }
-    add_action('wp', 'ceco_register_cron_event');       
+    add_action('wp', 'ceco_register_cron_event');
+    add_action('admin_init', 'ceco_register_cron_event');       
 
 
 /*******************************************************************************
@@ -187,5 +194,6 @@
         wp_clear_scheduled_hook('ceco_sync_stock_event');
         wp_clear_scheduled_hook('ceco_download_catalog_event');
         wp_clear_scheduled_hook('ceco_process_images_event');
+        wp_clear_scheduled_hook('ceco_auto_step');
     }
     register_deactivation_hook(__FILE__, 'ceco_clear_stock_cron');
