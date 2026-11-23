@@ -78,16 +78,19 @@
     ?>
     <div class="ceco-actions">
         <div class="ceco-action">
+            <h3 class="ceco-action-title">Actualizar stock</h3>
             <p class="ceco-status"><strong>Última sincronización:</strong> <span class="ceco-sync-status" title="<?= esc_attr($ceco_sync_text); ?>"><?= esc_html($ceco_sync_text); ?></span></p>
             <button class="button button-secondary ceco-btn-sync" title="Lee ahora el feed de Cecotec y actualiza el stock de los productos de la tienda (lo mismo que hace cada hora el cron). No crea productos ni cambia precios.">Sincronizar stock ahora</button>
             <p class="description ceco-btn-help">Actualiza ya el stock de la tienda con el feed de Cecotec (se hace solo cada hora). No crea productos ni cambia precios.</p>
         </div>
         <div class="ceco-action">
+            <h3 class="ceco-action-title">Generar CSV</h3>
             <p class="ceco-status"><strong>Último CSV:</strong> <span class="ceco-csv-status" title="<?= esc_attr($ceco_csv_text); ?>"><?= esc_html($ceco_csv_text); ?></span></p>
             <button class="button button-primary ceco-btn-import" title="Descarga el catálogo de Plytix si hace falta y genera el CSV (products.csv) con precios, stock y fichas. No modifica la tienda: después hay que ejecutar «Productos Cecotec» en WP All Import.">Importación manual</button>
             <p class="description ceco-btn-help">Genera ahora el CSV para WP All Import (se hace solo cada día). No cambia la tienda: después hay que ejecutar «Productos Cecotec» en All Import.</p>
         </div>
         <div class="ceco-action">
+            <h3 class="ceco-action-title">Actualizar tienda</h3>
             <p class="ceco-status"><strong>Actualización de la tienda:</strong> <span class="ceco-shop-status" title="<?= esc_attr($ceco_shop_text); ?>"><?= esc_html($ceco_shop_text); ?></span></p>
             <button class="button button-secondary ceco-btn-shop" title="Lanza ahora la importación «Productos Cecotec» de WP All Import con el último CSV: crea productos nuevos y actualiza precios y textos. Al terminar sincroniza el stock.">Actualizar la tienda ahora</button>
             <p class="description ceco-btn-help">Sube el último CSV a la tienda con WP All Import (crea productos nuevos, actualiza precios y textos) y después sincroniza el stock.</p>

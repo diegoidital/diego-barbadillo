@@ -38,6 +38,10 @@
         flex: 0 1 420px;
         min-width: 0;
 }
+#woocotec .ceco-action-title {
+        margin: 0 0 .5rem;
+        font-size: 1.1em;
+}
 #woocotec .ceco-status {
         margin: 0 0 .6rem;
         white-space: nowrap;
