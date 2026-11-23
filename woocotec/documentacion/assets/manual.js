@@ -111,6 +111,7 @@ body.push(table([2400, 3926, 2700], ['Cuándo', 'Qué hace', 'Dónde se ve'], [
   ['Después del CSV y de las fotos', 'Si está activada la actualización automática, el plugin lanza WP All Import: crea productos nuevos, actualiza precios y textos y, al terminar, sincroniza el stock.', 'Bloque de botones › «Actualización de la tienda»'],
 ]));
 body.push(note([b('Importante. '), t('Si la actualización automática está desactivada, hay que lanzar la subida a mano (apartado 5.3). Sin ella, los productos nuevos y los cambios de precio no llegan a la tienda; el stock sí, porque se actualiza aparte cada hora.')]));
+body.push(note([b('Requisito para la subida automática: '), t('el cliente debe disponer de '), b('WP All Import Pro con la «Cron Processing Key» configurada'), t(' (All Import › Ajustes). Sin esa clave, el plugin sigue generando la lista cada día y actualizando el stock cada hora, pero '), b('la subida a la tienda hay que lanzarla a mano'), t(' desde WP All Import (apartado 5.3). El panel indica en «Crear CSV Cecotec › Automatización» si la clave está (✅) o no (❌).')]));
 
 body.push(h1('5. Tareas habituales'));
 
@@ -129,7 +130,7 @@ body.push(...steps([
 body.push(p('No crea productos ni cambia precios: solo copia el stock de Cecotec en la tienda.'));
 
 body.push(h2('5.3 Subir a la tienda productos y precios nuevos (a mano)'));
-body.push(p([t('Lo más sencillo: pulsar '), b('«Actualizar la tienda ahora»'), t(' en el bloque de botones. Sube el último CSV con WP All Import y sincroniza el stock al terminar; se puede cerrar la página, sigue sola. Si se quiere hacer todo a mano, paso a paso:')]));
+body.push(p([t('Lo más sencillo: pulsar '), b('«Actualizar la tienda ahora»'), t(' en el bloque de botones. Sube el último CSV con WP All Import y sincroniza el stock al terminar; se puede cerrar la página, sigue sola. '), b('Este botón también necesita la «Cron Processing Key» de WP All Import Pro.'), t(' Sin ella, o si se quiere hacer todo a mano, paso a paso:')]));
 body.push(...steps([
   [t('En el panel, pulsar '), b('«Importación manual»'), t('. Espera a que el registro diga «✅ … productos en el CSV» (puede tardar unos minutos).')],
   [t('Si hay productos nuevos, abrir «Optimización de imágenes» y pulsar '), b('«Preparar fotos ahora»'), t('. Dejar la pestaña abierta hasta que diga «✅ Fotos preparadas y CSV regenerado».')],
@@ -181,7 +182,7 @@ body.push(table([2300, 3600, 3126], ['Sección', 'Ajuste', 'Valor recomendado'],
   ['Optimización de imágenes', 'Productos sin foto', 'Desactivado (se publican igualmente)'],
   ['Optimización de imágenes', 'Miniaturas durante la importación', 'Activado'],
   ['Crear CSV Cecotec › Automatización', 'CSV diario', 'De madrugada, p. ej. 05:30'],
-  ['Crear CSV Cecotec › Automatización', 'Actualizar la tienda automáticamente', 'Activado'],
+  ['Crear CSV Cecotec › Automatización', 'Actualizar la tienda automáticamente', 'Activado (solo si existe la «Cron Processing Key» de WP All Import Pro)'],
 ]));
 
 body.push(h1('7. La importación en WP All Import: lo que no hay que cambiar'));
@@ -202,7 +203,8 @@ body.push(table([2600, 3200, 3226], ['Qué se ve', 'Causa probable', 'Qué hacer
   ['❌ en «Última sincronización»', 'La lista de Cecotec no responde o ha cambiado de dirección.', 'Pulsar «Sincronizar stock ahora» más tarde. Si sigue, revisar si Cecotec ha enviado una dirección nueva (5.7).'],
   ['«Última sincronización» con varias horas de retraso', 'Las tareas automáticas de WordPress solo arrancan con visitas a la web.', 'Pulsar «Sincronizar stock ahora». Solución definitiva: activar el aviso externo cada 10 minutos (apartado 9).'],
   ['«Último CSV» de hace más de un día', 'La tarea diaria no se ha ejecutado.', 'Pulsar «Importación manual».'],
-  ['❌ en «Actualización de la tienda»', 'WP All Import no ha podido ejecutarse (clave de cron, importación lanzada a mano a la vez, corte del servidor).', 'Leer el mensaje, revisar All Import › Gestionar Importaciones y pulsar «Actualizar la tienda ahora».'],
+  ['❌ en «Actualización de la tienda» con «Cron Processing Key»', 'WP All Import Pro no tiene configurada la clave de cron.', 'La debe configurar el cliente en All Import › Ajustes. Mientras tanto, subir a mano (5.3).'],
+  ['❌ en «Actualización de la tienda» (otros mensajes)', 'WP All Import no ha podido ejecutarse (importación lanzada a mano a la vez, corte del servidor).', 'Leer el mensaje, revisar All Import › Gestionar Importaciones y pulsar «Actualizar la tienda ahora».'],
   ['El CSV tiene muchos menos productos de lo normal', 'Cecotec ha retirado productos o su lista llegó incompleta.', 'No subir a la tienda. Esperar unas horas, repetir «Importación manual» y avisar a Idital si sigue igual.'],
   ['«Un lote ha fallado (HTTP 0)» al preparar fotos', 'Una foto demasiado grande ha cortado el proceso.', 'No hacer nada: se salta esa foto y sigue solo. Si se detiene, volver a pulsar el botón.'],
   ['Producto sin foto en la tienda', 'Cecotec no tiene fotos de ese producto.', 'Probar 5.4. Si no aparece en la lista, pedir las fotos a Cecotec.'],
@@ -211,7 +213,8 @@ body.push(table([2600, 3200, 3226], ['Qué se ve', 'Causa probable', 'Qué hacer
 ]));
 
 body.push(h1('9. Pendiente de configurar'));
-body.push(bullet([b('Activar la actualización automática '), t('en «Crear CSV Cecotec › Automatización». Requiere que WP All Import tenga la «Cron Processing Key» (All Import › Ajustes); el panel indica si está.')]));
+body.push(bullet([b('Cron Processing Key de WP All Import Pro (a cargo del cliente). '), t('Es imprescindible para la actualización automática de la tienda y para el botón «Actualizar la tienda ahora». Hoy no está configurada: el cliente debe disponer de WP All Import Pro y configurar la clave en All Import › Ajustes. Mientras tanto, la subida a la tienda se hace a mano (apartado 5.3).')]));
+body.push(bullet([b('Activar la actualización automática '), t('en «Crear CSV Cecotec › Automatización» cuando la clave esté disponible.')]));
 body.push(bullet([b('Aviso externo cada 10 minutos '), t('(por ejemplo con cron-job.org) a la dirección https://emetronix.es/wp-cron.php?doing_wp_cron, para que el stock se actualice cada hora aunque no haya visitas.')]));
 body.push(bullet([b('Pedir a Cecotec las fotos '), t('de los unos 311 productos que no tienen ninguna (casi todos de EVVO).')]));
 

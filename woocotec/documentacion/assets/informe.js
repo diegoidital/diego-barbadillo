@@ -96,6 +96,7 @@ body.push(table([2500, 3626, 2900], ['Cuándo', 'Qué hace', 'Para qué'], [
 ]));
 body.push(gap());
 body.push(p('La subida diaria a la tienda (tercera fila) se activa con la casilla «Actualizar la tienda automáticamente» del panel. También se puede lanzar en cualquier momento con el botón «Actualizar la tienda ahora».'));
+body.push(note([b('Requisito para la subida automática: '), t('el cliente debe disponer de '), b('WP All Import Pro con la «Cron Processing Key» configurada'), t(' (All Import › Ajustes). Sin esa clave, el plugin sigue generando la lista cada día y actualizando el stock cada hora, pero '), b('la subida a la tienda hay que lanzarla a mano'), t(' desde WP All Import.')]));
 
 body.push(h1('Las reglas que aplica'));
 body.push(bullet([b('Sin stock, no se vende. '), t('Un producto con stock 0 aparece como «Agotado» y no se puede añadir al carrito.')]));
@@ -149,7 +150,7 @@ body.push(p('Cecotec no tiene zona para Reino Unido y sus precios van en euros. 
 
 body.push(h1('Lo que queda por cerrar'));
 body.push(bullet([b('Fotos que faltan. '), t('Unos 311 productos, casi todos de EVVO, no tienen ninguna foto en los datos de Cecotec. Se venden con la imagen genérica hasta que Cecotec las añada; entonces aparecen solas. Conviene pedírselas a Cecotec.')]));
-body.push(bullet([b('Activar la subida automática. '), t('La opción ya está en el plugin: basta con marcar «Actualizar la tienda automáticamente» y elegir la hora.')]));
+body.push(bullet([b('Activar la subida automática. '), t('La opción ya está en el plugin, pero necesita que el cliente disponga de WP All Import Pro con la «Cron Processing Key» configurada (All Import › Ajustes). Hoy esa clave no está; mientras no exista, la subida a la tienda se lanza a mano.')]));
 body.push(bullet([b('Un aviso externo cada 10 minutos. '), t('Las tareas automáticas de WordPress solo arrancan cuando alguien visita la web. Un servicio gratuito que visite la web cada 10 minutos garantiza que todo se ejecute a su hora aunque no haya visitas.')]));
 body.push(bullet([b('Aviso técnico a Cecotec. '), t('Sus listas envían una cabecera técnica incorrecta que impide descargarlas con algunos programas. El plugin ya lo tiene resuelto; se les ha pedido que lo corrijan para evitar problemas futuros.')]));
 body.push(bullet([b('Precios de emetronix.co.uk. '), t('Decidir cómo pasar a libras los precios de Cecotec.')]));
