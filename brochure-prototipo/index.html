@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Folleto digital – Prototipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="#page=1"><span class="logo-mark">ue</span><span><b id="marca"></b><small id="marca-sub"></small></span></a>
+  <nav id="menu" class="menu"></nav>
+  <div class="ctas">
+    <button class="btn red" data-open="form">Solicita información</button>
+    <button class="btn red" data-open="indice">Índice</button>
+    <button class="btn black" data-open="contacto">Contacto</button>
+    <button class="burger" aria-label="Menú" data-open="drawer"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main id="viewport"><div id="deck"></div></main>
+
+<div class="nav-arrows left"><button id="prev" aria-label="Anterior">‹</button><button id="first" aria-label="Primera">⇤</button></div>
+<div class="nav-arrows right"><button id="next" aria-label="Siguiente">›</button><button id="last" aria-label="Última">⇥</button></div>
+<div id="counter" class="counter"></div>
+
+<!-- Menú hamburguesa -->
+<aside id="drawer" class="drawer" hidden>
+  <button class="close" data-close>×</button>
+  <button class="drawer-item" data-panel="buscar">Buscador</button>
+  <div class="panel" id="panel-buscar" hidden>
+    <input id="search" type="search" placeholder="Buscar en el folleto…">
+    <ul id="results"></ul>
+  </div>
+  <button class="drawer-item" data-panel="compartir">Compartir</button>
+  <div class="panel" id="panel-compartir" hidden>
+    <button class="btn red" id="share">Copiar enlace a esta página</button>
+  </div>
+  <button class="drawer-item" data-open="indice">Todas las páginas</button>
+  <button class="drawer-item" id="fs">Pantalla completa</button>
+</aside>
+
+<!-- Modal genérico (popup, vídeo, índice, formularios) -->
+<div id="modal" class="modal" hidden><div class="modal-box"><button class="close" data-close>×</button><div id="modal-body"></div></div></div>
+<div id="backdrop" class="backdrop" hidden></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
