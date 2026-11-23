@@ -1,5 +1,5 @@
 <div id="woocotec" class="wrap">
-    <h1>Importar Productos Cecotec</h1>
+    <h1>Actualizador tienda</h1>
 
     <div class="ceco-top">
         <div class="ceco-top-col">
