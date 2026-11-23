@@ -1,15 +1,15 @@
 jQuery(document).ready(function ($) {
     var nonce = (window.cecoStock && cecoStock.nonce) || '';
-    var $log = $('#import-log');
+    var $log = $('.ceco-import-log');   // registro en la barra y en la sección «Crea el csv»
 
     function log(text) {
         $log.append($('<p>').text(text));
     }
 
     // Importación manual: 1) descargar catálogo de Plytix (si hace falta) 2) generar el CSV.
-    $('#start-import').on('click', function (e) {
+    $('.ceco-btn-import').on('click', function (e) {
         e.preventDefault();
-        var $btn = $(this).prop('disabled', true);
+        var $btn = $('.ceco-btn-import').prop('disabled', true);
         var force = $('#force-catalog').is(':checked') ? 1 : 0;
         $log.empty();
         log('1/2 Comprobando el catálogo de Plytix (la descarga son unos 280 MB y puede tardar varios minutos)...');
@@ -30,7 +30,7 @@ jQuery(document).ready(function ($) {
                         var m = (r && r.data && r.data.message) || 'Respuesta inesperada.';
                         log(r.success ? m : '❌ Error al crear el CSV: ' + m);
                         if (r.success) {
-                            $('#last-csv').text(m).attr('title', m);
+                            $('.ceco-csv-status').text(m).attr('title', m);
                         }
                         if (r.success) {
                             log('Siguiente paso: All Import › Manage Imports › ejecutar «Productos Cecotec».');
@@ -50,18 +50,18 @@ jQuery(document).ready(function ($) {
     });
 
     // Sincronización manual del stock con el feed de Cecotec
-    $('#start-stock-sync').on('click', function (e) {
+    $('.ceco-btn-sync').on('click', function (e) {
         e.preventDefault();
-        var $btn = $(this).prop('disabled', true);
-        $('#stock-last-sync').text('Sincronizando stock, puede tardar unos minutos...');
+        var $btn = $('.ceco-btn-sync').prop('disabled', true);
+        $('.ceco-sync-status').text('Sincronizando stock, puede tardar unos minutos...');
 
         $.post(ajaxurl, { action: 'ceco_sync_stock', nonce: nonce })
             .done(function (response) {
                 var msg = (response && response.data && response.data.message) || 'Respuesta inesperada.';
-                $('#stock-last-sync').text(response.success ? msg : '❌ ' + msg).attr('title', msg);
+                $('.ceco-sync-status').text(response.success ? msg : '❌ ' + msg).attr('title', msg);
             })
             .fail(function (xhr, status, error) {
-                $('#stock-last-sync').text('❌ Error en la solicitud AJAX: ' + (error || status));
+                $('.ceco-sync-status').text('❌ Error en la solicitud AJAX: ' + (error || status));
             })
             .always(function () {
                 $btn.prop('disabled', false);

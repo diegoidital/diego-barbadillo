@@ -77,16 +77,16 @@
     ?>
     <div class="ceco-actions">
         <div class="ceco-action">
-            <p class="ceco-status"><strong>Última sincronización:</strong> <span id="stock-last-sync" title="<?= esc_attr($ceco_sync_text); ?>"><?= esc_html($ceco_sync_text); ?></span></p>
-            <button id="start-stock-sync" class="button button-secondary" title="Lee ahora el feed de Cecotec y actualiza el stock de los productos de la tienda (lo mismo que hace cada hora el cron). No crea productos ni cambia precios.">Sincronizar stock ahora</button>
+            <p class="ceco-status"><strong>Última sincronización:</strong> <span class="ceco-sync-status" title="<?= esc_attr($ceco_sync_text); ?>"><?= esc_html($ceco_sync_text); ?></span></p>
+            <button class="button button-secondary ceco-btn-sync" title="Lee ahora el feed de Cecotec y actualiza el stock de los productos de la tienda (lo mismo que hace cada hora el cron). No crea productos ni cambia precios.">Sincronizar stock ahora</button>
             <p class="description ceco-btn-help">Actualiza ya el stock de la tienda con el feed de Cecotec (se hace solo cada hora). No crea productos ni cambia precios.</p>
         </div>
         <div class="ceco-action">
-            <p class="ceco-status"><strong>Último CSV:</strong> <span id="last-csv" title="<?= esc_attr($ceco_csv_text); ?>"><?= esc_html($ceco_csv_text); ?></span></p>
-            <button id="start-import" class="button button-primary" title="Descarga el catálogo de Plytix si hace falta y genera el CSV (products.csv) con precios, stock y fichas. No modifica la tienda: después hay que ejecutar «Productos Cecotec» en WP All Import.">Importación manual</button>
+            <p class="ceco-status"><strong>Último CSV:</strong> <span class="ceco-csv-status" title="<?= esc_attr($ceco_csv_text); ?>"><?= esc_html($ceco_csv_text); ?></span></p>
+            <button class="button button-primary ceco-btn-import" title="Descarga el catálogo de Plytix si hace falta y genera el CSV (products.csv) con precios, stock y fichas. No modifica la tienda: después hay que ejecutar «Productos Cecotec» en WP All Import.">Importación manual</button>
             <p class="description ceco-btn-help">Genera ahora el CSV para WP All Import (se hace solo cada día). No cambia la tienda: después hay que ejecutar «Productos Cecotec» en All Import.</p>
         </div>
-        <div id="import-log" class="ceco-log"></div>
+        <div class="ceco-log ceco-import-log"></div>
     </div>
 
     <details class="ceco-section" id="ceco-stock">
@@ -109,6 +109,8 @@
         <li>El CSV de productos incluye también las columnas <code>Stock</code>, <code>Estado stock</code> y <code>EAN</code>.</li>
         <li>Para que tampoco se muestren los agotados: WooCommerce › Ajustes › Productos › Inventario › «Ocultar en el catálogo los artículos agotados».</li>
     </ul>
+    <p><strong>Última sincronización:</strong> <span class="ceco-sync-status"><?= esc_html($ceco_sync_text); ?></span></p>
+    <p><button class="button button-secondary ceco-btn-sync" title="Lee ahora el feed de Cecotec y actualiza el stock de los productos de la tienda (lo mismo que hace cada hora el cron). No crea productos ni cambia precios.">Sincronizar stock ahora</button></p>
     <?php if ($ceco_next_sync) : ?>
         <p><strong>Próxima sincronización automática:</strong> <?= esc_html(get_date_from_gmt(gmdate('Y-m-d H:i:s', $ceco_next_sync), 'd/m/Y H:i')); ?></p>
     <?php endif; ?>
@@ -230,14 +232,18 @@
         <summary><h2>Crea el csv con los productos de Cecotec</h2></summary>
         <div class="ceco-section-body">
     <p>El CSV se genera automáticamente una vez al día. Una vez generado, para crear/actualizar los productos en WooCommerce, ir a All Import › Manage Imports y ejecutar la importación «Productos Cecotec».</p>
+    <p><strong>Último CSV:</strong> <span class="ceco-csv-status"><?= esc_html($ceco_csv_text); ?></span></p>
     <p><label><input type="checkbox" id="force-catalog"> Volver a descargar el catálogo aunque esté al día</label></p>
+    <p><button class="button button-primary ceco-btn-import" title="Descarga el catálogo de Plytix si hace falta y genera el CSV (products.csv) con precios, stock y fichas. No modifica la tienda: después hay que ejecutar «Productos Cecotec» en WP All Import.">Importación manual</button></p>
+    <div class="ceco-log ceco-import-log"></div>
 
         </div>
     </details>
 
     <details class="ceco-section" id="ceco-limpiar">
-        <summary><h2>Limpiar borradores antiguos de Cecotec</h2></summary>
+        <summary><h2>Optimizadores</h2></summary>
         <div class="ceco-section-body">
+    <h3>Borradores antiguos de Cecotec</h3>
     <p>Busca productos en <strong>borrador</strong> que <strong>no</strong> controla la importación de WP All Import y cuyo SKU (sin contar ceros a la izquierda) coincide con un producto del CSV actual: por ejemplo «123» o «00127» frente a «00123» / «00127». Son fichas antiguas de plugins anteriores; si se dejan, WooCommerce no permite crear la ficha nueva con el mismo SKU.</p>
     <p>No toca productos publicados, ni borradores de la importación actual, ni borradores que no estén en el CSV. Se envían a la <strong>papelera</strong>, de donde se pueden recuperar.</p>
     <p>
