@@ -16,6 +16,7 @@ final class Idital_Pagos_Plugin {
 
 	public static function init(): void {
 		Idital_Pagos_Presupuestos::init();
+		Idital_Pagos_Enlaces_Admin::init();
 
 		add_filter(
 			'woocommerce_payment_gateways',
@@ -229,7 +230,7 @@ final class Idital_Pagos_Plugin {
 			'error' => '❌',
 		);
 		$tipo   = in_array( 'error', array_column( $resultado, 0 ), true ) ? 'error' : ( in_array( 'aviso', array_column( $resultado, 0 ), true ) ? 'warning' : 'success' );
-		echo '<div class="notice notice-' . esc_attr( $tipo ) . '"><p><strong>Prueba de conexión con ' . esc_html( (string) $datos['titulo'] ) . '</strong></p><ul>';
+		echo '<div class="notice notice-' . esc_attr( $tipo ) . '"><p><strong>' . esc_html( (string) ( $datos['cabecera'] ?? 'Prueba de conexión con ' . $datos['titulo'] ) ) . '</strong></p><ul>';
 		foreach ( $resultado as $linea ) {
 			echo '<li>' . esc_html( ( $iconos[ $linea[0] ] ?? '' ) . ' ' . $linea[1] ) . '</li>';
 		}

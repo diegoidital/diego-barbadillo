@@ -96,12 +96,58 @@ abstract class Idital_Pagos_Gateway extends WC_Payment_Gateway {
 			return $fallo;
 		}
 
-		$clave = 'link_' . $pedido->get_id();
-		if ( ! Idital_Pagos_Bloqueo::adquirir( $clave, 180 ) ) {
-			wc_add_notice( __( 'Ya estamos generando tu enlace de pago. Espera unos segundos y vuelve a intentarlo.', 'idital-pagos' ), 'error' );
+		try {
+			$r = $this->preparar_link( $pedido );
+		} catch ( Throwable $e ) {
+			if ( self::OCUPADO === $e->getCode() ) {
+				wc_add_notice( __( 'Ya estamos generando tu enlace de pago. Espera unos segundos y vuelve a intentarlo.', 'idital-pagos' ), 'error' );
+				return $fallo;
+			}
+			Idital_Pagos_Log::error(
+				'No se pudo generar el link de pago',
+				array(
+					'pedido'   => $pedido->get_id(),
+					'pasarela' => $this->id,
+					'error'    => $e->getMessage(),
+				)
+			);
+			// Al cliente nunca se le muestran detalles técnicos.
+			wc_add_notice( __( 'No hemos podido generar el enlace de pago. Inténtalo de nuevo en unos minutos o elige otro método de pago.', 'idital-pagos' ), 'error' );
 			return $fallo;
 		}
 
+		if ( $r['pagado'] ) {
+			return array(
+				'result'   => 'success',
+				'redirect' => $pedido->get_checkout_order_received_url(),
+			);
+		}
+
+		if ( function_exists( 'WC' ) && WC()->cart ) {
+			WC()->cart->empty_cart();
+		}
+
+		return array(
+			'result'   => 'success',
+			'redirect' => $this->url_redireccion( $pedido, $r['url'] ),
+		);
+	}
+
+	/** Código de excepción: otro proceso está generando el link del mismo pedido. */
+	const OCUPADO = 409;
+
+	/**
+	 * Núcleo común (checkout del cliente y botón del panel): un solo link activo por pedido,
+	 * reutiliza el vigente o crea uno nuevo, bajo bloqueo.
+	 *
+	 * @return array{url:string,pagado:bool}
+	 * @throws Idital_Pagos_Exception Si no se puede generar.
+	 */
+	private function preparar_link( WC_Order $pedido ): array {
+		$clave = 'link_' . $pedido->get_id();
+		if ( ! Idital_Pagos_Bloqueo::adquirir( $clave, 180 ) ) {
+			throw new Idital_Pagos_Exception( 'Ya se está generando un enlace para este pedido.', self::OCUPADO );
+		}
 		try {
 			// Solo puede existir un link activo por pedido: se anula el de la otra pasarela.
 			foreach ( Idital_Pagos_Plugin::pasarelas() as $otra ) {
@@ -116,8 +162,8 @@ abstract class Idital_Pagos_Gateway extends WC_Payment_Gateway {
 			$fresco = wc_get_order( $pedido->get_id() );
 			if ( $fresco && $fresco->is_paid() ) {
 				return array(
-					'result'   => 'success',
-					'redirect' => $fresco->get_checkout_order_received_url(),
+					'url'    => '',
+					'pagado' => true,
 				);
 			}
 
@@ -126,30 +172,38 @@ abstract class Idital_Pagos_Gateway extends WC_Payment_Gateway {
 				$pedido->add_order_note( sprintf( 'Link de pago de %s generado.', $this->method_title ) );
 			}
 			$pedido->save();
-		} catch ( Throwable $e ) {
-			Idital_Pagos_Log::error(
-				'No se pudo generar el link de pago',
-				array(
-					'pedido'   => $pedido->get_id(),
-					'pasarela' => $this->id,
-					'error'    => $e->getMessage(),
-				)
+			return array(
+				'url'    => $url,
+				'pagado' => false,
 			);
-			// Al cliente nunca se le muestran detalles técnicos.
-			wc_add_notice( __( 'No hemos podido generar el enlace de pago. Inténtalo de nuevo en unos minutos o elige otro método de pago.', 'idital-pagos' ), 'error' );
-			return $fallo;
 		} finally {
 			Idital_Pagos_Bloqueo::liberar( $clave );
 		}
+	}
 
-		if ( function_exists( 'WC' ) && WC()->cart ) {
-			WC()->cart->empty_cart();
+	/**
+	 * Genera (o reutiliza) el link desde el panel, para enviárselo al cliente directamente.
+	 *
+	 * @throws Idital_Pagos_Exception Con un mensaje apto para el gestor.
+	 */
+	public function generar_link_gestion( WC_Order $pedido ): string {
+		if ( ! $pedido->needs_payment() ) {
+			throw new Idital_Pagos_Exception( 'El pedido no está pendiente de pago. Si es un presupuesto, usa antes "Enviar presupuesto al cliente para pagar" o cambia el estado a "Pendiente de pago".' );
 		}
+		if ( ! $this->configurado() ) {
+			throw new Idital_Pagos_Exception( sprintf( '%s no está configurado o conectado.', $this->method_title ) );
+		}
+		if ( ! in_array( strtoupper( $pedido->get_currency() ), $this->monedas, true ) ) {
+			throw new Idital_Pagos_Exception( sprintf( '%1$s no admite la moneda del pedido (%2$s).', $this->method_title, $pedido->get_currency() ) );
+		}
+		$pedido->set_payment_method( $this );
+		$pedido->save();
 
-		return array(
-			'result'   => 'success',
-			'redirect' => $this->url_redireccion( $pedido, $url ),
-		);
+		$r = $this->preparar_link( $pedido );
+		if ( $r['pagado'] ) {
+			throw new Idital_Pagos_Exception( 'El pedido ya está pagado.' );
+		}
+		return $r['url'];
 	}
 
 	/** Bloque informativo del panel: estado de credenciales y entorno. */

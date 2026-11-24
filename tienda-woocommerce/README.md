@@ -48,6 +48,11 @@ tienda-woocommerce/
 > Pagos → Qonto*, sección "Datos para transferencia"). Esos pedidos se confirman a mano al ver el
 > ingreso en Qonto.
 
+**Enviar el link de pago directamente:** en la ficha de un pedido pendiente de pago, el recuadro
+**"Enlaces de pago"** tiene los botones "Generar link de TropiPay" y "Generar link de Qonto". El link se
+muestra con un botón **Copiar** para enviarlo por WhatsApp o email; las verificaciones del pago son las
+mismas que en la tienda.
+
 ## Puesta en marcha
 
 Requisitos: Docker con Compose v2.
