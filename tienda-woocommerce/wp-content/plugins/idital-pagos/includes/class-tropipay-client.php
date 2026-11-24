@@ -18,6 +18,13 @@ final class Idital_Pagos_Tropipay_Client {
 	const DOMINIOS_LINK = array( 'tropipay.com', 'tropipay.me', 'tppay.me' );
 	const TRANSIENT     = 'idital_tpp_token';
 
+	/** Motivo legible de un error de TropiPay (sin datos sensibles). */
+	public static function motivo( array $datos ): string {
+		$e = is_array( $datos['error'] ?? null ) ? $datos['error'] : $datos;
+		$m = (string) ( $e['message'] ?? $e['error_description'] ?? ( is_string( $datos['error'] ?? null ) ? $datos['error'] : '' ) );
+		return '' !== $m ? ': ' . mb_substr( sanitize_text_field( $m ), 0, 160 ) : '';
+	}
+
 	/**
 	 * Token OAuth (client_credentials), cacheado cifrado.
 	 *
@@ -44,7 +51,7 @@ final class Idital_Pagos_Tropipay_Client {
 		);
 		$token = (string) ( $respuesta['datos']['access_token'] ?? '' );
 		if ( 200 !== $respuesta['codigo'] || '' === $token ) {
-			throw new Idital_Pagos_Exception( 'TropiPay no ha devuelto un token (HTTP ' . $respuesta['codigo'] . ').' );
+			throw new Idital_Pagos_Exception( 'TropiPay no ha devuelto un token (HTTP ' . $respuesta['codigo'] . ')' . self::motivo( $respuesta['datos'] ) . '. Revisa Client ID, Client Secret y entorno (' . ( Idital_Pagos_Config::tropipay_sandbox() ? 'sandbox' : 'producción' ) . ').' );
 		}
 		// expires_in puede venir en segundos o como marca de tiempo: se acota a una hora como máximo.
 		$expira   = (int) ( $respuesta['datos']['expires_in'] ?? 0 );
@@ -84,7 +91,7 @@ final class Idital_Pagos_Tropipay_Client {
 		$respuesta = $this->llamar( 'POST', '/api/v3/paymentcards', $cuerpo );
 		$datos     = $respuesta['datos'];
 		if ( ! in_array( $respuesta['codigo'], array( 200, 201 ), true ) ) {
-			throw new Idital_Pagos_Exception( 'TropiPay no ha creado el link (HTTP ' . $respuesta['codigo'] . ').' );
+			throw new Idital_Pagos_Exception( 'TropiPay no ha creado el link (HTTP ' . $respuesta['codigo'] . ')' . self::motivo( $datos ) . '.' );
 		}
 
 		$url = (string) ( ! empty( $datos['shortUrl'] ) ? $datos['shortUrl'] : ( $datos['paymentUrl'] ?? '' ) );
@@ -159,7 +166,7 @@ final class Idital_Pagos_Tropipay_Client {
 			return array( array( 'error', 'No hay conexión con TropiPay: ' . $e->getMessage() ) );
 		}
 		if ( 200 !== $respuesta['codigo'] || empty( $respuesta['datos']['access_token'] ) ) {
-			return array( array( 'error', 'TropiPay rechaza las credenciales (HTTP ' . $respuesta['codigo'] . '). Revisa Client ID, Client Secret, entorno (' . ( Idital_Pagos_Config::tropipay_sandbox() ? 'sandbox' : 'producción' ) . ') y la restricción por IP de la credencial.' ) );
+			return array( array( 'error', 'TropiPay rechaza las credenciales (HTTP ' . $respuesta['codigo'] . ')' . self::motivo( $respuesta['datos'] ) . '. Revisa Client ID, Client Secret, entorno (' . ( Idital_Pagos_Config::tropipay_sandbox() ? 'sandbox' : 'producción' ) . ') y la restricción por IP de la credencial.' ) );
 		}
 		$permisos  = preg_split( '/\s+/', trim( (string) ( $respuesta['datos']['scope'] ?? '' ) ) );
 		$resultado = array( array( 'ok', 'Credenciales válidas (' . ( Idital_Pagos_Config::tropipay_sandbox() ? 'sandbox' : 'producción' ) . ').' ) );
