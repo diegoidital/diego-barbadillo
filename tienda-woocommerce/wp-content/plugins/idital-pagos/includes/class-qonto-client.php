@@ -187,6 +187,17 @@ final class Idital_Pagos_Qonto_Client {
 	public function conectar_proveedor( string $telefono, string $descripcion, string $url_vuelta ): array {
 		$base = Idital_Pagos_Config::qonto_base();
 
+		// Si ya existe una conexión (Qonto solo admite una por usuario), se reutiliza.
+		$r = $this->pedir( 'GET', $base . '/v2/payment_links/connections' );
+		if ( 200 === $r['codigo'] && ! empty( $r['datos']['status'] ) && 'not_connected' !== $r['datos']['status'] ) {
+			$estado = strtolower( (string) $r['datos']['status'] );
+			$url    = (string) ( $r['datos']['connection_location'] ?? '' );
+			return array(
+				'estado' => sanitize_key( $estado ),
+				'url'    => ( 'enabled' !== $estado && Idital_Pagos_Config::url_permitida( $url, array( 'mollie.com', 'qonto.com', 'qonto.co' ) ) ) ? $url : '',
+			);
+		}
+
 		// Cuenta bancaria donde se abonarán los cobros: la principal activa de la organización.
 		$r = $this->pedir( 'GET', $base . '/v2/organization' );
 		if ( 200 !== $r['codigo'] ) {
@@ -229,6 +240,9 @@ final class Idital_Pagos_Qonto_Client {
 		$estado = strtolower( (string) ( $r['datos']['status'] ?? '' ) );
 		$url    = (string) ( $r['datos']['connection_location'] ?? '' );
 		if ( 'enabled' !== $estado && ! Idital_Pagos_Config::url_permitida( $url, array( 'mollie.com', 'qonto.com', 'qonto.co' ) ) ) {
+			if ( '' === $url ) {
+				return array( 'estado' => sanitize_key( $estado ), 'url' => '' );
+			}
 			throw new Idital_Pagos_Exception( 'Qonto ha devuelto una dirección de conexión inesperada.' );
 		}
 		return array(

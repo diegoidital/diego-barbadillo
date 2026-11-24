@@ -143,8 +143,11 @@ final class Idital_Pagos_Plugin {
 			Idital_Pagos_Log::error( 'No se pudo iniciar la conexión con Mollie', array( 'error' => $e->getMessage() ) );
 			$aviso( 'error', $e->getMessage() );
 		}
-		if ( 'enabled' === $r['estado'] || '' === $r['url'] ) {
-			$aviso( 'enabled' === $r['estado'] ? 'ok' : 'aviso', 'Qonto indica que la conexión de cobros está en estado "' . ( $r['estado'] ?: 'desconocido' ) . '". Pulsa "Probar conexión con Qonto".' );
+		if ( 'enabled' === $r['estado'] ) {
+			$aviso( 'ok', 'Los cobros ya están activos (Mollie conectado). No hay que hacer nada más.' );
+		}
+		if ( '' === $r['url'] ) {
+			$aviso( 'aviso', 'Ya existe una conexión con Mollie en estado "' . ( $r['estado'] ?: 'desconocido' ) . '". Si es "pending", Mollie la está revisando: vuelve a pulsar "Probar conexión con Qonto" más tarde.' );
 		}
 		Idital_Pagos_Log::info( 'Iniciada la conexión de cobros con Mollie', array( 'usuario' => get_current_user_id() ) );
 		wp_redirect( $r['url'] ); // phpcs:ignore WordPress.Security.SafeRedirect -- dominio validado (Mollie/Qonto).
