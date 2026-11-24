@@ -15,6 +15,8 @@ final class Idital_Pagos_Plugin {
 	const DIAS_RESERVA    = 7;
 
 	public static function init(): void {
+		Idital_Pagos_Presupuestos::init();
+
 		add_filter(
 			'woocommerce_payment_gateways',
 			static function ( $pasarelas ) {

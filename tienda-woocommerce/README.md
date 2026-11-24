@@ -148,10 +148,12 @@ aviso de pago firmado con `signaturev3 = sha256(bankOrderCode + clientId + sha1(
 
 **LiteSpeed Cache**: el plugin marca como "no cachear" sus respuestas y la página del pedido pendiente de pago.
 
-**Presupuestos con YITH Request a Quote**: la versión gratuita solo envía la solicitud por email; no crea
-pedidos. El presupuesto aceptado se convierte en pedido en *WooCommerce → Pedidos → Añadir*, con estado
-"Pendiente de pago", y se envía al cliente con "Enviar detalles del pedido al cliente". La versión Premium
-de YITH crea ese pedido automáticamente cuando el cliente acepta; el plugin es compatible con sus estados.
+**Presupuestos con YITH Request a Quote (versión gratuita)**: el plugin convierte cada solicitud en un
+pedido con el estado **"Presupuesto solicitado"** (con productos, cantidades, datos y mensaje del cliente),
+envía al cliente un email de confirmación y muestra en la página el mensaje "Solicitud de presupuesto
+enviada correctamente" con su número. Ese estado no se puede pagar y sí editar: se revisan precios y se usa
+la acción del pedido **"Enviar presupuesto al cliente para pagar"**, que lo pasa a "Pendiente de pago" y
+envía el email con el enlace de pago (Qonto / TropiPay). Límite anti-spam: 5 solicitudes por IP y hora.
 
 ## Cuando lleguen las credenciales
 
