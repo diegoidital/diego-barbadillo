@@ -47,6 +47,15 @@ final class Idital_Pagos_Qonto_Oauth {
 		return ( '' !== $publica && Idital_Pagos_Config::entorno_local() ) ? untrailingslashit( $publica ) : self::base();
 	}
 
+	/**
+	 * En sandbox, Qonto exige la cabecera X-Qonto-Staging-Token en TODAS las llamadas,
+	 * también en el servidor de tokens OAuth (sin ella responde con una redirección al portal).
+	 */
+	private static function cabeceras_sandbox(): array {
+		$token = Idital_Pagos_Config::get( 'IDITAL_QONTO_STAGING_TOKEN' );
+		return ( Idital_Pagos_Config::qonto_sandbox() && '' !== $token ) ? array( 'X-Qonto-Staging-Token' => $token ) : array();
+	}
+
 	/** URL de vuelta que hay que registrar EXACTAMENTE así en la aplicación OAuth de Qonto. */
 	public static function redirect_uri(): string {
 		return rest_url( 'idital-pagos/v1/qonto/oauth' );
@@ -118,7 +127,7 @@ final class Idital_Pagos_Qonto_Oauth {
 			$respuesta = Idital_Pagos_Http::json(
 				'POST',
 				self::base() . '/oauth2/token',
-				array(),
+				self::cabeceras_sandbox(),
 				array(
 					'grant_type'    => 'authorization_code',
 					'code'          => $codigo,
@@ -199,7 +208,7 @@ final class Idital_Pagos_Qonto_Oauth {
 			$respuesta = Idital_Pagos_Http::json(
 				'POST',
 				self::base() . '/oauth2/token',
-				array(),
+				self::cabeceras_sandbox(),
 				array(
 					'grant_type'    => 'refresh_token',
 					'refresh_token' => (string) $datos['refresh'],
@@ -245,6 +254,9 @@ final class Idital_Pagos_Qonto_Oauth {
 		$d = $respuesta['datos'];
 		if ( 200 !== $respuesta['codigo'] || empty( $d['access_token'] ) ) {
 			$codigo = sanitize_key( (string) ( $d['error'] ?? 'http_' . $respuesta['codigo'] ) );
+			if ( $respuesta['codigo'] >= 300 && $respuesta['codigo'] < 400 && Idital_Pagos_Config::qonto_sandbox() ) {
+				return 'Qonto ha bloqueado la petición (' . $codigo . '). En sandbox revisa que IDITAL_QONTO_STAGING_TOKEN sea el de esta aplicación.';
+			}
 			return 'Qonto no ha concedido el acceso (' . $codigo . ').';
 		}
 		if ( empty( $d['refresh_token'] ) ) {

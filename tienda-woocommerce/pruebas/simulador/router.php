@@ -92,6 +92,11 @@ if ( '/oauth2/auth' === $ruta ) {
 }
 
 if ( '/oauth2/token' === $ruta && 'POST' === $metodo ) {
+	// Como el sandbox real: sin X-Qonto-Staging-Token, redirige al portal de desarrolladores.
+	if ( '' !== secreto( 'qonto_staging_token' ) && ( $_SERVER['HTTP_X_QONTO_STAGING_TOKEN'] ?? '' ) !== secreto( 'qonto_staging_token' ) ) {
+		header( 'Location: https://developers.qonto.com:443/sign-in?redirect_uri=oauth-sandbox.staging.qonto.co', true, 302 );
+		exit;
+	}
 	$f = $_POST;
 	if ( ( $f['client_id'] ?? '' ) !== secreto( 'qonto_oauth_client_id' ) || ( $f['client_secret'] ?? '' ) !== secreto( 'qonto_oauth_client_secret' ) ) {
 		json_out( 401, array( 'error' => 'invalid_client' ) );

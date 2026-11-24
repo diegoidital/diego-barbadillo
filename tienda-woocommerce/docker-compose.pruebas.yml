@@ -27,7 +27,7 @@ services:
       WP_INTERNO: http://wordpress
       WP_PUBLICO: http://localhost:${WP_PUERTO:-8080}
       SIM_PUBLICO: http://localhost:8090
-    secrets: [qonto_oauth_client_id, qonto_oauth_client_secret, qonto_login, qonto_secret_key, qonto_webhook_token, tropipay_client_id, tropipay_client_secret]
+    secrets: [qonto_oauth_client_id, qonto_oauth_client_secret, qonto_staging_token, qonto_login, qonto_secret_key, qonto_webhook_token, tropipay_client_id, tropipay_client_secret]
     volumes:
       - ./pruebas/simulador:/simulador:ro
     ports:
