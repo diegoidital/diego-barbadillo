@@ -128,6 +128,22 @@ if ( '/oauth2/token' === $ruta && 'POST' === $metodo ) {
 	json_out( 200, array( 'access_token' => $access, 'refresh_token' => $refresh, 'expires_in' => 3600, 'token_type' => 'bearer', 'scope' => $scope ) );
 }
 
+if ( '/_sim/qonto/mollie' === $ruta ) { // Solo pruebas: fija el estado de la conexión con Mollie.
+	$e['mollie'] = preg_replace( '/[^a-z_]/', '', $_GET['estado'] ?? 'enabled' );
+	guardar( $e );
+	json_out( 200, array( 'mollie' => $e['mollie'] ) );
+}
+
+if ( '/mollie/alta' === $ruta ) { // Página de alta simulada de Mollie.
+	if ( 'POST' === $metodo ) {
+		$e['mollie'] = 'enabled';
+		guardar( $e );
+		header( 'Location: ' . ( $e['mollie_vuelta'] ?? '/' ), true, 303 );
+		exit;
+	}
+	pagina( 'Mollie', '<h1>Mollie · Alta de cobros</h1><form method="post"><button id="completar" style="font-size:1.2em;padding:10px 24px">Completar alta</button></form>' );
+}
+
 if ( '/_sim/qonto/expirar' === $ruta ) { // Solo pruebas: caducan todos los access tokens.
 	foreach ( array_keys( $e['qonto_access'] ?? array() ) as $t ) {
 		$e['qonto_access'][ $t ] = 0;
@@ -146,16 +162,33 @@ if ( str_starts_with( $ruta, '/v2/payment_links' ) || '/v2/organization' === $ru
 		json_out( 401, array( 'errors' => array( array( 'code' => 'authorization_token_invalid' ) ) ) );
 	}
 	if ( '/v2/organization' === $ruta ) {
-		json_out( 200, array( 'organization' => array( 'slug' => secreto( 'qonto_login' ), 'legal_name' => 'EMPRESA SIMULADA SL', 'bank_accounts' => array() ) ) );
+		json_out( 200, array( 'organization' => array( 'slug' => 'org-simulada', 'legal_name' => 'EMPRESA SIMULADA SL', 'bank_accounts' => array( array( 'id' => '11111111-2222-4333-8444-555555555555', 'status' => 'active', 'main' => true, 'is_external_account' => false ) ) ) ) );
 	}
 	if ( '/v2/payment_links/connections' === $ruta ) {
-		json_out( 200, array( 'connection' => array( 'status' => 'enabled' ) ) );
+		$estado_mollie = $e['mollie'] ?? 'enabled';
+		if ( 'POST' === $metodo ) {
+			foreach ( array( 'partner_callback_url', 'user_bank_account_id', 'user_phone_number', 'user_website_url', 'business_description' ) as $campo ) {
+				if ( empty( $cuerpo[ $campo ] ) ) {
+					json_out( 400, array( 'errors' => array( array( 'code' => 'bad_request', 'detail' => "$campo is required" ) ) ) );
+				}
+			}
+			if ( strlen( $cuerpo['business_description'] ) < 80 ) {
+				json_out( 400, array( 'errors' => array( array( 'code' => 'bad_request', 'detail' => 'business_description too short' ) ) ) );
+			}
+			$e['mollie_vuelta'] = $cuerpo['partner_callback_url'];
+			guardar( $e );
+			json_out( 201, array( 'status' => $estado_mollie, 'bank_account_id' => $cuerpo['user_bank_account_id'], 'connection_location' => getenv( 'SIM_PUBLICO' ) . '/mollie/alta' ) );
+		}
+		json_out( 200, array( 'status' => $estado_mollie, 'bank_account_id' => '11111111-2222-4333-8444-555555555555', 'connection_location' => '' ) );
 	}
 	if ( '/v2/payment_links/payment_methods' === $ruta ) {
 		json_out( 200, array( 'payment_methods' => array( array( 'name' => 'credit_card' ), array( 'name' => 'apple_pay' ) ) ) );
 	}
 
 	if ( 'POST' === $metodo && '/v2/payment_links' === $ruta ) {
+		if ( 'enabled' !== ( $e['mollie'] ?? 'enabled' ) ) {
+			json_out( 422, array( 'errors' => array( array( 'code' => 'connection_not_enabled', 'detail' => 'Payment links provider connection is not enabled' ) ) ) );
+		}
 		$pl    = $cuerpo['payment_link'] ?? array();
 		$total = 0.0;
 		foreach ( $pl['items'] ?? array() as $it ) {

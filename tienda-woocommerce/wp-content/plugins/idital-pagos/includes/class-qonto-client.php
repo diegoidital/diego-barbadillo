@@ -152,8 +152,10 @@ final class Idital_Pagos_Qonto_Client {
 			$e = is_array( $c ) ? strtolower( (string) ( $c['status'] ?? $c['connection_status'] ?? '' ) ) : '';
 			if ( 200 === $r['codigo'] && in_array( $e, array( 'enabled', 'active', 'connected' ), true ) ) {
 				$resultado[] = array( 'ok', 'Cuenta conectada a Mollie (estado: ' . sanitize_text_field( $e ) . '). Se pueden crear links de pago.' );
+			} elseif ( 200 === $r['codigo'] && 'pending' === $e ) {
+				$resultado[] = array( 'aviso', 'Conexión con Mollie en revisión (estado: pending). Mollie está terminando de verificar la cuenta; no hay que hacer nada más, vuelve a probar más tarde.' );
 			} elseif ( in_array( $r['codigo'], array( 200, 404 ), true ) ) {
-				$resultado[] = array( 'aviso', 'La cuenta NO está conectada a Mollie' . ( $e ? ' (estado: ' . sanitize_text_field( $e ) . ')' : '' ) . '. Hay que completar la conexión desde Qonto antes de poder cobrar.' );
+				$resultado[] = array( 'aviso', 'La cuenta NO está conectada a Mollie' . ( $e ? ' (estado: ' . sanitize_text_field( $e ) . ')' : '' ) . '. Rellena teléfono y descripción del negocio más abajo, guarda y pulsa "Conectar cobros (Mollie)".' );
 			} else {
 				$resultado[] = array( 'error', 'No se pudo consultar la conexión con Mollie (HTTP ' . $r['codigo'] . '). ¿La clave tiene permiso para links de pago?' );
 			}
@@ -165,12 +167,74 @@ final class Idital_Pagos_Qonto_Client {
 				foreach ( (array) $metodos as $m ) {
 					$nombres[] = sanitize_text_field( is_array( $m ) ? (string) ( $m['name'] ?? $m['type'] ?? '' ) : (string) $m );
 				}
-				$resultado[] = array( 'ok', 'Métodos de pago disponibles: ' . ( implode( ', ', array_filter( $nombres ) ) ?: 'ninguno' ) );
+				$nombres     = array_filter( $nombres );
+				$resultado[] = $nombres
+					? array( 'ok', 'Métodos de pago disponibles: ' . implode( ', ', $nombres ) )
+					: array( 'aviso', 'Métodos de pago disponibles: ninguno (aparecerán cuando la conexión con Mollie esté activa).' );
 			}
 		} catch ( Idital_Pagos_Exception $e ) {
 			$resultado[] = array( 'error', 'No hay conexión con Qonto: ' . $e->getMessage() );
 		}
 		return $resultado;
+	}
+
+	/**
+	 * Inicia la conexión de la cuenta con el proveedor de links de pago (Mollie).
+	 * Devuelve la URL a la que hay que llevar al gestor para completarla.
+	 *
+	 * @throws Idital_Pagos_Exception Si falta algún dato o Qonto lo rechaza.
+	 */
+	public function conectar_proveedor( string $telefono, string $descripcion, string $url_vuelta ): array {
+		$base = Idital_Pagos_Config::qonto_base();
+
+		// Cuenta bancaria donde se abonarán los cobros: la principal activa de la organización.
+		$r = $this->pedir( 'GET', $base . '/v2/organization' );
+		if ( 200 !== $r['codigo'] ) {
+			throw new Idital_Pagos_Exception( 'No se pudieron leer las cuentas de Qonto (HTTP ' . $r['codigo'] . ').' );
+		}
+		$cuenta = '';
+		foreach ( (array) ( $r['datos']['organization']['bank_accounts'] ?? array() ) as $c ) {
+			if ( ! is_array( $c ) || 'active' !== ( $c['status'] ?? 'active' ) || ! empty( $c['is_external_account'] ) || empty( $c['id'] ) ) {
+				continue;
+			}
+			if ( '' === $cuenta || ! empty( $c['main'] ) ) {
+				$cuenta = (string) $c['id'];
+			}
+			if ( ! empty( $c['main'] ) ) {
+				break;
+			}
+		}
+		if ( ! self::id_valido( $cuenta ) ) {
+			throw new Idital_Pagos_Exception( 'La organización de Qonto no tiene ninguna cuenta bancaria activa.' );
+		}
+
+		$r = $this->pedir(
+			'POST',
+			$base . '/v2/payment_links/connections',
+			array(
+				'partner_callback_url' => $url_vuelta,
+				'user_bank_account_id' => $cuenta,
+				'user_phone_number'    => $telefono,
+				'user_website_url'     => home_url( '/' ),
+				'business_description' => $descripcion,
+			)
+		);
+		if ( ! in_array( $r['codigo'], array( 200, 201 ), true ) ) {
+			$errores = array();
+			foreach ( (array) ( $r['datos']['errors'] ?? array() ) as $err ) {
+				$errores[] = sanitize_text_field( (string) ( $err['detail'] ?? $err['code'] ?? '' ) );
+			}
+			throw new Idital_Pagos_Exception( 'Qonto no ha iniciado la conexión (HTTP ' . $r['codigo'] . ')' . ( $errores ? ': ' . implode( '; ', array_filter( $errores ) ) : '.' ) );
+		}
+		$estado = strtolower( (string) ( $r['datos']['status'] ?? '' ) );
+		$url    = (string) ( $r['datos']['connection_location'] ?? '' );
+		if ( 'enabled' !== $estado && ! Idital_Pagos_Config::url_permitida( $url, array( 'mollie.com', 'qonto.com', 'qonto.co' ) ) ) {
+			throw new Idital_Pagos_Exception( 'Qonto ha devuelto una dirección de conexión inesperada.' );
+		}
+		return array(
+			'estado' => sanitize_key( $estado ),
+			'url'    => $url,
+		);
 	}
 
 	public function desactivar_link( string $id ): bool {

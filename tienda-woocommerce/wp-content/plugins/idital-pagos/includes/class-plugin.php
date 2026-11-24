@@ -45,6 +45,7 @@ final class Idital_Pagos_Plugin {
 		add_action( 'admin_post_idital_probar_tropipay', array( __CLASS__, 'probar_tropipay' ) );
 		add_action( 'admin_post_idital_qonto_conectar', array( __CLASS__, 'qonto_conectar' ) );
 		add_action( 'admin_post_idital_qonto_desconectar', array( __CLASS__, 'qonto_desconectar' ) );
+		add_action( 'admin_post_idital_qonto_mollie', array( __CLASS__, 'qonto_mollie' ) );
 
 		// Mantiene viva la conexión OAuth con Qonto aunque no haya ventas.
 		add_action( self::HOOK_TOKEN, array( 'Idital_Pagos_Qonto_Oauth', 'mantener' ) );
@@ -117,6 +118,36 @@ final class Idital_Pagos_Plugin {
 		}
 		// Redirección externa a Qonto (dominio fijo, no controlado por el usuario).
 		wp_redirect( Idital_Pagos_Qonto_Oauth::url_autorizacion() ); // phpcs:ignore WordPress.Security.SafeRedirect
+		exit;
+	}
+
+	public static function qonto_mollie(): void {
+		self::exigir_gestor( 'idital_qonto_mollie' );
+		$aviso     = static function ( string $tipo, string $texto ) {
+			set_transient( 'idital_diag_' . get_current_user_id(), array( 'titulo' => 'Qonto', 'lineas' => array( array( $tipo, $texto ) ) ), 5 * MINUTE_IN_SECONDS );
+			self::volver_a_qonto();
+		};
+		$pasarelas = self::pasarelas();
+		$qonto     = $pasarelas['idital_qonto'] ?? null;
+		if ( ! $qonto || ! Idital_Pagos_Qonto_Oauth::conectado() ) {
+			$aviso( 'error', 'Primero hay que conectar la tienda con Qonto.' );
+		}
+		$telefono    = (string) $qonto->get_option( 'telefono' );
+		$descripcion = (string) $qonto->get_option( 'descripcion_negocio' );
+		if ( '' === $telefono || mb_strlen( $descripcion ) < 80 ) {
+			$aviso( 'error', 'Rellena y guarda "Teléfono de la empresa" y "Descripción del negocio" (mínimo 80 caracteres) antes de conectar los cobros.' );
+		}
+		try {
+			$r = ( new Idital_Pagos_Qonto_Client() )->conectar_proveedor( $telefono, $descripcion, admin_url( 'admin.php?page=wc-settings&tab=checkout&section=idital_qonto' ) );
+		} catch ( Idital_Pagos_Exception $e ) {
+			Idital_Pagos_Log::error( 'No se pudo iniciar la conexión con Mollie', array( 'error' => $e->getMessage() ) );
+			$aviso( 'error', $e->getMessage() );
+		}
+		if ( 'enabled' === $r['estado'] || '' === $r['url'] ) {
+			$aviso( 'enabled' === $r['estado'] ? 'ok' : 'aviso', 'Qonto indica que la conexión de cobros está en estado "' . ( $r['estado'] ?: 'desconocido' ) . '". Pulsa "Probar conexión con Qonto".' );
+		}
+		Idital_Pagos_Log::info( 'Iniciada la conexión de cobros con Mollie', array( 'usuario' => get_current_user_id() ) );
+		wp_redirect( $r['url'] ); // phpcs:ignore WordPress.Security.SafeRedirect -- dominio validado (Mollie/Qonto).
 		exit;
 	}
 

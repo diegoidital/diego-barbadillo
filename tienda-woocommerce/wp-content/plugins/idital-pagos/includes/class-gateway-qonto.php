@@ -45,6 +45,7 @@ final class Idital_Pagos_Gateway_Qonto extends Idital_Pagos_Gateway {
 		} elseif ( $oauth['conectado'] ) {
 			$extra[] = '✅ Tienda conectada con Qonto desde el ' . esc_html( wp_date( 'j/m/Y H:i', $oauth['conectado_el'] ?: time() ) ) . '. El acceso se renueva solo.';
 			$extra[] = $boton( 'idital_probar_qonto', 'Probar conexión con Qonto' ) . ' <span class="description">(solo lectura: no crea ni cobra nada)</span> &nbsp; ' . $boton( 'idital_qonto_desconectar', 'Desconectar', 'button-link-delete' );
+			$extra[] = $boton( 'idital_qonto_mollie', 'Conectar cobros (Mollie)' ) . ' <span class="description">(una sola vez: activa el cobro con tarjeta en los links. Antes, rellena y guarda "Teléfono" y "Descripción del negocio" más abajo.)</span>';
 		} else {
 			$extra[] = ( $oauth['roto'] ? '❌ Qonto ha retirado el acceso de la tienda. ' : '⚠️ ' ) . 'Falta autorizar a la tienda en Qonto. Debe hacerlo alguien con acceso de administrador a la cuenta Qonto de la empresa:';
 			$extra[] = $boton( 'idital_qonto_conectar', 'Conectar con Qonto', 'button button-primary' );
@@ -80,6 +81,24 @@ final class Idital_Pagos_Gateway_Qonto extends Idital_Pagos_Gateway {
 				'options'     => self::METODOS,
 				'default'     => array( 'credit_card', 'apple_pay' ),
 				'description' => __( 'Solo funcionarán los que estén activos en la cuenta de Mollie conectada a Qonto.', 'idital-pagos' ),
+			),
+			'cobros'      => array(
+				'title'       => __( 'Datos para activar los cobros (Mollie)', 'idital-pagos' ),
+				'type'        => 'title',
+				'description' => __( 'Qonto los envía a Mollie, el proveedor que procesa los pagos de los links. Solo se usan al pulsar "Conectar cobros (Mollie)".', 'idital-pagos' ),
+			),
+			'telefono'    => array(
+				'title'       => __( 'Teléfono de la empresa', 'idital-pagos' ),
+				'type'        => 'text',
+				'default'     => '',
+				'placeholder' => '+34600000000',
+				'description' => __( 'Formato internacional, sin espacios.', 'idital-pagos' ),
+			),
+			'descripcion_negocio' => array(
+				'title'       => __( 'Descripción del negocio', 'idital-pagos' ),
+				'type'        => 'textarea',
+				'default'     => '',
+				'description' => __( 'Qué vende la empresa y a quién (mínimo 80 caracteres).', 'idital-pagos' ),
 			),
 			'transferencia' => array(
 				'title'       => __( 'Datos para transferencia (opcional)', 'idital-pagos' ),
@@ -124,6 +143,24 @@ final class Idital_Pagos_Gateway_Qonto extends Idital_Pagos_Gateway {
 			return $this->get_option( 'iban' );
 		}
 		return $iban;
+	}
+
+	public function validate_telefono_field( $key, $value ) {
+		$telefono = preg_replace( '/[\s.\-()]/', '', (string) $value );
+		if ( '' !== $telefono && ! preg_match( '/^\+[1-9]\d{6,14}$/', $telefono ) ) {
+			WC_Admin_Settings::add_error( __( 'El teléfono debe ir en formato internacional, p. ej. +34600000000. No se ha guardado.', 'idital-pagos' ) );
+			return $this->get_option( 'telefono' );
+		}
+		return $telefono;
+	}
+
+	public function validate_descripcion_negocio_field( $key, $value ) {
+		$texto = trim( sanitize_textarea_field( (string) $value ) );
+		if ( '' !== $texto && mb_strlen( $texto ) < 80 ) {
+			WC_Admin_Settings::add_error( __( 'La descripción del negocio debe tener al menos 80 caracteres. No se ha guardado.', 'idital-pagos' ) );
+			return $this->get_option( 'descripcion_negocio' );
+		}
+		return mb_substr( $texto, 0, 1000 );
 	}
 
 	public function validate_bic_field( $key, $value ) {
