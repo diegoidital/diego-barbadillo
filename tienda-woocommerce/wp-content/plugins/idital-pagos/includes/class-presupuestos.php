@@ -26,7 +26,10 @@ final class Idital_Pagos_Presupuestos {
 	private static string $numero = '';
 
 	public static function init(): void {
-		add_action( 'init', array( __CLASS__, 'registrar_estado' ) );
+		// Prioridad 1: YITH procesa el formulario en "init" (prioridad 10) y el estado tiene que
+		// estar registrado antes; si no, WooCommerce lo guarda sin el prefijo "wc-" y no se lista.
+		add_action( 'init', array( __CLASS__, 'registrar_estado' ), 1 );
+		add_action( 'admin_init', array( __CLASS__, 'reparar_estados' ) );
 		add_filter( 'wc_order_statuses', array( __CLASS__, 'anadir_estado' ) );
 		add_filter( 'wc_order_is_editable', array( __CLASS__, 'editable' ), 10, 2 );
 
@@ -54,6 +57,23 @@ final class Idital_Pagos_Presupuestos {
 				'label_count'               => _n_noop( 'Presupuesto solicitado <span class="count">(%s)</span>', 'Presupuestos solicitados <span class="count">(%s)</span>', 'idital-pagos' ),
 			)
 		);
+	}
+
+	/**
+	 * Repara una vez los presupuestos guardados sin prefijo por versiones anteriores (≤ 1.4.0).
+	 */
+	public static function reparar_estados(): void {
+		if ( get_option( 'idital_presupuestos_reparado' ) || ! current_user_can( 'edit_shop_orders' ) ) {
+			return;
+		}
+		global $wpdb;
+		$tabla = $wpdb->prefix . 'wc_orders';
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $tabla ) ) === $tabla ) {
+			$wpdb->query( $wpdb->prepare( "UPDATE {$tabla} SET status = %s WHERE status = %s", self::ESTADO_WC, self::ESTADO ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+		$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->posts} SET post_status = %s WHERE post_status = %s AND post_type = 'shop_order'", self::ESTADO_WC, self::ESTADO ) );
+		wp_cache_flush_group( 'orders' );
+		update_option( 'idital_presupuestos_reparado', time(), false );
 	}
 
 	public static function anadir_estado( $estados ) {
