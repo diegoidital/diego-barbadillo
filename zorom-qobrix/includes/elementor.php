@@ -141,7 +141,7 @@ function zq_es_imagen_urbanizacion( $widget ) {
 
 function zq_video_de_pagina() {
 	$id = zq_resolve_project( '' );
-	return $id ? zq_video_html( zq_get_manual( $id, 'video_url' ) ) : '';
+	return $id ? zq_video_preview( zq_get_manual( $id, 'video_url' ) ) : '';
 }
 
 add_action( 'elementor/frontend/widget/before_render', function ( $widget ) {
@@ -160,7 +160,7 @@ add_filter( 'elementor/widget/render_content', function ( $content, $widget ) {
 	}
 	$GLOBALS['zq_video_usado'] = true; // El bloque [qobrix_video] suelto ya no se repite.
 	wp_enqueue_style( 'zorom-qobrix' );
-	return '<div class="elementor-widget-container"><div class="zq-video-relleno">' . $video . '</div></div>';
+	return '<div class="elementor-widget-container">' . $video . '</div>';
 }, 18, 2 );
 
 /*

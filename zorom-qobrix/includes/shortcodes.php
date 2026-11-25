@@ -639,6 +639,53 @@ function zq_video_html( $url ) {
 	return '';
 }
 
+/**
+ * Vídeo «de portada de bloque»: se ve como una imagen que rellena el marco (con vídeo en bucle si es .mp4,
+ * o la miniatura si es YouTube/Vimeo/Drive) y un botón para verlo en grande con sonido y controles.
+ */
+function zq_video_preview( $url ) {
+	$url = trim( (string) $url );
+	if ( '' === $url ) {
+		return '';
+	}
+	$thumb  = '';
+	$player = '';
+	$auto   = '';
+	if ( preg_match( '#(?:youtube\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/)|youtu\.be/)([\w-]{6,})#i', $url, $m ) ) {
+		$thumb  = 'https://i.ytimg.com/vi/' . $m[1] . '/maxresdefault.jpg';
+		$player = '<iframe src="https://www.youtube-nocookie.com/embed/' . esc_attr( $m[1] ) . '?autoplay=1&rel=0" title="Vídeo" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+	} elseif ( preg_match( '#vimeo\.com/(?:video/)?(\d+)#i', $url, $m ) ) {
+		$key = 'zq_vimeo_' . $m[1];
+		$th  = get_transient( $key );
+		if ( false === $th ) {
+			$r  = wp_remote_get( 'https://vimeo.com/api/oembed.json?url=' . rawurlencode( 'https://vimeo.com/' . $m[1] ), array( 'timeout' => 8 ) );
+			$j  = is_wp_error( $r ) ? null : json_decode( wp_remote_retrieve_body( $r ), true );
+			$th = ( is_array( $j ) && ! empty( $j['thumbnail_url'] ) ) ? preg_replace( '/_\d+(x\d+)?(?=\.\w+$)/', '_1280', $j['thumbnail_url'] ) : '';
+			set_transient( $key, $th, '' === $th ? HOUR_IN_SECONDS : WEEK_IN_SECONDS );
+		}
+		$thumb  = (string) $th;
+		$player = '<iframe src="https://player.vimeo.com/video/' . esc_attr( $m[1] ) . '?autoplay=1" title="Vídeo" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+	} elseif ( preg_match( '#drive\.google\.com/file/d/([\w-]+)#i', $url, $m ) ) {
+		$thumb  = 'https://drive.google.com/thumbnail?id=' . $m[1] . '&sz=w1600';
+		$player = '<iframe src="https://drive.google.com/file/d/' . esc_attr( $m[1] ) . '/preview" title="Vídeo" allow="autoplay; fullscreen" allowfullscreen></iframe>';
+	} elseif ( preg_match( '#\.(mp4|webm|mov)(\?.*)?$#i', $url ) ) {
+		$auto   = '<video class="zq-vid-auto" src="' . esc_url( $url ) . '" muted loop autoplay playsinline preload="metadata" aria-hidden="true"></video>';
+		$player = '<video src="' . esc_url( $url ) . '" controls autoplay playsinline></video>';
+	} else {
+		return '';
+	}
+	$media = $auto ? $auto : ( $thumb ? '<img class="zq-vid-thumb" src="' . esc_url( $thumb ) . '" alt="" loading="lazy" onerror="this.onerror=null;this.src=this.src.replace(\'maxresdefault\',\'hqdefault\')">' : '' );
+	$html  = '<div class="zq-video-relleno zq-vid-prev">' . $media
+		. '<button type="button" class="zq-vid-play" aria-label="Ver vídeo en grande"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg><span>Ver vídeo</span></button>'
+		. '<template class="zq-vid-tpl">' . $player . '</template></div>';
+	static $js = false;
+	if ( ! $js ) {
+		$js    = true;
+		$html .= '<script>(function(){function cerrar(){var m=document.querySelector(".zq-vid-modal");if(m){m.remove();document.documentElement.classList.remove("zq-vid-abierto");}}document.addEventListener("click",function(e){var b=e.target.closest(".zq-vid-prev");if(b&&!e.target.closest(".zq-vid-modal")){var t=b.querySelector("template");if(!t)return;cerrar();var m=document.createElement("div");m.className="zq-vid-modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.innerHTML=\'<button type="button" class="zq-vid-cerrar" aria-label="Cerrar">&times;</button><div class="zq-vid-caja"></div>\';m.querySelector(".zq-vid-caja").appendChild(t.content.cloneNode(true));document.body.appendChild(m);document.documentElement.classList.add("zq-vid-abierto");return;}if(e.target.closest(".zq-vid-cerrar")||e.target.classList.contains("zq-vid-modal")){cerrar();}});document.addEventListener("keydown",function(e){if(e.key==="Escape")cerrar();});})();</script>';
+	}
+	return $html;
+}
+
 /* [qobrix_video]: vídeo de la promoción (campo «Vídeo de la promoción» al editarla). Sin vídeo no pinta nada. */
 add_shortcode( 'qobrix_video', function ( $atts ) {
 	$a = shortcode_atts( array( 'proyecto' => '' ), $atts, 'qobrix_video' );

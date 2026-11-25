@@ -740,28 +740,96 @@ body:has(.zq-carrusel, .zq-video) {
 	overflow-x: clip;
 }
 
-/* Vídeo en lugar de la imagen de «Urbanización»: mismo marco con bloque negro, proporción 16:9. */
-.elementor-widget-image.zq-bloque-video {
-	flex-grow: 0;
-	align-self: center;
-	width: 100%;
-	min-height: 0;
-	aspect-ratio: 16 / 9;
-}
-
-.zq-bloque-video .zq-video-relleno {
+/* Vídeo en lugar de la imagen de «Urbanización»: mismo formato que la imagen (marco vertical con bloque negro). */
+.zq-video-relleno {
 	position: absolute;
 	inset: 0;
 	overflow: hidden;
 	border-radius: var(--zq-bloque-radio, 20px);
 	background: #000;
+	cursor: pointer;
 }
 
-.zq-bloque-video .zq-video-relleno iframe,
-.zq-bloque-video .zq-video-relleno video {
+.zq-video-relleno .zq-vid-auto,
+.zq-video-relleno .zq-vid-thumb {
+	position: absolute;
+	inset: 0;
 	display: block;
 	width: 100%;
 	height: 100%;
-	border: 0;
 	object-fit: cover;
+}
+
+.zq-vid-play {
+	position: absolute;
+	right: 16px;
+	bottom: 16px;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 16px 10px 12px;
+	border: 0;
+	border-radius: 999px;
+	background: rgba(0, 0, 0, .72);
+	color: #fff;
+	font: inherit;
+	font-size: 14px;
+	line-height: 1;
+	cursor: pointer;
+	transition: background .2s;
+}
+
+.zq-vid-play svg {
+	width: 20px;
+	height: 20px;
+}
+
+.zq-video-relleno:hover .zq-vid-play,
+.zq-vid-play:focus-visible {
+	background: #000;
+}
+
+/* Visor a pantalla grande */
+.zq-vid-abierto { overflow: hidden; }
+
+.zq-vid-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 999999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4vw;
+	background: rgba(0, 0, 0, .88);
+}
+
+.zq-vid-caja {
+	position: relative;
+	width: min(100%, 1280px);
+	aspect-ratio: 16 / 9;
+	max-height: 88vh;
+	background: #000;
+}
+
+.zq-vid-caja iframe,
+.zq-vid-caja video {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border: 0;
+}
+
+.zq-vid-cerrar {
+	position: absolute;
+	top: 14px;
+	right: 22px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: #fff;
+	font-size: 44px;
+	line-height: 1;
+	cursor: pointer;
 }
