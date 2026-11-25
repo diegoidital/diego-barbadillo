@@ -639,6 +639,17 @@ function zq_video_html( $url ) {
 	return '';
 }
 
+/** Visor de vídeo a pantalla grande: se imprime una sola vez, en el pie de la página. */
+function zq_video_visor_js() {
+	if ( ! has_action( 'wp_footer', 'zq_video_visor_js_imprimir' ) ) {
+		add_action( 'wp_footer', 'zq_video_visor_js_imprimir', 40 );
+	}
+}
+
+function zq_video_visor_js_imprimir() {
+	echo '<script>(function(){function cerrar(){var m=document.querySelector(".zq-vid-modal");if(m){m.remove();document.documentElement.classList.remove("zq-vid-abierto");}}document.addEventListener("click",function(e){var b=e.target.closest(".zq-vid-prev");if(b&&!e.target.closest(".zq-vid-modal")){var t=b.querySelector("template");if(!t)return;cerrar();var m=document.createElement("div");m.className="zq-vid-modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.innerHTML=\'<button type="button" class="zq-vid-cerrar" aria-label="Cerrar">&times;</button><div class="zq-vid-caja"></div>\';m.querySelector(".zq-vid-caja").appendChild(t.content.cloneNode(true));document.body.appendChild(m);document.documentElement.classList.add("zq-vid-abierto");return;}if(e.target.closest(".zq-vid-cerrar")||e.target.classList.contains("zq-vid-modal")){cerrar();}});document.addEventListener("keydown",function(e){if(e.key==="Escape")cerrar();});})();</script>'; // phpcs:ignore WordPress.Security.EscapeOutput
+}
+
 /**
  * Vídeo «de portada de bloque»: se ve como una imagen que rellena el marco (con vídeo en bucle si es .mp4,
  * o la miniatura si es YouTube/Vimeo/Drive) y un botón para verlo en grande con sonido y controles.
@@ -678,11 +689,7 @@ function zq_video_preview( $url ) {
 	$html  = '<div class="zq-video-relleno zq-vid-prev">' . $media
 		. '<button type="button" class="zq-vid-play" aria-label="Ver vídeo en grande"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg><span>Ver vídeo</span></button>'
 		. '<template class="zq-vid-tpl">' . $player . '</template></div>';
-	static $js = false;
-	if ( ! $js ) {
-		$js    = true;
-		$html .= '<script>(function(){function cerrar(){var m=document.querySelector(".zq-vid-modal");if(m){m.remove();document.documentElement.classList.remove("zq-vid-abierto");}}document.addEventListener("click",function(e){var b=e.target.closest(".zq-vid-prev");if(b&&!e.target.closest(".zq-vid-modal")){var t=b.querySelector("template");if(!t)return;cerrar();var m=document.createElement("div");m.className="zq-vid-modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.innerHTML=\'<button type="button" class="zq-vid-cerrar" aria-label="Cerrar">&times;</button><div class="zq-vid-caja"></div>\';m.querySelector(".zq-vid-caja").appendChild(t.content.cloneNode(true));document.body.appendChild(m);document.documentElement.classList.add("zq-vid-abierto");return;}if(e.target.closest(".zq-vid-cerrar")||e.target.classList.contains("zq-vid-modal")){cerrar();}});document.addEventListener("keydown",function(e){if(e.key==="Escape")cerrar();});})();</script>';
-	}
+	zq_video_visor_js(); // El visor se imprime una vez, en el pie de la página.
 	return $html;
 }
 

@@ -615,9 +615,9 @@ body.single-promocion a.elementor-button[href="#contacto"]:focus,
 .zq-carrusel {
 	position: relative;
 	left: 50%;
-	width: 94vw;
-	max-width: 1760px;
-	padding: 0 52px;
+	width: 98vw;
+	max-width: 2100px;
+	padding: 0 44px;
 	box-sizing: border-box;
 	transform: translateX(-50%);
 }
@@ -641,7 +641,7 @@ body.single-promocion a.elementor-button[href="#contacto"]:focus,
 	scroll-snap-align: start;
 	display: block;
 	overflow: hidden;
-	border-radius: 0;
+	border-radius: 12px;
 	cursor: zoom-in;
 }
 
@@ -713,8 +713,8 @@ body.single-promocion a.elementor-button[href="#contacto"]:focus,
 	position: relative;
 	left: 50%;
 	overflow: hidden;
-	width: 94vw;
-	max-width: 1560px;
+	width: 98vw;
+	max-width: 1760px;
 	margin: 60px 0 0;
 	transform: translateX(-50%);
 	border-radius: 20px;
