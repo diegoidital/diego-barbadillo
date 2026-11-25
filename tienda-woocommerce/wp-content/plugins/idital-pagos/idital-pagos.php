@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Idital Pagos (Qonto + TropiPay)
  * Description:       Pasarelas de pago para WooCommerce que generan en el servidor links de pago de Qonto y TropiPay y confirman el cobro consultando a la propia pasarela.
- * Version:           1.5.1
+ * Version:           1.5.2
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            Idital
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'IDITAL_PAGOS_VERSION', '1.5.1' );
+define( 'IDITAL_PAGOS_VERSION', '1.5.2' );
 define( 'IDITAL_PAGOS_FILE', __FILE__ );
 define( 'IDITAL_PAGOS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'IDITAL_PAGOS_URL', plugin_dir_url( __FILE__ ) );

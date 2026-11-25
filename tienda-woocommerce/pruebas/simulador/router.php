@@ -246,6 +246,10 @@ if ( 'POST' === $metodo && '/api/v3/paymentcards' === $ruta ) {
 	if ( ! in_array( substr( $auth, 7 ), $e['tpp_tokens'] ?? array(), true ) ) {
 		json_out( 401, array( 'error' => 'unauthorized' ) );
 	}
+	// Como producción: serviceDate es obligatorio (AAAA-MM-DD).
+	if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $cuerpo['serviceDate'] ?? '' ) ) ) {
+		json_out( 400, array( 'error' => array( 'type' => 'VALIDATION_ERROR', 'code' => 'INVALID_SERVICE_DATE', 'message' => 'Invalid service date', 'details' => array() ) ) );
+	}
 	$id                   = uuid();
 	$card                 = $cuerpo + array( 'id' => $id );
 	$card['paymentUrl']   = null; // Como la API real: el link útil es shortUrl.

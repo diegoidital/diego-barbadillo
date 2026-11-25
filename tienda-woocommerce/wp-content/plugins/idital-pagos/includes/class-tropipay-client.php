@@ -81,6 +81,7 @@ final class Idital_Pagos_Tropipay_Client {
 			'singleUse'       => true,
 			'reasonId'        => 4,
 			'expirationDate'  => gmdate( 'Y-m-d\\TH:i:s\\Z', time() + $dias_caducidad * DAY_IN_SECONDS ), // Caducidad del link.
+			'serviceDate'     => wp_date( 'Y-m-d' ), // Obligatorio en producción (INVALID_SERVICE_DATE si falta).
 			'lang'            => 'es',
 			'urlSuccess'      => $pedido->get_checkout_order_received_url(),
 			'urlFailed'       => $pedido->get_checkout_payment_url(),
@@ -171,16 +172,13 @@ final class Idital_Pagos_Tropipay_Client {
 		$permisos  = preg_split( '/\s+/', trim( (string) ( $respuesta['datos']['scope'] ?? '' ) ) );
 		$resultado = array( array( 'ok', 'Credenciales válidas (' . ( Idital_Pagos_Config::tropipay_sandbox() ? 'sandbox' : 'producción' ) . ').' ) );
 		$resultado[] = array( 'ok', 'Permisos de la credencial: ' . ( implode( ', ', array_map( 'sanitize_text_field', array_filter( $permisos ) ) ) ?: 'no indicados' ) );
-		// Mínimo para crear links de pago y cobrarlos (principio de mínimo privilegio).
-		$necesarios = array( 'ALLOW_CREATE_PAYMENTCARD', 'ALLOW_PAYMENT_IN', 'ALLOW_EXTERNAL_CHARGE' );
-		$permisos   = array_filter( $permisos );
-		$faltan     = array_diff( $necesarios, $permisos );
-		$sobran     = array_diff( $permisos, $necesarios );
-		if ( $faltan ) {
-			$resultado[] = array( 'error', 'Faltan permisos imprescindibles: ' . implode( ', ', array_map( 'sanitize_text_field', $faltan ) ) . '.' );
-		}
-		if ( $sobran ) {
-			$resultado[] = array( 'aviso', 'Permisos que el plugin no usa y conviene quitar de la credencial: ' . implode( ', ', array_map( 'sanitize_text_field', $sobran ) ) . '. Después, vuelve a probar la conexión y haz un pago de prueba.' );
+		// La creación de links funciona en producción sin un permiso concreto conocido, así que no se
+		// exige ninguno. Sí se avisa de los permisos que permiten SACAR dinero o gestionar la cuenta:
+		// el plugin no los usa y, si la credencial se filtrara, serían los peligrosos.
+		$peligrosos = array( 'ALLOW_PAYMENT_OUT', 'ALLOW_EXTERNAL_TRANSFER', 'ALLOW_INTERNAL_TRANSFER_OUT', 'ALLOW_CREATE_BENEFICIARY', 'ALLOW_UPDATE_BENEFICIARY', 'ALLOW_CRYPTO_BUY', 'ALLOW_CRYPTO_TOPUP', 'ALLOW_EXTERNAL_TOPUP', 'ALLOW_RECHARGE', 'ALLOW_GIFT_CARD', 'ALLOW_PAY_WITH_TROPICARD', 'ALLOW_MARKET_PURCHASES', 'ALLOW_MANAGE_STORE', 'ALLOW_OTA_CHARGE', 'ALLOW_SELF_CHARGE' );
+		$riesgo     = array_values( array_intersect( array_filter( $permisos ), $peligrosos ) );
+		if ( $riesgo ) {
+			$resultado[] = array( 'aviso', 'Permisos que el plugin no usa y que permiten mover dinero o gestionar la cuenta (conviene quitarlos de la credencial y volver a probar creando un link): ' . implode( ', ', array_map( 'sanitize_text_field', $riesgo ) ) . '.' );
 		}
 		return $resultado;
 	}
