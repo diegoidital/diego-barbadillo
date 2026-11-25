@@ -119,6 +119,51 @@ add_filter( 'elementor/widget/render_content', function ( $content, $widget ) {
 }, 25, 2 );
 
 /*
+ * Vídeo en lugar de la imagen de «Urbanización»: si la promoción tiene «URL del vídeo»,
+ * la imagen con bloque negro de la descripción (galeria:1, o cualquier imagen con la clase
+ * «zq-video-aqui») pasa a ser el vídeo. Sin vídeo se queda la imagen.
+ */
+function zq_es_imagen_urbanizacion( $widget ) {
+	if ( ! is_object( $widget ) || 'image' !== $widget->get_name() ) {
+		return false;
+	}
+	$clases = (string) $widget->get_settings( '_css_classes' );
+	if ( false !== strpos( $clases, 'zq-video-aqui' ) ) {
+		return true;
+	}
+	if ( false === strpos( $clases, 'zq-bloque-izda' ) && false === strpos( $clases, 'zq-bloque-dcha' ) ) {
+		return false;
+	}
+	$data = (array) $widget->get_data( 'settings' );
+	$dyn  = isset( $data['__dynamic__']['image'] ) ? rawurldecode( rawurldecode( (string) $data['__dynamic__']['image'] ) ) : '';
+	return false !== strpos( $dyn, 'galeria:1"' );
+}
+
+function zq_video_de_pagina() {
+	$id = zq_resolve_project( '' );
+	return $id ? zq_video_html( zq_get_manual( $id, 'video_url' ) ) : '';
+}
+
+add_action( 'elementor/frontend/widget/before_render', function ( $widget ) {
+	if ( zq_es_imagen_urbanizacion( $widget ) && '' !== zq_video_de_pagina() ) {
+		$widget->add_render_attribute( '_wrapper', 'class', 'zq-bloque-video' );
+	}
+} );
+
+add_filter( 'elementor/widget/render_content', function ( $content, $widget ) {
+	if ( ! zq_es_imagen_urbanizacion( $widget ) ) {
+		return $content;
+	}
+	$video = zq_video_de_pagina();
+	if ( '' === $video ) {
+		return $content;
+	}
+	$GLOBALS['zq_video_usado'] = true; // El bloque [qobrix_video] suelto ya no se repite.
+	wp_enqueue_style( 'zorom-qobrix' );
+	return '<div class="elementor-widget-container"><div class="zq-video-relleno">' . $video . '</div></div>';
+}, 18, 2 );
+
+/*
  * Fecha de las entradas en los widgets «Publicaciones» y «Archivo» de Elementor con el formato
  * del diseño (21·09·2026), sin cambiar el formato de fecha del resto de la web.
  */

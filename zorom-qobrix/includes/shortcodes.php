@@ -644,7 +644,7 @@ add_shortcode( 'qobrix_video', function ( $atts ) {
 	$a = shortcode_atts( array( 'proyecto' => '' ), $atts, 'qobrix_video' );
 	$post_id = zq_resolve_project( $a['proyecto'] );
 	$html    = $post_id ? zq_video_html( zq_get_manual( $post_id, 'video_url' ) ) : '';
-	if ( '' === $html ) {
+	if ( '' === $html || ! empty( $GLOBALS['zq_video_usado'] ) ) { // Ya se muestra en lugar de la imagen de Urbanización.
 		return '';
 	}
 	wp_enqueue_style( 'zorom-qobrix' );
