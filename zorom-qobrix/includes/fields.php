@@ -459,3 +459,45 @@ function zq_fotos_distintas( array $ids, $n, array $excluir = array(), $post_id 
 	}
 	return $usar;
 }
+
+
+/**
+ * Reordena las fotos para que las parecidas no queden juntas: cada foto se elige lo más distinta
+ * posible de las últimas colocadas. El orden es siempre el mismo (no cambia en cada visita).
+ */
+function zq_fotos_intercaladas( array $ids ) {
+	$ids = array_values( array_unique( array_map( 'intval', array_filter( $ids ) ) ) );
+	if ( count( $ids ) < 3 ) {
+		return $ids;
+	}
+	$huella = array();
+	foreach ( $ids as $id ) {
+		$huella[ $id ] = (string) zq_img_huella( $id );
+	}
+	$dist = function ( $a, $b ) use ( $huella ) {
+		if ( '' === $huella[ $a ] || '' === $huella[ $b ] ) {
+			return 32;
+		}
+		return count( array_diff_assoc( str_split( $huella[ $a ] ), str_split( $huella[ $b ] ) ) );
+	};
+	$res = array( array_shift( $ids ) );
+	while ( $ids ) {
+		$ultimas = array_slice( $res, -3 );
+		$mejor   = null;
+		$mejor_d = -1;
+		foreach ( $ids as $k => $id ) {
+			// Pesa más la distancia a la última y a la anterior que a la tercera.
+			$d = 0;
+			foreach ( array_reverse( $ultimas ) as $n => $u ) {
+				$d += $dist( $id, $u ) * ( 3 - $n );
+			}
+			if ( $d > $mejor_d ) {
+				$mejor_d = $d;
+				$mejor   = $k;
+			}
+		}
+		$res[] = $ids[ $mejor ];
+		array_splice( $ids, $mejor, 1 );
+	}
+	return $res;
+}

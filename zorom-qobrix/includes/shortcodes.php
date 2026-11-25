@@ -558,6 +558,7 @@ add_shortcode( 'qobrix_galeria', function ( $atts ) {
 		'estilo'   => 'carrusel', // «carrusel» (todas las fotos de Qobrix) o «rejilla».
 		'visibles' => 4,
 		'segundos' => 4,
+		'orden'    => 'intercalado', // «original» = el de Qobrix.
 	), $atts, 'qobrix_galeria' );
 
 	$post_id = zq_resolve_project( $a['proyecto'] );
@@ -567,6 +568,9 @@ add_shortcode( 'qobrix_galeria', function ( $atts ) {
 		$ids = array_values( array_filter( $ids ) );
 		if ( ! $ids ) {
 			return '';
+		}
+		if ( 'original' !== $a['orden'] ) {
+			$ids = zq_fotos_intercaladas( $ids ); // Las fotos parecidas no quedan juntas.
 		}
 		wp_enqueue_style( 'zorom-qobrix' );
 		$html = '<div class="zq-carrusel" style="--zq-vis-desk:' . max( 1, (int) $a['visibles'] ) . '" data-segundos="' . max( 0, (int) $a['segundos'] ) . '" role="region" aria-label="Galería de imágenes">'
