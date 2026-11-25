@@ -556,7 +556,7 @@ add_shortcode( 'qobrix_galeria', function ( $atts ) {
 		'tamano'   => 'large',
 		'variado'  => 'si', // «no» = fotos seguidas, tal cual vienen de Qobrix.
 		'estilo'   => 'carrusel', // «carrusel» (todas las fotos de Qobrix) o «rejilla».
-		'visibles' => 4,
+		'visibles' => 3,
 		'segundos' => 4,
 		'orden'    => 'intercalado', // «original» = el de Qobrix.
 	), $atts, 'qobrix_galeria' );

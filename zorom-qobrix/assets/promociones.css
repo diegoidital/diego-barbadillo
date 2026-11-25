@@ -623,7 +623,7 @@ body.single-promocion a.elementor-button[href="#contacto"]:focus,
 }
 
 .zq-carrusel__pista {
-	--zq-visibles: 4;
+	--zq-visibles: 3;
 	display: flex;
 	gap: 20px;
 	overflow-x: auto;
@@ -641,7 +641,7 @@ body.single-promocion a.elementor-button[href="#contacto"]:focus,
 	scroll-snap-align: start;
 	display: block;
 	overflow: hidden;
-	border-radius: 12px;
+	border-radius: 0;
 	cursor: zoom-in;
 }
 
@@ -695,11 +695,11 @@ body.single-promocion a.elementor-button[href="#contacto"]:focus,
 .zq-carrusel__flecha--dcha:hover { transform: translateX(2px); }
 
 @media (min-width: 1100px) {
-	.zq-carrusel__pista { --zq-visibles: var(--zq-vis-desk, 4); }
+	.zq-carrusel__pista { --zq-visibles: var(--zq-vis-desk, 3); }
 }
 
 @media (min-width: 768px) and (max-width: 1099px) {
-	.zq-carrusel__pista { --zq-visibles: min(3, var(--zq-vis-desk, 4)); }
+	.zq-carrusel__pista { --zq-visibles: min(2, var(--zq-vis-desk, 3)); }
 }
 
 @media (max-width: 767px) {
