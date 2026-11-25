@@ -401,6 +401,11 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 	), $atts, 'qobrix_propiedades' );
 
 	$post_id = zq_resolve_project( $a['proyecto'] );
+	// Interruptores de Promociones → Todas las promociones.
+	$ocultar_res = $post_id && '1' === (string) get_post_meta( $post_id, 'zq_ocultar_reservadas', true );
+	if ( $post_id && '0' === (string) get_post_meta( $post_id, 'zq_boton_ver', true ) ) {
+		$a['ver'] = '';
+	}
 	$units   = $post_id ? zq_get_units( $post_id ) : array();
 	$hide    = array_filter( array_map( 'trim', explode( ',', strtolower( $a['ocultar'] ) ) ) );
 	$units   = array_filter( $units, function ( $u ) use ( $hide ) {
@@ -431,6 +436,10 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 			$disponibles[] = $u;
 		}
 	}
+	$hay_reservadas = (bool) $reservadas;
+	if ( $ocultar_res ) {
+		$reservadas = array();
+	}
 	foreach ( array( &$disponibles, &$reservadas, &$vendidas ) as &$grupo ) {
 		usort( $grupo, function ( $x, $y ) {
 			return strnatcmp( (string) ( $x['ref'] ?? '' ), (string) ( $y['ref'] ?? '' ) );
@@ -453,7 +462,7 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 		foreach ( $list as $u ) {
 			$status = strtolower( (string) ( isset( $u['status'] ) ? $u['status'] : '' ) );
 			$url    = ! empty( $u['_post'] ) ? get_permalink( (int) $u['_post'] ) : '';
-			$html  .= '<tr class="zq-estado-' . esc_attr( sanitize_html_class( $status ) ) . ( $url ? ' zq-fila-enlace' : '' ) . '"' . ( $url ? ' data-href="' . esc_url( $url ) . '" tabindex="0"' : '' ) . '>';
+			$html  .= '<tr class="zq-estado-' . esc_attr( sanitize_html_class( $status ) ) . '">';
 			foreach ( $cols as $i => $c ) {
 				$v = '';
 				foreach ( $c[0] as $f ) {
@@ -489,7 +498,7 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 						break;
 					case 'plano':
 						$pl = ! empty( $u['_post'] ) ? zq_planos_de_unidad( (int) $u['_post'] ) : array();
-						if ( count( $pl ) > 1 && $url ) {
+						if ( count( $pl ) > 1 && $url && $ver ) {
 							// Varios planos (sótano, baja, primera…): a la ficha del inmueble, donde están todos.
 							$txt = '<a class="zq-ver-plano" href="' . esc_url( $url . '#planos' ) . '">' . zq_viv_icono( 'plano' ) . 'Ver planos (' . count( $pl ) . ')</a>';
 						} elseif ( $pl ) {
@@ -504,7 +513,6 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 				if ( ! in_array( $c[2], array( 'dormbanos', 'plano' ), true ) ) {
 					$v   = '' === (string) $v ? '—' : $v;
 					$txt = esc_html( (string) $v );
-					$txt = ( 0 === $i && $url ) ? '<a href="' . esc_url( $url ) . '">' . $txt . '</a>' : $txt;
 					$txt = $clase ? '<b class="' . esc_attr( $clase ) . '">' . $txt . '</b>' : $txt;
 				}
 				$html .= '<td data-label="' . esc_attr( $c[1] ) . '"><span>' . $txt . '</span></td>';
@@ -523,7 +531,7 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 		$out .= '<table class="zq-propiedades">' . $thead . '<tbody>' . $filas( $disponibles ) . '</tbody></table>';
 	} else {
 		// Sin disponibles: la cabecera de la tabla se mantiene, con el aviso en una fila.
-		$aviso = ( $vendidas && ! $reservadas ) ? $a['todas_vendidas'] : $a['sin_disponibles'];
+		$aviso = ( $vendidas && ! $hay_reservadas ) ? $a['todas_vendidas'] : $a['sin_disponibles'];
 		$out  .= '<table class="zq-propiedades zq-propiedades--vacia">' . $thead . '<tbody><tr><td class="zq-sin-propiedades" colspan="' . ( count( $cols ) + ( $a['ver'] ? 1 : 0 ) ) . '">' . esc_html( $aviso ) . '</td></tr></tbody></table>';
 	}
 	if ( $reservadas ) {
@@ -536,12 +544,6 @@ add_shortcode( 'qobrix_propiedades', function ( $atts ) {
 	}
 	$out .= '</div>';
 
-	// Toda la fila lleva a la página del inmueble.
-	static $js = false;
-	if ( ! $js ) {
-		$js   = true;
-		$out .= '<script>document.addEventListener("click",function(e){var t=e.target.closest(".zq-fila-enlace");if(t&&!e.target.closest("a")){location.href=t.dataset.href;}});document.addEventListener("keydown",function(e){var t=e.target.closest&&e.target.closest(".zq-fila-enlace");if(t&&e.key==="Enter"){location.href=t.dataset.href;}});</script>';
-	}
 	return $out;
 } );
 
@@ -553,10 +555,40 @@ add_shortcode( 'qobrix_galeria', function ( $atts ) {
 		'columnas' => 2,
 		'tamano'   => 'large',
 		'variado'  => 'si', // «no» = fotos seguidas, tal cual vienen de Qobrix.
+		'estilo'   => 'carrusel', // «carrusel» (todas las fotos de Qobrix) o «rejilla».
+		'visibles' => 4,
+		'segundos' => 4,
 	), $atts, 'qobrix_galeria' );
 
 	$post_id = zq_resolve_project( $a['proyecto'] );
 	$ids     = $post_id ? array_values( (array) get_post_meta( $post_id, '_zq_galeria', true ) ) : array();
+
+	if ( 'rejilla' !== $a['estilo'] ) {
+		$ids = array_values( array_filter( $ids ) );
+		if ( ! $ids ) {
+			return '';
+		}
+		wp_enqueue_style( 'zorom-qobrix' );
+		$html = '<div class="zq-carrusel" style="--zq-vis-desk:' . max( 1, (int) $a['visibles'] ) . '" data-segundos="' . max( 0, (int) $a['segundos'] ) . '" role="region" aria-label="Galería de imágenes">'
+			. '<button type="button" class="zq-carrusel__flecha zq-carrusel__flecha--izda" aria-label="Anterior">&#8249;</button>'
+			. '<div class="zq-carrusel__pista">';
+		foreach ( $ids as $id ) {
+			$full = wp_get_attachment_image_url( $id, 'full' );
+			if ( ! $full ) {
+				continue;
+			}
+			$html .= '<a class="zq-carrusel__item" href="' . esc_url( $full ) . '" data-elementor-open-lightbox="yes" data-elementor-lightbox-slideshow="zq-' . (int) $post_id . '">'
+				. wp_get_attachment_image( $id, $a['tamano'], false, array( 'loading' => 'lazy', 'draggable' => 'false' ) ) . '</a>';
+		}
+		$html .= '</div><button type="button" class="zq-carrusel__flecha zq-carrusel__flecha--dcha" aria-label="Siguiente">&#8250;</button></div>';
+		static $js = false;
+		if ( ! $js ) {
+			$js    = true;
+			$html .= '<script>(function(){function init(c){var p=c.querySelector(".zq-carrusel__pista"),it=p.querySelectorAll(".zq-carrusel__item"),paso=function(){var i=it[0];return i?i.getBoundingClientRect().width+parseFloat(getComputedStyle(p).columnGap||0):0};function mover(d){var w=paso();if(!w)return;var fin=p.scrollLeft+p.clientWidth>=p.scrollWidth-4;if(d>0&&fin){p.scrollTo({left:0,behavior:"smooth"});}else if(d<0&&p.scrollLeft<=4){p.scrollTo({left:p.scrollWidth,behavior:"smooth"});}else{p.scrollBy({left:d*w,behavior:"smooth"});}}c.querySelector(".zq-carrusel__flecha--izda").addEventListener("click",function(){mover(-1)});c.querySelector(".zq-carrusel__flecha--dcha").addEventListener("click",function(){mover(1)});var seg=parseInt(c.dataset.segundos,10)||0,t=null,pausa=false;function ini(){if(!seg||t||matchMedia("(prefers-reduced-motion: reduce)").matches)return;t=setInterval(function(){if(!pausa)mover(1)},seg*1000)}c.addEventListener("mouseenter",function(){pausa=true});c.addEventListener("mouseleave",function(){pausa=false});c.addEventListener("focusin",function(){pausa=true});c.addEventListener("focusout",function(){pausa=false});c.addEventListener("touchstart",function(){pausa=true},{passive:true});ini()}function todo(){document.querySelectorAll(".zq-carrusel").forEach(function(c){if(!c.dataset.zq){c.dataset.zq=1;init(c)}})}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",todo)}else{todo()}document.addEventListener("elementor/popup/show",todo)})();</script>';
+		}
+		return $html;
+	}
+
 	if ( (int) $a['limite'] && 'no' !== $a['variado'] ) {
 		// Fotos que no se parezcan entre sí ni a las ya usadas arriba (destacada y anteriores a «desde»).
 		$antes = array_slice( $ids, 0, max( 0, (int) $a['desde'] - 1 ) );
@@ -578,6 +610,41 @@ add_shortcode( 'qobrix_galeria', function ( $atts ) {
 			. wp_get_attachment_image( $id, $a['tamano'], false, array( 'loading' => 'lazy' ) ) . '</a>';
 	}
 	return $html . '</div>';
+} );
+
+/** URL de vídeo (YouTube, Vimeo, Drive o .mp4) → HTML del reproductor ('' si no es válida). */
+function zq_video_html( $url ) {
+	$url = trim( (string) $url );
+	if ( '' === $url ) {
+		return '';
+	}
+	$embed = '';
+	if ( preg_match( '#(?:youtube\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/)|youtu\.be/)([\w-]{6,})#i', $url, $m ) ) {
+		$embed = 'https://www.youtube-nocookie.com/embed/' . $m[1] . '?rel=0';
+	} elseif ( preg_match( '#vimeo\.com/(?:video/)?(\d+)#i', $url, $m ) ) {
+		$embed = 'https://player.vimeo.com/video/' . $m[1];
+	} elseif ( preg_match( '#drive\.google\.com/file/d/([\w-]+)#i', $url, $m ) ) {
+		$embed = 'https://drive.google.com/file/d/' . $m[1] . '/preview';
+	}
+	if ( $embed ) {
+		return '<iframe src="' . esc_url( $embed ) . '" title="Vídeo de la promoción" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+	}
+	if ( preg_match( '#\.(mp4|webm|mov)(\?.*)?$#i', $url ) ) {
+		return '<video src="' . esc_url( $url ) . '" controls playsinline preload="metadata"></video>';
+	}
+	return '';
+}
+
+/* [qobrix_video]: vídeo de la promoción (campo «Vídeo de la promoción» al editarla). Sin vídeo no pinta nada. */
+add_shortcode( 'qobrix_video', function ( $atts ) {
+	$a = shortcode_atts( array( 'proyecto' => '' ), $atts, 'qobrix_video' );
+	$post_id = zq_resolve_project( $a['proyecto'] );
+	$html    = $post_id ? zq_video_html( zq_get_manual( $post_id, 'video_url' ) ) : '';
+	if ( '' === $html ) {
+		return '';
+	}
+	wp_enqueue_style( 'zorom-qobrix' );
+	return '<div class="zq-video">' . $html . '</div>';
 } );
 
 add_shortcode( 'qobrix_mapa', function ( $atts ) {

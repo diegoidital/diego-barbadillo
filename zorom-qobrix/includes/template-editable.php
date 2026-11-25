@@ -155,8 +155,8 @@ function zq_editable_template_data() {
 				'button_text_color' => '#000000',
 				'border_border'     => 'solid',
 				'border_width'      => zq_ed_box( 1, 1, 1, 1 ),
-				'border_color'      => '#000000',
-				'border_radius'     => zq_ed_box( 10, 10, 10, 10 ),
+				'border_color'      => '#FFFFFF',
+				'border_radius'     => zq_ed_box( 0, 0, 0, 0 ),
 				'text_padding'      => zq_ed_box( 11, 14, 11, 14 ),
 				'typography_text_transform' => 'uppercase',
 			), zq_ed_type( 'Geist', 14, '500' ) ) ),
@@ -221,7 +221,10 @@ function zq_editable_template_data() {
 	$o[] = $u;
 
 	// 6. Galería.
-	$o[] = zq_ed_con( array( zq_tpl_sc( '[qobrix_galeria desde="2" limite="2" columnas="2"]' ) ), array( 'padding' => zq_ed_box( 87, 20, 0, 20 ), '_title' => 'Galería' ) );
+	$o[] = zq_ed_con( array( zq_tpl_sc( '[qobrix_galeria]' ) ), array( 'padding' => zq_ed_box( 87, 20, 0, 20 ), '_title' => 'Galería' ) );
+
+	// 6b. Vídeo (desaparece si la promoción no tiene).
+	$o[] = zq_ed_con( array( zq_tpl_sc( '[qobrix_video]' ) ), array( 'padding' => zq_ed_box( 0, 20, 0, 20 ), '_title' => 'Vídeo' ) );
 
 	// 7. Localización.
 	$dist = function ( $i, $l, $c ) {

@@ -22,6 +22,9 @@ function zq_manual_fields() {
 			'zona_texto'     => array( 'Texto', 'html', '' ),
 			'zona_imagen'    => array( 'Imagen', 'image', '' ),
 		),
+		'Vídeo de la promoción'         => array(
+			'video_url' => array( 'URL del vídeo', 'text', 'YouTube, Vimeo, Google Drive (enlace compartido) o un .mp4. Si se deja vacío, el bloque de vídeo no aparece.' ),
+		),
 		'Descripción de la promoción'   => array(
 			'descripcion_titulo' => array( 'Título', 'text', 'Ej.: Urbanización de lujo en Calpe' ),
 			'descripcion_es'     => array( 'Descripción en español', 'html', 'Qobrix solo tiene la descripción en inglés. Si se rellena, se usa esta en toda la web (pestañas y página).' ),

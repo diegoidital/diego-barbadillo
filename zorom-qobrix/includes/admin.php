@@ -260,6 +260,8 @@ add_filter( 'manage_' . ZQ_CPT . '_posts_columns', function ( $cols ) {
 		$new[ $k ] = $v;
 		if ( 'title' === $k ) {
 			$new['zq_precio'] = 'Precio desde';
+			$new['zq_ocultar_res'] = 'Ocultar reservadas';
+			$new['zq_boton_ver']   = 'Botón «Ver propiedad»';
 			$new['zq_id']     = 'ID Qobrix';
 		}
 	}
@@ -269,6 +271,10 @@ add_filter( 'manage_' . ZQ_CPT . '_posts_columns', function ( $cols ) {
 add_action( 'manage_' . ZQ_CPT . '_posts_custom_column', function ( $col, $post_id ) {
 	if ( 'zq_precio' === $col ) {
 		echo zq_render_field( $post_id, 'precio' ); // phpcs:ignore WordPress.Security.EscapeOutput
+	} elseif ( 'zq_ocultar_res' === $col ) {
+		zq_switch( $post_id, 'zq_ocultar_reservadas', '1' === (string) get_post_meta( $post_id, 'zq_ocultar_reservadas', true ) );
+	} elseif ( 'zq_boton_ver' === $col ) {
+		zq_switch( $post_id, 'zq_boton_ver', '0' !== (string) get_post_meta( $post_id, 'zq_boton_ver', true ) );
 	} elseif ( 'zq_id' === $col ) {
 		echo '<code>' . esc_html( get_post_meta( $post_id, '_qobrix_id', true ) ) . '</code>';
 	}
@@ -305,4 +311,64 @@ add_action( 'admin_post_zq_urls_limpias', function () {
 	update_option( 'zq_flush', 1 );
 	wp_safe_redirect( admin_url( 'options-permalink.php?settings-updated=true' ) );
 	exit;
+} );
+
+
+/* -------------------------------------------------------------------------
+ * Interruptores on/off en Promociones → Todas las promociones
+ *  - Ocultar reservadas: quita las propiedades reservadas de la lista de la promoción.
+ *  - Botón «Ver propiedad»: muestra u oculta esa columna (sin ella no se puede entrar en la propiedad).
+ * ---------------------------------------------------------------------- */
+function zq_switch( $post_id, $key, $on ) {
+	printf(
+		'<label class="zq-sw"><input type="checkbox" class="zq-sw__in" data-post="%d" data-key="%s" %s><span class="zq-sw__ui"></span><span class="zq-sw__txt">%s</span></label>',
+		(int) $post_id,
+		esc_attr( $key ),
+		checked( $on, true, false ),
+		$on ? 'Sí' : 'No'
+	);
+}
+
+add_action( 'wp_ajax_zq_switch', function () {
+	check_ajax_referer( 'zq_switch', 'nonce' );
+	$post_id = isset( $_POST['post'] ) ? absint( $_POST['post'] ) : 0;
+	$key     = isset( $_POST['key'] ) ? sanitize_key( wp_unslash( $_POST['key'] ) ) : '';
+	if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) || ZQ_CPT !== get_post_type( $post_id ) || ! in_array( $key, array( 'zq_ocultar_reservadas', 'zq_boton_ver' ), true ) ) {
+		wp_send_json_error( null, 403 );
+	}
+	update_post_meta( $post_id, $key, empty( $_POST['on'] ) ? '0' : '1' );
+	wp_send_json_success();
+} );
+
+add_action( 'admin_footer-edit.php', function () {
+	$s = get_current_screen();
+	if ( ! $s || 'edit-' . ZQ_CPT !== $s->id ) {
+		return;
+	}
+	?>
+	<style>
+		.column-zq_ocultar_res, .column-zq_boton_ver { width: 130px; }
+		.zq-sw { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+		.zq-sw__in { position: absolute; opacity: 0; pointer-events: none; }
+		.zq-sw__ui { position: relative; width: 40px; height: 22px; border-radius: 11px; background: #b4b9be; transition: background .2s; flex: none; }
+		.zq-sw__ui::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s; }
+		.zq-sw__in:checked + .zq-sw__ui { background: #000; }
+		.zq-sw__in:checked + .zq-sw__ui::after { transform: translateX(18px); }
+		.zq-sw__in:focus-visible + .zq-sw__ui { outline: 2px solid #2271b1; outline-offset: 2px; }
+		.zq-sw.is-saving { opacity: .5; }
+	</style>
+	<script>
+	jQuery(function ($) {
+		var nonce = <?php echo wp_json_encode( wp_create_nonce( 'zq_switch' ) ); ?>;
+		$(document).on('change', '.zq-sw__in', function () {
+			var $i = $(this), $l = $i.closest('.zq-sw'), on = $i.is(':checked');
+			$l.addClass('is-saving');
+			$.post(ajaxurl, { action: 'zq_switch', nonce: nonce, post: $i.data('post'), key: $i.data('key'), on: on ? 1 : 0 })
+				.done(function () { $l.find('.zq-sw__txt').text(on ? 'Sí' : 'No'); })
+				.fail(function () { $i.prop('checked', !on); alert('No se pudo guardar el cambio.'); })
+				.always(function () { $l.removeClass('is-saving'); });
+		});
+	});
+	</script>
+	<?php
 } );
