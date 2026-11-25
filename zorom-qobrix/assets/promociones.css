@@ -82,8 +82,13 @@
 .zq-datos {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 20px;
+	gap: 20px 28px;
 	margin: 44px 0 0;
+}
+
+.zq-dato {
+	padding-top: 14px;
+	border-top: 1px solid #000;
 }
 
 .zq-dato dt {
