@@ -1,7 +1,22 @@
+/*
+Theme Name: Hello Elementor Child
+Theme URI: https://github.com/elementor/hello-theme/
+Description: Hello Elementor Child is a child theme of Hello Elementor, created by Elementor team
+Author: Elementor Team
+Author URI: https://elementor.com/
+Template: hello-elementor
+Version: 1.1.0
+Text Domain: hello-elementor-child
+License: GNU General Public License v3 or later.
+License URI: https://www.gnu.org/licenses/gpl-3.0.html
+Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, featured-images, rtl-language-support, threaded-comments, translation-ready
+*/
+
 /* ============================================================
    CSS PERSONALIZADO – IDITAL
-   Revisado 2026-11: eliminadas reglas sin uso, duplicadas e inválidas.
-   Tema: Hello Elementor (hijo). Menús: JetMenu. Plantilla footer: 41998.
+   Antes estaba en Apariencia > Personalizar > CSS adicional (vaciarlo).
+   Este archivo carga antes que JetMenu: si una regla de menús no se
+   aplica, súbele la especificidad o añade !important.
    ============================================================ */
 
 /* ------------------------------------------------------------
@@ -56,7 +71,7 @@ input#submit.submit {
 li.jet-menu-item { padding-right: 30px; }
 
 /* Submenús desplegables */
-.jet-menu-item .jet-sub-menu { background-color: #edf0f0; }
+.jet-menu-item .jet-sub-menu { background-color: #edf0f0 !important; }
 .jet-menu-item .jet-sub-menu > li > a { color: #000 !important; }
 .jet-menu-item .jet-sub-menu > li > a:hover { color: #77bfeb !important; }
 
