@@ -129,6 +129,9 @@ span.jet-dropdown-arrow svg.e-fas-angle-right { max-height: 20px !important; }
 	/* Sin iconos en los ítems del menú */
 	.jet-menu-item-wrapper .jet-menu-icon { display: none !important; }
 
+	/* Sin viñetas en las listas de iconos (en los artículos aparecerían ○) */
+	.elementor-widget .elementor-icon-list-items { list-style: none !important; }
+
 	/* Oculta el texto del ítem "Kit Digital" (deja solo el icono/imagen) */
 	#jet-menu-item-77916 > a > div > div { display: none; }
 
