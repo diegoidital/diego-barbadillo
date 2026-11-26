@@ -1,0 +1,157 @@
+/* ============================================================
+   CSS PERSONALIZADO – IDITAL
+   Revisado 2026-11: eliminadas reglas sin uso, duplicadas e inválidas.
+   Tema: Hello Elementor (hijo). Menús: JetMenu. Plantilla footer: 41998.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   GLOBAL
+   ------------------------------------------------------------ */
+
+/* reCAPTCHA v3 invisible (Elementor y otro formulario): oculta el sello.
+   Google exige entonces mostrar en el formulario el texto
+   "Este sitio está protegido por reCAPTCHA y se aplican la Política de
+   privacidad y los Términos del servicio de Google." */
+.elementor-g-recaptcha,
+.recaptcha_v3-inline {
+	display: none;
+}
+
+/* Cabecera siempre por encima del resto de elementos */
+.elementor-location-header {
+	z-index: 999 !important;
+}
+
+/* Listas de iconos centradas: separación vertical entre ítems */
+.elementor-widget.elementor-align-center .elementor-icon-list-item,
+.elementor-widget.elementor-align-center .elementor-icon-list-item a {
+	padding-top: 5px;
+}
+
+/* Botón de las cajas "llamada a la acción" con fondo transparente */
+.elementor-cta__button {
+	background-color: transparent !important;
+}
+
+/* Caja de autor y acordeones (FAQ) */
+.elementor-author-box__name { color: #000; }
+.elementor-toggle-title { color: #5689a5 !important; }
+
+/* ------------------------------------------------------------
+   BLOG: formulario de comentarios
+   ------------------------------------------------------------ */
+.comment-form-cookies-consent { display: none; }
+
+input#submit.submit {
+	background-color: #6ec1e3 !important;
+	border-color: #6ec1e3 !important;
+	color: #fff !important;
+}
+
+/* ------------------------------------------------------------
+   MENÚ DE ESCRITORIO (JetMenu)
+   ------------------------------------------------------------ */
+
+/* Separación horizontal entre ítems del menú principal */
+li.jet-menu-item { padding-right: 30px; }
+
+/* Submenús desplegables */
+.jet-menu-item .jet-sub-menu { background-color: #edf0f0; }
+.jet-menu-item .jet-sub-menu > li > a { color: #000 !important; }
+.jet-menu-item .jet-sub-menu > li > a:hover { color: #77bfeb !important; }
+
+/* Megamenús: posición y fondo */
+.jet-sub-mega-menu {
+	left: auto !important;
+	top: 45px !important;
+	background-color: #ddd !important;
+}
+
+/* Megamenú "WEB" (ítem 64534) centrado bajo su ítem */
+.jet-menu-item-64534 > .jet-sub-mega-menu {
+	left: 50% !important;
+	right: auto !important;
+	transform: translateX(-50%);
+}
+
+@media (max-width: 1200px) {
+	.jet-menu-item-64534 > .jet-sub-mega-menu { max-width: 95vw !important; }
+}
+
+/* ------------------------------------------------------------
+   MENÚ MÓVIL (JetMenu, widget #menu-movil-trigger del footer)
+   ------------------------------------------------------------ */
+
+/* Botón flotante (hamburguesa / X) */
+#menu-movil-trigger .jet-mobile-menu__toggle {
+	z-index: 9999;
+	background-color: #fff !important;
+	border: 1px solid #ccc !important;
+	border-radius: 50% !important;
+}
+#menu-movil-trigger .jet-mobile-menu__toggle-icon { padding: 4px 5px !important; }
+#menu-movil-trigger .jet-mobile-menu__toggle-icon svg {
+	height: 25px;
+	fill: #000 !important;
+	color: #000 !important;
+}
+
+/* Panel a pantalla completa, sin capa oscura y con scroll */
+.jet-mobile-menu__instance--slide-out-layout .jet-mobile-menu__container { width: 100% !important; }
+#menu-movil-trigger .jet-mobile-menu__container-inner { margin: 0 !important; }
+#menu-movil-trigger .jet-mobile-menu-cover { display: none; }
+.jet-menu-body-blocker { overflow: auto; }
+
+/* Controles (cerrar / atrás) arriba a la derecha */
+#menu-movil-trigger .jet-mobile-menu__controls {
+	position: absolute;
+	top: 0;
+	right: 10px;
+	height: 20px !important;
+	margin-top: 15px !important;
+}
+.jet-mobile-menu__back { z-index: 9999; }
+#menu-movil-trigger .jet-mobile-menu__body { margin-top: 15px; }
+
+/* Enlaces */
+#menu-movil-trigger .jet-mobile-menu a { color: #000 !important; }
+#menu-movil-trigger .jet-mobile-menu a:hover { color: #77bfeb !important; }
+
+/* Flechas de submenú: tamaño contenido para que el clic no lleve a la página */
+.jet-mobile-menu .jet-dropdown-arrow { width: 10px; }
+span.jet-dropdown-arrow svg.e-fas-angle-right { max-height: 20px !important; }
+
+/* ------------------------------------------------------------
+   TABLET Y MÓVIL (≤1024px)
+   ------------------------------------------------------------ */
+@media (max-width: 1024px) {
+
+	/* Sin iconos en los ítems del menú */
+	.jet-menu-item-wrapper .jet-menu-icon { display: none !important; }
+
+	/* Oculta el texto del ítem "Kit Digital" (deja solo el icono/imagen) */
+	#jet-menu-item-77916 > a > div > div { display: none; }
+
+	/* Oculta la cabecera fija (en móvil se usa el botón flotante) */
+	.elementor-location-header > .elementor-sticky { display: none; }
+
+	/* --- Megamenú WEB (plantilla 64535): mover a su CSS personalizado --- */
+	.elementor-64535 .elementor-element-1167c90f > .elementor-background-overlay { background: transparent !important; }
+	.elementor-64535 .elementor-element-26b0e0b7 .elementor-heading-title,
+	.elementor-64535 .elementor-element-3ad5ae2c { text-align: left !important; }
+	.elementor-64535 .elementor-element-504adef > .elementor-element-populated,
+	.elementor-64535 .elementor-element-79acd61 > .elementor-element-populated { margin: 0 !important; padding: 0 !important; }
+	.elementor-64535 .elementor-element-b4633c4 > .elementor-element-populated,
+	.elementor-64535 .elementor-element-c51af6b > .elementor-element-populated { padding-left: 0 !important; padding-right: 0 !important; }
+	.elementor-64535 :is(.elementor-element-504adef, .elementor-element-79acd61, .elementor-element-b4633c4, .elementor-element-c51af6b) > .elementor-element-populated .elementor-icon-list-item > a { font-size: 100% !important; }
+}
+
+/* ------------------------------------------------------------
+   ELEMENTOS CONCRETOS (mejor en Elementor > Avanzado > CSS personalizado)
+   ------------------------------------------------------------ */
+
+/* Botón flotante "¿HABLAMOS?" */
+.elementor-element.elementor-element-083fbb6 {
+	right: 50px !important;
+	bottom: 100px !important;
+}
